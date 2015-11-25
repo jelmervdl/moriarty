@@ -1,0 +1,74 @@
+\documentclass{article}
+\usepackage{cite}
+\usepackage{tabularx}
+
+\begin{document}
+
+\title{How can a machine mine and understand arguments?}
+\author{Jelmer van der Linde\\s1772791}
+\date{November 2015}
+
+\begingroup
+
+\maketitle
+\vspace*{300pt}
+\noindent{\bf Master Project Proposal}\\
+Artificial Intelligence\\
+University of Groningen, The Netherlands\\[\baselineskip]
+Internal Supervisor:\\
+Dr. Bart Verheij (Artificial Intelligence, University of Groningen)
+
+\endgroup
+
+\newpage
+
+\section{Problem}
+Machines are not yet capable of understanding arguments embedded in natural language.
+
+\section{State of the art}
+Attempts have been made to formalize argumentation schemes (e.g. \cite{Dung:1995dsa})
+
+Attempts have been made by \cite{Mochales:2011eg} to mine these schemes form natural language using natural language processing and machine learning to learn and match argumentation schemes.
+
+Natural language processing (NLP) has been able to parse sentences syntactically and semantically (\cite{Curran:2007vq}) but is not targeted at extracting the argumentation from text. Several design choices made that might not be compatible with argumentation schemes.
+
+\section{Idea}
+\emph{TODO} Design a semi-formal language (= controlled natural language, = instantiated formal language) that is both understandable for machines and humans
+
+\section{Results}
+This research will yield an implementation that is capable of interaction through a controlled natural language, a formal argument language, a visual representation of argumentation schemes (argument diagrams) with the user with are sound and complete. The interface will be browser-based.
+
+A formal language which maps the controlled natural language to argumentation schemes will be created.
+
+A case study will be performed to evaluate the design of the implementation. Initially this will be done based on a mock case specifically designed to test the coherence of all of the features of the system. After this a real case study will be performed based on for example criminal proceedings. (The latter somewhat similar to the case study done by Charlotte Vlek.)
+
+\emph{TODO: Is this a good idea? I might want to focus more in the interaction part (computer says: Please elaborate!) than on the trying to do the same thing as existing systems, which also lack implicit knowledge and therefore have a hard time.}
+
+\emph{Step 1: generate argumentation schemes for texts.}\\
+\emph{Step 2: generating argumentation schemes in a Q\&A session with the user, asking for details. (This is the most interesting part I think!)}
+
+\section{Relevance}
+Argumentation is one of the corner stones of human society, and being able to argument well is highly regarded. Computers have for a long time been able to reason and do this well, however they have not yet been able to debate with humans. This due to the difference between argumentation and formal logic and the difficulty of interpreting natural language.
+
+This research proposal suggests to skip over the difficulties of interpreting natural language by limiting its interaction through a controlled natural language. This will show what is required from a language to capture argumentation.
+
+\section{Schedule}
+\begin{tabularx}{\linewidth}{r|X}
+    Late Nov & Being able to interpret sentences of the form \tt{B because A} into a intermediate formal structure.\\
+    Dec & Being able to interpret sentences such as \tt{All A are B. X is an A, thus X is a B.} \\
+    Jan & Being able to interpret exceptions to found rules.\\
+    Feb & Mock case study and writing (first draft)\\
+    Mar & Mock case study and writing (second draft)\\
+    8th of April & Optionally submission of second draft to COMMA 2016\\
+    May  & case study using an existing court case (or other existing case)\\
+    June & Finalize thesis\\
+\end{tabularx}
+
+\section{Resources and support}
+I will work somewhere near a coffee machine or coffee bar on my own laptop. The produced results will be made available under a GNU GPL2? MIT? license.
+
+\section{References}
+\bibliography{argumentmining}{}
+\bibliographystyle{plain}
+
+\end{document}
