@@ -2,7 +2,7 @@
 
 # Based on https://github.com/Hardmath123/nearley/blob/master/lib/nearley.js
 
-from typing import List, Optional
+from typing import List, Optional, Any, Callable
 
 class ParseError(RuntimeError):
     pass
@@ -32,16 +32,20 @@ class Literal(Terminal):
 
 
 class Rule(NonTerminal):
-    def __init__(self, name: str, symbols: List[Symbol]):
+    def __init__(self, name: str, symbols: List[Symbol], callback: Optional[Callable[[Any, int], Any]] = None):
         self.name = name
         self.symbols = symbols
+        if callback is not None:
+            self.callback = callback
+        else:
+            self.callback = lambda data, n: [name, data]
 
     def __repr__(self, with_cursor_at: int = None) -> str:
         return "{} --> {}".format(self.name, " | ".join(map(repr, self.symbols)))
 
     def finish(self, data, reference, FAIL):
         print("!!! Finishing {} with data {} and reference {}!".format(self.name, data, reference))
-        return [self.name, data]
+        return self.callback(data, reference)
 
 
 class RuleRef(NonTerminal):
@@ -236,6 +240,36 @@ sentence = ['Jan','is','punishable','because','Jan','is','a','thief','.']
 # predicate(A) --> [a], archetype(A).
 # archetype(thief) --> [thief].
 
+class Predicate:
+    def __init__(self, what):
+        self.what = what
+
+    def __str__(self):
+        return self.what
+
+class Person:
+    def __init__(self, name: str):
+        self.name = name
+
+    def __str__(self):
+        return "a person named {}".format(self.name)
+
+class IsAStatement:
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
+
+    def __str__(self):
+        return "{} is {}".format(self.a, self.b)
+
+class Argument:
+    def __init__(self, assertion, reasons):
+        self.assertion = assertion
+        self.reasons = reasons
+
+    def __str__(self):
+        return "{} because {}".format(str(self.assertion), " and ".join(map(str, self.reasons)))
+
 def L(value):
     return Literal(value)
 
@@ -243,12 +277,12 @@ def R(name):
     return RuleRef(name)
 
 rules = [
-    Rule('ARGUMENT', [R('STATEMENT'), L('because'), R('STATEMENT'), L('.')]),
-    Rule('STATEMENT', [R('ACTOR'), L('is'), R('PREDICATE')]),
-    Rule('ACTOR', [L('Jan')]),
-    Rule('PREDICATE', [L('punishable')]),
-    Rule('PREDICATE', [L('a'),R('ARCHETYPE')]),
-    Rule('ARCHETYPE', [L('thief')])
+    Rule('ARGUMENT', [R('STATEMENT'), L('because'), R('STATEMENT'), L('.')], lambda data, n: Argument(data[0], [data[2]])),
+    Rule('STATEMENT', [R('ACTOR'), L('is'), R('PREDICATE')], lambda data, n: IsAStatement(data[0], data[2])),
+    Rule('ACTOR', [L('Jan')], lambda data, n: Person(data[0])),
+    Rule('PREDICATE', [L('punishable')], lambda data, n: Predicate(data[0])),
+    Rule('PREDICATE', [L('a'),R('ARCHETYPE')], lambda data, n: Predicate(data[1])),
+    Rule('ARCHETYPE', [L('thief')], lambda data, n: data[0])
 ]
 
 parser = Parser(rules, 'ARGUMENT')
