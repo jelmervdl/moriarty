@@ -1,17 +1,25 @@
-\documentclass{article}
-\usepackage{cite}
+\documentclass[a4paper]{article}
+% \usepackage[a4paper,includeheadfoot,margin=2.54cm]{geometry}
+\usepackage{natbib}
 \usepackage{tabularx}
 
 \begin{document}
 
 \title{How can a machine mine and understand arguments?}
 \author{Jelmer van der Linde\\s1772791}
-\date{November 2015}
+\date{December 2015}
 
 \begingroup
 
 \maketitle
-\vspace*{300pt}
+\abstract{
+    Computers can reason, but they cannot argue with humans using natural language. % Problem
+    Much research has been put into defining arguments into formal structures, resulting in both abstract formal approaches that cannot be easily linked to natural language, or vague schemas that have ambiguious definitions, resorting to machine learning to let the machine interpret these. % State of the art
+    By creating a controlled natural language that allows formal arguments to be expressed in a natural language and vice versa, % New idea
+    we can start developing computer interpretable argumentation and let the computer understand or support humans \emph{in this task}.% Result
+}
+
+\vspace*{250pt}
 \noindent{\bf Master Project Proposal}\\
 Artificial Intelligence\\
 University of Groningen, The Netherlands\\[\baselineskip]
@@ -22,53 +30,56 @@ Dr. Bart Verheij (Artificial Intelligence, University of Groningen)
 
 \newpage
 
-\section{Problem}
-Machines are not yet capable of understanding arguments embedded in natural language.
+\section*{Problem}
+Machines are not yet capable of understanding (i.e. being able to interpret and reason with) arguments embedded in natural language.
 
-\section{State of the art}
-Attempts have been made to formalize argumentation schemes (e.g. \cite{Dung:1995dsa})
+\section*{State of the art}
+Reasoning using propositional logic is well defined but too formal to apply directly to argumentation in natural language. Argumentation in natural language has been formalized by Pollock's Defeasible Reasoning \citep{Pollock:1987defeasible}, Reiter's extension on default theories \citep{Reiter:1980ix}, Toulmin's layout for arguments \citep{Toulmin:2003uses}, Dung's argumentation frameworks \citep{Dung:1995dsa}, and Verheij's \textsc{DefLog} \citep{Verheij:2003gx}. However, all these formalisms are created with their own visual or formal language, separate from the natural language in which the actual argumenting occurs.
 
-Attempts have been made by \cite{Mochales:2011eg} to mine these schemes form natural language using natural language processing and machine learning to learn and match argumentation schemes.
+At a more semantical level, efforts have been made to try to identify and formalise the argumentation schemes used in natural language \citep{Walton:2013argumentation}.
 
-Natural language processing (NLP) has been able to parse sentences syntactically and semantically (\cite{Curran:2007vq}) but is not targeted at extracting the argumentation from text. Several design choices made that might not be compatible with argumentation schemes.
+Even more practical attempts have been taken by \citet{Mochales:2011eg} to mine arguments written in the format of these schemes form natural language using natural language processing (NLP) and machine learning (ML). The problem with this approach is that its quality is mostly controlled by the precision of the NLP and the ML components.
 
-\section{Idea}
-\emph{TODO} Design a semi-formal language (= controlled natural language, = instantiated formal language) that is both understandable for machines and humans
+NLP has been able to parse sentences syntactically and semantically \citep{Curran:2007vq} but is not targeted at extracting the argumentation from text. Several design choices made that might not be compatible with argumentation schemes.
 
-\section{Results}
-This research will yield an implementation that is capable of interaction through a controlled natural language, a formal argument language, a visual representation of argumentation schemes (argument diagrams) with the user with are sound and complete. The interface will be browser-based.
+\section*{New Idea}
+Design a semi-formal language (i.e. a controlled natural language or instantiated formal language) that is both understandable for machines and humans. Arguments expressed in this language are machine interpretable and can be used in inference. The results after inference are again expressible in the semi-formal language, therefore creating a controlled way for humans to reason interactively with a computer.
 
-A formal language which maps the controlled natural language to argumentation schemes will be created.
+\section*{Results}
+This research will yield an implementation that is capable of interaction with humans through a controlled natural language and a formal argument language that are sound and complete, and a visual representation of arguments using argument diagrams similar to those used by Toulmin and \textsc{DefLog}. The interface will be browser-based.
 
-A case study will be performed to evaluate the design of the implementation. Initially this will be done based on a mock case specifically designed to test the coherence of all of the features of the system. After this a real case study will be performed based on for example criminal proceedings. (The latter somewhat similar to the case study done by Charlotte Vlek.)
+A controlled natural language, very similar to the English language will be defined as the language with which the human can interact with the system. Eventually this language could be used to develop a Q\&A like interface for the system, although an implementation of this application is not inside the scope of this project.
 
-\emph{TODO: Is this a good idea? I might want to focus more in the interaction part (computer says: Please elaborate!) than on the trying to do the same thing as existing systems, which also lack implicit knowledge and therefore have a hard time.}
+A case study will be performed to evaluate the design of the implementation. Initially this will be done based on a mock case specifically designed to test the coherence of all of the features of the system. After this a real case study will be performed by letting the program validate plea written in the controlled natural language and based on for example existing criminal proceedings.
 
-\emph{Step 1: generate argumentation schemes for texts.}\\
-\emph{Step 2: generating argumentation schemes in a Q\&A session with the user, asking for details. (This is the most interesting part I think!)}
+%\emph{TODO: Is this a good idea? I might want to focus more in the interaction part (computer says: Please elaborate!) than on the trying to do the same thing as existing systems, which also lack implicit knowledge and therefore have a hard time.}
 
-\section{Relevance}
-Argumentation is one of the corner stones of human society, and being able to argument well is highly regarded. Computers have for a long time been able to reason and do this well, however they have not yet been able to debate with humans. This due to the difference between argumentation and formal logic and the difficulty of interpreting natural language.
+%\emph{Step 1: generate argumentation schemes for texts.}\\
+%\emph{Step 2: generating argumentation schemes in a Q\&A session with the user, asking for details. (This is the most interesting part I think!)}
 
-This research proposal suggests to skip over the difficulties of interpreting natural language by limiting its interaction through a controlled natural language. This will show what is required from a language to capture argumentation.
+\section*{Relevance}
+Argumentation is one of the corner stones of human society, and being able to argument well is highly regarded. Computers have for a long time been able to reason and do this well and do this extremely fast, however they have not yet been able to debate with humans. This due to the difference between argumentation and formal logic, and the difficulty of understanding natural language.
 
-\section{Schedule}
+This research proposal suggests to skip over the difficulties of interpreting natural language by limiting its interaction through a controlled natural language. This will show what is required from a language to capture argumentation, and what can be achieved when the computer can argue with its user.
+
+\section*{Schedule}
 \begin{tabularx}{\linewidth}{r|X}
-    Late Nov & Being able to interpret sentences of the form \tt{B because A} into a intermediate formal structure.\\
-    Dec & Being able to interpret sentences such as \tt{All A are B. X is an A, thus X is a B.} \\
-    Jan & Being able to interpret exceptions to found rules.\\
-    Feb & Mock case study and writing (first draft)\\
+    Late Nov & Being able to interpret sentences of the form \texttt{B because A} into a intermediate formal structure.\\
+    Dec & Literature study (focus on previous research, argumentation schemes)\\
+        & Being able to interpret sentences such as \texttt{A's are B's. X is an A, thus X is a B.} \\
+    Jan & Literature study (focus on reasoning in argumentation)\\
+        & Being able to interpret exceptions to found rules.\\
+    Feb & Expand coverage by doing a mock case study and writing (first draft)\\
     Mar & Mock case study and writing (second draft)\\
-    8th of April & Optionally submission of second draft to COMMA 2016\\
+    8th of April & (Optionally) Submission of second draft to COMMA 2016\\
     May  & case study using an existing court case (or other existing case)\\
     June & Finalize thesis\\
 \end{tabularx}
 
-\section{Resources and support}
-I will work somewhere near a coffee machine or coffee bar on my own laptop. The produced results will be made available under a GNU GPL2? MIT? license.
+\section*{Resources and support}
+For this research no additional resources are requested. The implementation will be made available under a MIT license.
 
-\section{References}
 \bibliography{argumentmining}{}
-\bibliographystyle{plain}
+\bibliographystyle{plainnat}
 
 \end{document}
