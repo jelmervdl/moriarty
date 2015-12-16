@@ -1,67 +1,93 @@
 #!/usr/bin/env python3
 
 # Based on https://github.com/Hardmath123/nearley/blob/master/lib/nearley.js
+import operator
+from typing import List, Optional, Any, Callable, Union, cast
 
-from typing import List, Optional, Any, Callable
+import functools
+
+import sys
+
+
+def log(line: str) -> None:
+    pass
+
+
+def flatten(lists):
+    return functools.reduce(operator.add, lists)
+
 
 class ParseError(RuntimeError):
     pass
 
+
 class Symbol:
-    pass
+    def test(self, literal: str) -> bool:
+        raise NotImplementedError("Sybmol.test is abstract")
 
 
-class Terminal(Symbol):
-    def test(self, literal):
-        raise NotImplementedError("Terminal.test is abstract")
-
-
-class NonTerminal(Symbol):
-    pass
-
-
-class Literal(Terminal):
-    def __init__(self, literal: str):
+class Literal(Symbol):
+    def __init__(self, literal: str) -> None:
         self.literal = literal
 
-    def test(self, literal: str):
+    def test(self, literal: str) -> bool:
         return self.literal == literal
 
     def __repr__(self) -> str:
         return "\"{}\"".format(self.literal)
 
 
-class Rule(NonTerminal):
-    def __init__(self, name: str, symbols: List[Symbol], callback: Optional[Callable[[Any, int], Any]] = None):
+class RuleRef(Symbol):
+    def __init__(self, name: str) -> None:
         self.name = name
-        self.symbols = symbols
-        if callback is not None:
-            self.callback = callback
-        else:
-            self.callback = lambda data, n: [name, data]
 
-    def __repr__(self, with_cursor_at: int = None) -> str:
-        return "{} --> {}".format(self.name, " | ".join(map(repr, self.symbols)))
-
-    def finish(self, data, reference, FAIL):
-        print("!!! Finishing {} with data {} and reference {}!".format(self.name, data, reference))
-        return self.callback(data, reference)
-
-
-class RuleRef(NonTerminal):
-    def __init__(self, name: str):
-        self.name = name
+    def test(self, literal: str) -> bool:
+        return False
 
     def __repr__(self, with_cursor_at: int = None) -> str:
         return "{}".format(self.name)
 
 
+class Rule:
+    def __init__(self, name: str, symbols: List[Symbol], callback: Optional[Callable[[Any, int], Any]] = None) -> None:
+        self.name = name
+        self.symbols = symbols
+        if callback is not None:
+            self.callback = callback
+        else:
+            self.callback = lambda data, n: flatten(data)
+
+    def __repr__(self, with_cursor_at: int = None) -> str:
+        if with_cursor_at is not None:
+            return "{} --> {} ● {}".format(
+                    self.name,
+                    " ".join(map(repr, self.symbols[:with_cursor_at])),
+                    " ".join(map(repr, self.symbols[with_cursor_at:])))
+        else:
+            return "{} --> {}".format(self.name, " ".join(map(repr, self.symbols)))
+
+    def finish(self, data, reference, FAIL) -> Any:
+        log("!!! Finishing {} with data {} and reference {}!".format(self.name, data, reference))
+        return self.callback(data, reference)
+
+
+class Digit(Symbol):
+    def test(self, literal: str) -> bool:
+        return literal.isdigit()
+
+
+class Alpha(Symbol):
+    def test(self, literal:str) -> bool:
+        return literal.isalpha()
+
+
 class State:
-    def __init__(self, rule: Rule, expect: int, reference: int):
+    def __init__(self, rule: Rule, expect: int, reference: int) -> None:
+        assert len(rule.symbols) > 0
         self.rule = rule
         self.expect = expect
         self.reference = reference
-        self.data = []
+        self.data = [] # type: List[Any]
 
     def __repr__(self) -> str:
         return "{{}}, from: {}".format(self.rule.__repr__(self.expect), self.reference)
@@ -73,19 +99,28 @@ class State:
         return state
 
     def consumeTerminal(self, inp: str) -> Optional['State']:
-        print("consumeTerminal {} using {} expecting {}".format(inp, self.rule, self.rule.symbols[self.expect] if len(self.rule.symbols) > self.expect else '>END<'))
-        if len(self.rule.symbols) > self.expect \
-            and hasattr(self.rule.symbols[self.expect], 'test') \
-            and self.rule.symbols[self.expect].test(inp):
-            print("Terminal consumed")
+        log("consumeTerminal {} using {} expecting {}".format(inp, self.rule, self.rule.symbols[self.expect] if len(
+            self.rule.symbols) > self.expect else '>END<'))
+        if len(self.rule.symbols) > self.expect and self.rule.symbols[self.expect].test(inp):
+            log("Terminal consumed")
             return self.nextState(inp)
         else:
             return None
 
     def consumeNonTerminal(self, inp: Rule) -> Optional['State']:
-        print("consumeNonTerminal {} while expecting {}".format(inp, self.rule.symbols[self.expect]))
-        if isinstance(self.rule.symbols[self.expect], NonTerminal) and self.rule.symbols[self.expect].name == inp.name:
-            print("Nonterminal consumed")
+        assert isinstance(inp, Rule)
+        assert len(self.rule.symbols) > 0
+        assert len(self.rule.symbols) > self.expect, "Expected {}th symbol but rule {} only has {} symbols".format(self.expect + 1, self.rule, len(self.rule.symbols))
+        #log("consumeNonTerminal {} while expecting {}".format(inp, self.rule.symbols[self.expect]))
+
+        if not isinstance(self.rule.symbols[self.expect], RuleRef):
+            return None
+
+        assert isinstance(self.rule.symbols[self.expect], RuleRef), "Expected a RuleRef, but found a {}".format(type(self.rule.symbols[self.expect]))
+        symbol = cast(RuleRef, self.rule.symbols[self.expect])
+
+        if symbol.name == inp.name:
+            log("Nonterminal consumed")
             return self.nextState(inp)
         else:
             return None
@@ -93,37 +128,38 @@ class State:
     def process(self, location, table: List[List['State']], rules: List[Rule], added_rules: List[Rule]) -> None:
         if self.expect == len(self.rule.symbols):
             # We have a completed rule
-            self.data = self.rule.finish(self.data, self.reference, Parser.FAIL)
+            try:
+                self.data = self.rule.finish(self.data, self.reference, Parser.FAIL)
 
-            if self.data is not Parser.FAIL:
                 w = 0
                 # We need a while here because the empty rule will modify table[reference] when location == reference
                 while w < len(table[self.reference]):
-                    if not isinstance(self.rule, NonTerminal):
-                        continue
-                    s = table[self.reference][w]
-                    x = s.consumeNonTerminal(self.rule)
-                    if x is not None:
-                        x.data[-1] = self.data
-                        table[location].append(x)
+                    state = table[self.reference][w]
+                    next = state.consumeNonTerminal(self.rule)
+                    if next is not None:
+                        next.data[-1] = self.data
+                        table[location].append(next)
                     w += 1
 
-                # --- The comment below is OUTDATED. It's left so that future
-                # editors know not to try and do that.
+                    # --- The comment below is OUTDATED. It's left so that future
+                    # editors know not to try and do that.
 
-                # Remove this rule from "addedRules" so that another one can be
-                # added if some future added rule requires it.
-                # Note: I can be optimized by someone clever and not-lazy. Somehow
-                # queue rules so that everything that this completion "spawns" can
-                # affect the rest of the rules yet-to-be-added-to-the-table.
-                # Maybe.
+                    # Remove this rule from "addedRules" so that another one can be
+                    # added if some future added rule requires it.
+                    # Note: I can be optimized by someone clever and not-lazy. Somehow
+                    # queue rules so that everything that this completion "spawns" can
+                    # affect the rest of the rules yet-to-be-added-to-the-table.
+                    # Maybe.
 
-                # I repeat, this is a *bad* idea.
+                    # I repeat, this is a *bad* idea.
 
-                # var i = addedRules.indexOf(this.rule);
-                # if (i !== -1) {
-                #     addedRules.splice(i, 1);
-                # }
+                    # var i = addedRules.indexOf(this.rule);
+                    # if (i !== -1) {
+                    #     addedRules.splice(i, 1);
+                    # }
+            except ParseError:
+                log("apparently {} could not be parsed here".format(self.rule))
+                pass
         else:
             # in case I missed an older nullable's sweep, update yourself. See
             # above context for why this makes sense
@@ -139,7 +175,7 @@ class State:
             # I'm not done, but I can predict something
             expected_symbol = self.rule.symbols[self.expect]
 
-            if hasattr(expected_symbol, 'name'):
+            if isinstance(expected_symbol, RuleRef):
                 for rule in rules:
                     if rule.name == expected_symbol.name and rule not in added_rules:
                         # Make a note that you've added it already, and don't need to
@@ -158,28 +194,41 @@ class State:
                         else:
                             # Empty rule, this is special
                             copy = self.consumeNonTerminal(rule)
-                            copy.data[-1] = []
+                            copy.data[-1] = rule.finish([], self.reference, Parser.FAIL)
                             table[location].append(copy)
 
-class Parser:
-    FAIL = {}
 
-    def __init__(self, rules: List[Rule], start: str):
-        self.table = []
+class Parser:
+    FAIL = {}  # type: Any
+
+    def __init__(self, rules: List[Rule], start: str) -> None:
         self.rules = rules
         self.start = start
+        self.table = []  # type: List[List[State]]
+        self.results = []  # type: List[Any]
+        self.current = 0
+        self.reset()
+
+    def __repr__(self) -> str:
+        rules = map(repr, self.rules)
+        table = ["{}: {}".format(n, "\n   ".join(map(repr, level))) for n, level in enumerate(self.table)]
+        return "Rules:\n{}\nTable:\n{}\n".format("\n".join(rules), "\n".join(table))
+
+    def reset(self) -> None:
+        # Clear previous work
+        self.results = []
+        self.current = 0
 
         # Setup a table
         added_rules = []
-        self.table.append([])
+        self.table = [[]]
 
-        # I could be expecting anything
+        # Prepare the table with all rules that match the start name
         for rule in self.rules:
-            if rule.name == start:
+            if rule.name == self.start:
                 added_rules.append(rule)
                 self.table[0].append(State(rule, 0, 0))
         self.advanceTo(0, added_rules)
-        self.current = 0
 
     def advanceTo(self, position: int, added_rules: List[Rule]) -> None:
         w = 0
@@ -208,7 +257,7 @@ class Parser:
             # (b) predict the next nonterminal it expects by adding that nonterminal's stat state
             # To prevent duplication, we also keep track of rules we have already added.
 
-            added_rules = []
+            added_rules = []  # type: List[Rule]
             self.advanceTo(self.current + token_pos + 1, added_rules)
 
             # If needed, throw an error
@@ -221,73 +270,53 @@ class Parser:
         # Incrementally keep track of results
         self.results = self.finish()
 
-    def finish(self) -> List[State]:
+    def finish(self) -> List[List[Any]]:
         # Return the possible parsings
-        return [state.data for state in self.table[-1] if \
-            state.rule.name == self.start \
-            and state.expect == len(state.rule.symbols) \
-            and state.reference == 0 \
-            and state.data is not self.FAIL]
+        return [state.data for state in self.table[-1] if
+                state.rule.name == self.start
+                and state.expect == len(state.rule.symbols)
+                and state.reference == 0
+                and state.data is not self.FAIL]
+
+    def parse(self, chunk) -> List[State]:
+        self.reset()
+        self.feed(chunk)
+        return self.results
 
 
-sentence = ['Jan','is','punishable','because','Jan','is','a','thief','.']
-# ACTOR is LABEL because ACTOR is LABEL2
+if __name__ == '__main__':
+    # Test simple literals
+    # p = Parser([Rule('START', [Literal('a'), Literal('b'), Literal('c')])], 'START')
+    # assert len(p.parse(['a', 'b', 'c'])) == 1
 
-# argument(because(X,Y)) --> statement(X), [because], statement(Y), ['.'].
-# statement(isa(A,P)) --> actor(A), [is], predicate(P).
-# actor('jan') --> ['Jan'].
-# predicate('punishable') --> [punishable].
-# predicate(A) --> [a], archetype(A).
-# archetype(thief) --> [thief].
+    print("Test left recursion")
+    p = Parser([
+        Rule('A', [RuleRef('A'), Literal('A')]),
+        Rule('A', [Literal('A')]),
+    ], 'A')
+    print(p.parse(list('AAAA')))
 
-class Predicate:
-    def __init__(self, what):
-        self.what = what
+    print("Test right recursion")
+    p = Parser([
+        Rule('A', [Literal('A'), RuleRef('A')]),
+        Rule('A', [Literal('A')]),
+    ], 'A')
+    print(p.parse(list('AAAA')))
 
-    def __str__(self):
-        return self.what
+    print("Test custom literal")
+    p = Parser([
+        Rule('A', [RuleRef('A'), Digit()]),
+        Rule('A', [Literal('A')]),
+    ], 'A')
+    print(p.parse(list('A1234')))
 
-class Person:
-    def __init__(self, name: str):
-        self.name = name
 
-    def __str__(self):
-        return "a person named {}".format(self.name)
+    # Test recursion and the empty rule
+    # p = Parser([
+    #     Rule('START', [RuleRef('AB')]),
+    #     Rule('AB', [Literal('A'), RuleRef('AB'), Literal('B')]),
+    #     Rule('AB', [])
+    # ], 'START')
+    # print(p.parse(list('AAABBB')))
 
-class IsAStatement:
-    def __init__(self, a, b):
-        self.a = a
-        self.b = b
-
-    def __str__(self):
-        return "{} is {}".format(self.a, self.b)
-
-class Argument:
-    def __init__(self, assertion, reasons):
-        self.assertion = assertion
-        self.reasons = reasons
-
-    def __str__(self):
-        return "{} because {}".format(str(self.assertion), " and ".join(map(str, self.reasons)))
-
-def L(value):
-    return Literal(value)
-
-def R(name):
-    return RuleRef(name)
-
-rules = [
-    Rule('ARGUMENT', [R('STATEMENT'), L('because'), R('STATEMENT'), L('.')], lambda data, n: Argument(data[0], [data[2]])),
-    Rule('STATEMENT', [R('ACTOR'), L('is'), R('PREDICATE')], lambda data, n: IsAStatement(data[0], data[2])),
-    Rule('ACTOR', [L('Jan')], lambda data, n: Person(data[0])),
-    Rule('PREDICATE', [L('punishable')], lambda data, n: Predicate(data[0])),
-    Rule('PREDICATE', [L('a'),R('ARCHETYPE')], lambda data, n: Predicate(data[1])),
-    Rule('ARCHETYPE', [L('thief')], lambda data, n: data[0])
-]
-
-parser = Parser(rules, 'ARGUMENT')
-parser.feed(sentence)
-
-print("\nPossible parses:")
-for n, parse in enumerate(parser.results):
-    print("{}) {}".format(n, parse))
+    print("Done.")
