@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+
+{% block title %}Prototype{% endblock %}
+
+{% block content %}
+    <ul id="parses"></ul>
+    <form method="post" action="{{ url_for('api_parse_sentence') }}" id="parse-sentence-form">
+        <input type="text" name="sentence" class="form-control" placeholder="Jan is punishable because Jan is a thief.">
+        <button type="submit" class="btn btn-primary">Parse</button>
+    </form>
+{% endblock %}

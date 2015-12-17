@@ -1,0 +1,17 @@
+.predicate,
+.literal
+{
+    display: inline-block;
+    border: 1px solid #ccc;
+    padding: 2px;
+    margin: 2px;
+}
+
+.token {
+    display: inline-block;
+    padding: 2px;
+}
+
+.token:hover {
+    text-decoration: underline;
+}

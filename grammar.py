@@ -1,3 +1,5 @@
+from typing import Optional
+
 import parser
 import re
 
@@ -22,13 +24,46 @@ class Adjective(parser.Symbol):
         return literal.endswith("able")
 
 
-class Because:
+class Operation:
+    def as_tuple(self):
+        raise NotImplementedError()
+
+
+class Assertion(Operation):
+    def __init__(self, sentence):
+        self.sentence = sentence
+
+    def __repr__(self):
+        return "ASSERT THAT {}".format(repr(self.sentence))
+
+    def as_tuple(self):
+        return 'assertion', self.sentence
+
+
+class Because(Operation):
     def __init__(self, reason, statement):
         self.reason = reason
         self.statement = statement
 
     def __repr__(self):
-        return "{} because {}".format(self.statement, self.reason)
+        return "{} BECAUSE {}".format(repr(self.statement), repr(self.reason))
+
+    def as_tuple(self):
+        return 'because', self.reason, self.statement
+
+
+class Rule(Operation):
+    def __init__(self, condition, consequence):
+        self.condition = condition
+        self.consequence = consequence
+
+    def __repr__(self):
+        return "IF {} THEN {}".format(repr(self.condition), repr(self.consequence))
+
+    def as_tuple(self):
+        return 'rule', self.condition, self.consequence
+
+start = 'ARGSET'
 
 rules = [
     parser.Rule('ARGSET',
@@ -45,15 +80,15 @@ rules = [
 
     parser.Rule('STATEMENT',
         [R('ACTOR'), L('is'), R('PREDICATE')],
-        lambda m, n: ('Instantiated Rule', m[0], 'is', m[2])),
+        lambda m, n: Assertion((m[0], 'is', m[2]))),
 
     parser.Rule('STATEMENT',
         [R('PREDICATE'), L('is'), R('PREDICATE')],
-        lambda m, n: ('Rule', m[0], 'is', m[2])),
+        lambda m, n: Rule(m[0], m[2])),
 
     parser.Rule('STATEMENT',
         [R('PREDICATE'), L('are'), R('PREDICATE')],
-        lambda m, n: ('Rule', m[0], 'is', m[2])),
+        lambda m, n: Rule(m[0], m[2])),
 
     parser.Rule('ACTOR',
         [Name()],
@@ -64,8 +99,8 @@ rules = [
         lambda m, n: ('pred', m[0])),
     parser.Rule('PREDICATE',
         [L('a'), L('thief')],
-        lambda m, n: ('thief',)),
+        lambda m, n: ('predicate', m[1])),
     parser.Rule('PREDICATE',
         [L('thieves')],
-        lambda m, n: ('thief',)),
+        lambda m, n: ('predicate', m[0])),
 ]
