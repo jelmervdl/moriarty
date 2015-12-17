@@ -24,6 +24,21 @@ class Adjective(parser.Symbol):
         return literal.endswith("able")
 
 
+class Noun(parser.Symbol):
+
+    def __init__(self, count: str = 'both') -> None:
+        if count in ('singular', 'plural', 'both'):
+            self.count = count
+        else:
+            raise ValueError('Count argument should be "singular", "plural" or "both".')
+
+    def test(self, literal:str) ->bool:
+        if self.count == 'plural':
+            return literal.endswith('s')
+        else:
+            return True
+
+
 class Operation:
     def as_tuple(self):
         raise NotImplementedError()
@@ -98,9 +113,9 @@ rules = [
         [Adjective()],
         lambda m, n: ('pred', m[0])),
     parser.Rule('PREDICATE',
-        [L('a'), L('thief')],
+        [L('a'), Noun('singular')],
         lambda m, n: ('predicate', m[1])),
     parser.Rule('PREDICATE',
-        [L('thieves')],
+        [Noun('plural')],
         lambda m, n: ('predicate', m[0])),
 ]
