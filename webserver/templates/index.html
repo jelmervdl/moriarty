@@ -4,17 +4,6 @@
 
 {% block content %}
     <div class="row">
-        <form method="post" action="{{ url_for('api_parse_sentence') }}" id="parse-sentence-form">
-            <div class="col-md-8">
-                <input type="text" name="sentence" class="form-control" placeholder="Jan is punishable because Jan is a thief.">
-            </div>
-            <div class="col-md-4">
-                <button type="submit" class="btn btn-primary">Parse</button>
-            </div>
-        </form>
-    </div>
-
-    <div class="row">
         <h2>Parses</h2>
         <div id="parses"></div>
     </div>
