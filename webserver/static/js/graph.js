@@ -15,25 +15,53 @@ function Edge(from, to) {
     this.edges = [];
 }
 
-function Rectangle(width, height, left, top) {
+function Rectangle(width, height, left, top, data) {
     this.width = width;
     this.height = height;
     this.left = left || 0;
     this.top = top || 0;
-    this.children = [];
+    this.data = data;
 }
 
-Rectangle.prototype.translate = function(left, top) {
-    this.left += left;
-    this.top += top;
+Rectangle.horizontal = function(boxes) {
+    var box = new Rectangle(0, 0, 0, 0, []);
+    for (var i = 0; i < boxes.length; ++i) {
+        box.data.push(boxes[i].translate(box.width, 0));
+        box.width += boxes[i].width;
+        box.height = Math.max(box.height, boxes[i].height);
+    }
+    for (var i = 0; i < box.data.length; ++i) {
+        if (box.data[i].data.constructor === Array)
+            box.data[i].top = (box.height - box.data[i].data[0].height) / 2;
+        else
+            box.data[i].top = (box.height - box.data[i].height) / 2;
+    }
+    return box;
 };
 
-function BoundingBox(source, width, height, left, top) {
-    Rectangle.call(this, width, height, left, top);
-    this.source = source;
-}
+Rectangle.vertical = function(boxes) {
+    var box = new Rectangle(0, 0, 0, 0, []);
+    for (var i = 0; i < boxes.length; ++i) {
+        box.data.push(boxes[i].translate(0, boxes[i].height));
+        box.width  = Math.max(box.width, boxes[i].width);
+        box.height += boxes[i].height;
+    }
+    for (var i = 0; i < box.data.length; ++i) {
+        if (box.data[i].data.constructor === Array)
+            box.data[i].left = (box.width - box.data[i].data[0].width) / 2;
+        else
+            box.data[i].left = (box.width - box.data[i].width) / 2;
+    }
+    return box;
+};
 
-BoundingBox.prototype = new Rectangle();
+Rectangle.prototype.translate = function(left, top) {
+    var rect = new Rectangle(
+        this.width, this.height,
+        this.left + left, this.top + top,
+        this.data);
+    return rect;
+};
 
 Node.prototype.supportedBy = function(sent) {
     if (sent.constructor !== Node)
@@ -44,7 +72,20 @@ Node.prototype.supportedBy = function(sent) {
 };
 
 Node.prototype.size = function() {
-    return new BoundingBox(this, 50, 20);
+    return new Rectangle(200, 50, 0, 0, this);
+};
+
+Node.prototype.boundingBox = function() {
+    var size = this.size();
+    if (this.edges.length) {
+        var bbox = this.edges[0].boundingBox();
+        if (this.edges[0].orientation() == 'horizontal') {
+            size = Rectangle.horizontal([size, bbox]);
+        } else {
+            size = Rectangle.vertical([size, bbox]);
+        }
+    }
+    return size;
 };
 
 Edge.prototype.supportedBy = function(sent) {
@@ -59,8 +100,8 @@ Edge.prototype.orientation = function() {
 
 Edge.prototype.size = function() {
     return this.orientation() == 'horizontal'
-        ? new BoundingBox(this, 100, 20)
-        : new BoundingBox(this, 20, 100);
+        ? new Rectangle(100, 20, 0, 0, this)
+        : new Rectangle(20, 100, 0, 0, this);
 };
 
 Edge.prototype.boundingBox = function() {
@@ -69,52 +110,88 @@ Edge.prototype.boundingBox = function() {
     size.source = this;
 
     if (this.edges.length) {
-        var bbox = boundingBox(this.edges[0].from);
+        var bboxEdge = this.edges[0].boundingBox();
+        //var bboxNode = this.edges[0].from.boundingBox();
+
         if (this.orientation() == 'vertical') {
             // Edges are always coming in from the right if we are vertical,
-            bbox.left += size.width;
-            size.width += bbox.width;
-            size.height = Math.max(size.height, bbox.height);
+            size = Rectangle.horizontal([size, bboxEdge]);
         } else {
             // or from the bottom if we are horizontal.
-            bbox.top += size.height;
-            size.width = Math.max(size.width, bbox.width);
-            size.height += bbox.height;
+            size = Rectangle.vertical([size, bboxEdge]);
         }
-        size.children.push(bbox);
     }
+
+    var bboxNode = this.from.boundingBox();
+    if (this.orientation() == 'vertical')
+        size = Rectangle.vertical([size, bboxNode]);
+    else
+        size = Rectangle.horizontal([size, bboxNode]);
 
     return size;
 };
 
-function boundingBox(node)
-{
-    var size = node.size();
+Rectangle.prototype.render = function() {
+    var div = document.createElement('div');
+    div.style.position = 'absolute';
+    div.style.width = this.width + 'px';
+    div.style.height = this.height + 'px';
+    div.style.top = this.top + 'px';
+    div.style.left = this.left + 'px';
 
-    if (node.edges.length) {
-        //var bbox = boundingBox(node.edges[0].from);
-        var bbox = node.edges[0].boundingBox();
-        if (node.edges[0].orientation() == 'horizontal') {
-            size.width += bbox.width;
-            size.height = Math.max(size.height, bbox.height);
-        } else {
-            size.width = Math.max(size.width, bbox.width);
-            size.height += bbox.height;
+    if (this.data && this.data.constructor === Array) {
+        for (var i = 0; i < this.data.length; ++i) {
+            if ('render' in this.data[i]) {
+                div.appendChild(this.data[i].render());
+            }
         }
-        size.children.push(bbox);
+    } else if (this.data && 'render' in this.data) {
+        div.appendChild(this.data.render());
     }
 
-    return size;
-}
+    return div;
+};
+
+Node.prototype.render = function() {
+    var span = document.createElement('span');
+    span.className = 'arg-node';
+    span.appendChild(document.createTextNode(this.text));
+    return span;
+};
+
+Edge.prototype.render = function() {
+    var arrow = document.createElement('span');
+    arrow.className = 'arg-arrow';
+    arrow.appendChild(document.createTextNode('o'));
+
+    if (this.orientation() == 'horizontal') {
+        arrow.appendChild(document.createTextNode('–––––––––––––'));
+    } else {
+        for (var i = 0; i < 4; ++i) {
+            arrow.appendChild(document.createElement('br'));
+            arrow.appendChild(document.createTextNode('|'));
+        }
+    }
+
+    return arrow;
+};
 
 function sentence(text) {
     return new Node(text);
 }
 
+/*
 var jelmer_is_dief = sentence("Jelmer is een dief");
 var jelmer_steelt = sentence("Jelmer heeft iets gestolen");
 var stelers_zijn_dieven = sentence("Mensen die stelen zijn een dief");
 var support = jelmer_is_dief.supportedBy(jelmer_steelt);
 support.supportedBy(stelers_zijn_dieven);
 
-console.log(boundingBox(jelmer_is_dief));
+console.log(jelmer_is_dief.boundingBox());
+
+var div = document.createElement('div');
+div.className = 'bounding-box';
+div.style.position = 'relative';
+div.appendChild(jelmer_is_dief.boundingBox().render());
+document.body.appendChild(div);
+*/

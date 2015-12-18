@@ -25,7 +25,6 @@ class Adjective(parser.Symbol):
 
 
 class Noun(parser.Symbol):
-
     def __init__(self, count: str = 'both') -> None:
         if count in ('singular', 'plural', 'both'):
             self.count = count
@@ -37,6 +36,12 @@ class Noun(parser.Symbol):
             return literal.endswith('s')
         else:
             return True
+
+
+def singular(word:str) -> str:
+    word = re.sub('(e?s)$', '', word)  # Strip 'es' from thieves
+    word = re.sub('v$', 'f', word)  # Replace 'v' in 'thiev' with 'f'
+    return word
 
 
 class Operation:
@@ -117,5 +122,5 @@ rules = [
         lambda m, n: ('predicate', m[1])),
     parser.Rule('PREDICATE',
         [Noun('plural')],
-        lambda m, n: ('predicate', m[0])),
+        lambda m, n: ('predicate', singular(m[0]))),
 ]

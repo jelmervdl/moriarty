@@ -5,3 +5,7 @@
 #example-sentences li:hover {
     text-decoration: underline;
 }
+
+.bounding-box div {
+    border: 1px solid #ccc;
+}

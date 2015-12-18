@@ -24,7 +24,6 @@ jQuery(function($) {
     }
 
     function stringifyStatement(parse) {
-        console.log($.isArray(parse), parse);
         if ($.isArray(parse)) {
             return $('<span>')
                 .addClass('predicate')
@@ -33,6 +32,36 @@ jQuery(function($) {
         } else {
             return $('<span>').addClass('literal').text(parse);
         }
+    }
+
+    function graphifyParse(parse) {
+        var roots = [];
+        var sent;
+        for (var i = 0; i < parse.length; ++i) {
+            switch (parse[i][0]) {
+                case 'because':
+                    var cause = sentence(parse[i][1]);
+                    var effect = sentence(parse[i][2]);
+                    roots.push(cause);
+                    sent = cause.supportedBy(effect);
+                    break;
+                case 'rule':
+                    if (sent) {
+                        var rule = sentence(parse[i]);
+                        sent = sent.supportedBy(rule);
+                    }
+                    break;
+            }
+        }
+        return $.map(roots, function(sent) {
+            var graph = sent.boundingBox().render();
+            return $('<div>')
+                .addClass('well')
+                .css({'position': 'relative'})
+                .width(parseInt(graph.style.width) * 2)
+                .height(parseInt(graph.style.height) * 2)
+                .append(graph);
+        });
     }
 
     function parseSentence(sentence) {
@@ -45,7 +74,10 @@ jQuery(function($) {
                         .append(closeButton())
                         .append(stringifyTokens(response.tokens))
                     )
-                    .append($('<div class="panel-body">').append($.map(response.parses, stringifyParse)));
+                    .append($('<div class="panel-body">')
+                        .append($.map(response.parses, stringifyParse))
+                        .append($.map(response.parses, graphifyParse))
+                    );
             })
             .error(function(response) {
                 try {
