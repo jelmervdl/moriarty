@@ -1,20 +1,24 @@
 jQuery(function($) {
+    function closeButton() {
+        return $('<button type="button" class="close"><span>&times;</span></button>');
+    }
+
     $.fn.alert = function(message) {
         $('<div>')
             .addClass('alert alert-danger alert-dismissible')
-            .append($('<button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>'))
+            .append(closeButton.data('dismiss', 'alert'))
             .append($('<p>').text(' ' + message).prepend($('<strong>Error!</strong>')))
             .appendTo(this);
     };
 
     function stringifyTokens(tokens) {
-        return $('<li>').append($.map(tokens, function(token) {
+        return $('<div>').addClass('tokenized').append($.map(tokens, function(token) {
             return $('<span>').addClass('token').text(token);
         }));
     }
 
     function stringifyParse(parse) {
-        return $('<ol>').append($.map(parse, function(arg) {
+        return $('<ol>').addClass('parsed').append($.map(parse, function(arg) {
             return $('<li>').append(stringifyStatement(arg));
         }));
     }
@@ -31,16 +35,17 @@ jQuery(function($) {
         }
     }
 
-    window.stringifyParse = stringifyParse;
-
-    $('#parse-sentence-form').submit(function(e) {
-        e.preventDefault();
-        var sentence = $(this).find('input[name=sentence]').val();
-        $.post($(this).attr('action'), {sentence: sentence}, 'json')
+    function parseSentence(sentence) {
+        $.post($('#parse-sentence-form').attr('action'), {sentence: sentence}, 'json')
             .success(function(response) {
-                $('#parses')
-                    .append(stringifyTokens(response.tokens))
-                    .append($.map(response.parses, stringifyParse));
+                $('<div>')
+                    .appendTo('#parses')
+                    .addClass('parse panel panel-default')
+                    .append($('<div class="panel-heading">')
+                        .append(closeButton())
+                        .append(stringifyTokens(response.tokens))
+                    )
+                    .append($('<div class="panel-body">').append($.map(response.parses, stringifyParse)));
             })
             .error(function(response) {
                 try {
@@ -49,5 +54,22 @@ jQuery(function($) {
                     $('body > .container').alert("Something went wrong on the server.");
                 }
             });
+    }
+
+    $('#parses').on('click', 'button.close', function(e) {
+        e.preventDefault();
+        $(this).closest('.parse').remove();
+    });
+
+    $('#parse-sentence-form').submit(function(e) {
+        e.preventDefault();
+        var sentence = $(this).find('input[name=sentence]').val();
+        parseSentence(sentence);
+    });
+
+    $('#example-sentences').on('click', 'li', function(e) {
+        e.preventDefault();
+        var sentence = $(e.target).text();
+        parseSentence(sentence);
     });
 });

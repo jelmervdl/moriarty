@@ -1,0 +1,7 @@
+#example-sentences li {
+    cursor: pointer;
+}
+
+#example-sentences li:hover {
+    text-decoration: underline;
+}
