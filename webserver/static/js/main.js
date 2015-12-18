@@ -6,7 +6,7 @@ jQuery(function($) {
     $.fn.alert = function(message) {
         $('<div>')
             .addClass('alert alert-danger alert-dismissible')
-            .append(closeButton.data('dismiss', 'alert'))
+            .append(closeButton().data('dismiss', 'alert'))
             .append($('<p>').text(' ' + message).prepend($('<strong>Error!</strong>')))
             .appendTo(this);
     };
