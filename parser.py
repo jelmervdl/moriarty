@@ -3,10 +3,9 @@
 # Based on https://github.com/Hardmath123/nearley/blob/master/lib/nearley.js
 import operator
 from typing import List, Optional, Any, Callable, Union, cast
-
 import functools
-
 import sys
+import re
 
 
 def log(line: str) -> None:
@@ -17,8 +16,31 @@ def flatten(lists):
     return functools.reduce(operator.add, lists)
 
 
-class ParseError(RuntimeError):
+def indent(text: str, indent: str = "\t"):
+    return "\n".join((indent + line for line in text.split("\n")))
+
+
+class ParseError(Exception):
+    def __init__(self, position: int, token: str, sentence: List[str] = None):
+        self.position = position
+        self.token = token
+        self.sentence = sentence
+        super().__init__("No possible parse for {} (at position {})".format(token, position))
+
+    def __repr__(self) -> str:
+        return "{}\n{}\n{}{}{}{}".format(
+            super().__repr__(),
+            " ".join(self.sentence),
+            " " * len(" ".join(self.sentence[0:self.position])),
+            " " if self.position > 0 else "",
+            "^" * len(self.sentence[self.position]),
+            " " * len(" ".join(self.sentence[self.position + 1:])))
+        
+
+class RuleParseException(Exception):
     pass
+
+
 
 
 class Symbol:
@@ -55,7 +77,7 @@ class Rule:
         if callback is not None:
             self.callback = callback
         else:
-            self.callback = lambda data, n: flatten(data)
+            self.callback = lambda data, n: RuleInstance(self, data)#flatten(data)
 
     def __repr__(self, with_cursor_at: int = None) -> str:
         if with_cursor_at is not None:
@@ -69,6 +91,18 @@ class Rule:
     def finish(self, data, reference, FAIL) -> Any:
         log("!!! Finishing {} with data {} and reference {}!".format(self.name, data, reference))
         return self.callback(data, reference)
+
+
+class RuleInstance:
+    def __init__(self, rule: Rule, data: List[Any]):
+        self.rule = rule
+        self.data = data
+
+    def __repr__(self):
+        if len(self.data) > 1:
+            return "[{}:\n{}\n]".format(self.rule.name, indent("\n".join(map(repr, self.data))))
+        else:
+            return "[{}: {}]".format(self.rule.name, repr(self.data[0]))
 
 
 class Digit(Symbol):
@@ -263,7 +297,7 @@ class Parser:
             # If needed, throw an error
             if len(self.table[-1]) == 0:
                 # No states at all! This is not good
-                raise ParseError("No possible parsings at {}: '{}'.".format(self.current + token_pos, token))
+                raise ParseError(self.current + token_pos, token, sentence=chunk)
 
         self.current += len(chunk)
 
@@ -278,10 +312,37 @@ class Parser:
                 and state.reference == 0
                 and state.data is not self.FAIL]
 
-    def parse(self, chunk) -> List[State]:
+    def parse(self, chunk: List[str]) -> List[State]:
         self.reset()
         self.feed(chunk)
         return self.results
+
+    def tokenize_and_parse(self, text: str) -> List[State]:
+        tokens = text.split(" ")
+        return self.parse(tokens)
+
+
+def parse_syntax(syntax:str) -> List[Rule]:
+    rules = []
+    for i, line in enumerate(syntax.splitlines()):
+        if line == "":
+            continue
+        match = re.match(r'^(?P<name>\w+) ::= (?P<antecedent>.+)$', line)
+        if match is None:
+            raise RuleParseException("Cannot parse {} (line {})".format(line, i + 1))
+        
+        antecedent = [] # type: List[Symbol]
+        tokens = match.group("antecedent").split(" ")
+        for token in tokens:
+            if token.isupper():
+                antecedent.append(RuleRef(token))
+            else:
+                antecedent.append(Literal(token))
+
+        rule = Rule(match.group("name"), antecedent)
+        rules.append(rule)
+
+    return rules
 
 
 if __name__ == '__main__':

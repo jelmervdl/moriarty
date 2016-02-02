@@ -73,15 +73,15 @@ class Because(Operation):
 
 
 class Rule(Operation):
-    def __init__(self, condition, consequence):
+    def __init__(self, condition, antecedent):
         self.condition = condition
-        self.consequence = consequence
+        self.antecedent = antecedent
 
     def __repr__(self):
-        return "IF {} THEN {}".format(repr(self.condition), repr(self.consequence))
+        return "IF {} THEN {}".format(repr(self.condition), repr(self.antecedent))
 
     def as_tuple(self):
-        return 'rule', self.condition, self.consequence
+        return 'rule', self.condition, self.antecedent
 
 start = 'ARGSET'
 
