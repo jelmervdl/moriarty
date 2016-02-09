@@ -13,12 +13,14 @@ def log(line: str) -> None:
 
 
 def flatten(lists):
-    return functools.reduce(operator.add, lists)
+    out = []
+    for list in lists:
+        out.extend(list)
+    return out
 
 
 def indent(text: str, indent: str = "\t"):
-    return "\n".join((indent + line for line in text.split("\n")))
-
+    return "\n".join((indent + line for line in text.split("\n"))) if text else ""
 
 class ParseError(Exception):
     def __init__(self, position: int, token: str, sentence: List[str] = None):
@@ -322,26 +324,33 @@ class Parser:
         return self.parse(tokens)
 
 
+def parse_rule(line:str, callback: Optional[Callable[[Any, int], Any]] = None) -> Rule:
+    match = re.match(r'^(?P<name>\w+) ::= (?P<antecedent>.+)$', line)
+    if match is None:
+        raise RuleParseException("Cannot parse {}".format(line))
+    
+    antecedent = [] # type: List[Symbol]
+    tokens = match.group("antecedent").split(" ")
+    for token in tokens:
+        if token.isupper():
+            antecedent.append(RuleRef(token))
+        else:
+            antecedent.append(Literal(token))
+
+    return Rule(match.group("name"), antecedent, callback)
+
+
 def parse_syntax(syntax:str) -> List[Rule]:
     rules = []
     for i, line in enumerate(syntax.splitlines()):
         if line == "":
             continue
-        match = re.match(r'^(?P<name>\w+) ::= (?P<antecedent>.+)$', line)
-        if match is None:
-            raise RuleParseException("Cannot parse {} (line {})".format(line, i + 1))
         
-        antecedent = [] # type: List[Symbol]
-        tokens = match.group("antecedent").split(" ")
-        for token in tokens:
-            if token.isupper():
-                antecedent.append(RuleRef(token))
-            else:
-                antecedent.append(Literal(token))
-
-        rule = Rule(match.group("name"), antecedent)
-        rules.append(rule)
-
+        try:
+            rules.append(parse_rule(line))
+        except RuleParseException as e:
+            raise RuleParseException("{} (line {})".format(str(e), i))
+        
     return rules
 
 
