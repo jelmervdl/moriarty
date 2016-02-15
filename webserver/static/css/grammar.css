@@ -1,7 +1,6 @@
 .predicate,
 .literal
 {
-    display: inline-block;
     border: 1px solid #ccc;
     padding: 2px;
     margin: 2px;
@@ -14,4 +13,12 @@
 
 .token:hover {
     text-decoration: underline;
+}
+
+ul.supports li:before {
+	content: 'Support:';
+}
+
+ul.attacks li:before {
+	content: 'Attack:';
 }

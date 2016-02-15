@@ -5,7 +5,7 @@ import copy
 def newline(text):
     return "\n" + text if text else ""
 
-class Sentence:
+class ArgumentativeDiscourseUnit:
     def __init__(self):
         self.supports = []
         self.attacks = []
@@ -20,9 +20,15 @@ class Sentence:
             lines.extend(map(repr, self.attacks))
         return "\n".join(lines)
 
-class Statement(Sentence):
-    """An argumentative discourse unit"""
-    
+    def as_tuple(self):
+        return {
+            "adu": str(self),
+            "supports": list(map(lambda el: el.as_tuple(), self.supports)),
+            "attacks": list(map(lambda el: el.as_tuple(), self.attacks))
+        }
+
+
+class Statement(ArgumentativeDiscourseUnit):
     def __init__(self, a, b):
         super().__init__()
         self.a = a
@@ -50,6 +56,21 @@ class HasStatement(Statement):
         return "{} has {}".format(self.a, self.b)
 
 
+class RuleStatement(Statement):
+    def isInstance(self, statement):
+        return False
+
+
+class CanRuleStatement(CanStatement, RuleStatement):
+    def isInstance(self, statement):
+        return isinstance(statement, CanStatement) and statement.b == self.b
+
+
+class HasRuleStatement(HasStatement, RuleStatement):
+    def isInstance(self, statement):
+        return isinstance(statement, HasStatement) and statement.b == self.b
+
+
 def attack(statement, attack):
         state_copy = copy.deepcopy(statement)
         state_copy.attacks.append(attack)
@@ -60,7 +81,7 @@ def support(statement, support):
         state_copy.supports.append(support)
         return state_copy
 
-class Negation(Sentence):
+class Negation(ArgumentativeDiscourseUnit):
     def __init__(self, statement):
         self.statement = statement
 
@@ -79,16 +100,26 @@ class Negation(Sentence):
         return self.statement.attacks
 
 
-class Combination(Sentence):
+class Combination(ArgumentativeDiscourseUnit):
     def __init__(self, statements):
-        super().__init__()
         self.statements = statements
+
+    def as_tuple(self):
+        return {**super().as_tuple(), "statements": list(map(lambda stmt: stmt.as_tuple(), self.statements))}
 
     def __str__(self):
         return " ⋀ ".join(map(str, self.statements))
 
     def __repr__(self):
         return "AND (\n{}\n)".format(indent("\n".join(map(repr, self.statements)), ".\t"))
+
+    @property
+    def supports(self):
+        return flatten(map(lambda stmt: stmt.supports, self.statements))
+
+    @property
+    def attacks(self):
+        return flatten(map(lambda stmt: stmt.attacks, self.statements))
 
 
 def find_sentences(parse):
@@ -117,14 +148,14 @@ grammar = [
     ("S ::= S and S", lambda data, n: Combination([data[0], data[2]])),
     ("IS ::= INSTANCE is TYPE", lambda data, n: IsStatement(data[0], data[2])),
     ("IS ::= INSTANCE is not TYPE", lambda data, n: Negation(IsStatement(data[0], data[3]))),
-    ("IS ::= TYPES are TYPES", lambda data, n: IsStatement(data[0], data[2])),
+    ("IS ::= TYPES are TYPES", lambda data, n: IsRuleStatement(data[0], data[2])),
     ("HAS ::= INSTANCE has TYPES", lambda data, n: HasStatement(data[0], data[2])),
     ("TYPE ::= a NOUN", lambda data, n: data[1]),
     ("TYPES ::= NOUNS", lambda data, n: data[0]),
     ("CAN ::= INSTANCE can VERB", lambda data, n: CanStatement(data[0], data[2])),
-    ("CAN ::= TYPES can VERB", lambda data, n: CanStatement(data[0], data[2])),
+    ("CAN ::= TYPES can VERB", lambda data, n: CanRuleStatement(data[0], data[2])),
     ("CANNOT ::= INSTANCE can not VERB", lambda data, n: Negation(CanStatement(data[0], data[3]))),
-    ("CANNOT ::= TYPES can not VERB", lambda data, n: Negation(CanStatement(data[0], data[3]))),
+    ("CANNOT ::= TYPES can not VERB", lambda data, n: Negation(CanRuleStatement(data[0], data[3]))),
     ("INSTANCE ::= Henry", passthru),
     ("NOUN ::= bird", passthru),
     ("NOUNS ::= birds", passthru),
@@ -143,12 +174,16 @@ sentences = [
     "Henry can fly because Henry is a bird because Henry is a pinguin because Henry has feathers ."
 ]
 
+rules = [parse_rule(expression, callback) for expression, callback in grammar]
+
+start = "START"
+
+Operation = ArgumentativeDiscourseUnit # for compatibility for now
+
 if __name__ == '__main__':
     try:
         sentence = sentences[3]
-
-        rules = [parse_rule(expression, callback) for expression, callback in grammar]
-        parser = Parser(rules, "START")
+        parser = Parser(rules, start)
         output = parser.tokenize_and_parse(sentence)
         print(sentence)
         for i, parsing in enumerate(output):

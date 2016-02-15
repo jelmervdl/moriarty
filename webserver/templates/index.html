@@ -11,10 +11,9 @@
     <div class="row">
         <h2>Example sentences</h2>
         <ul id="example-sentences">
-            <li>Jan is punishable because Jan is a thief.</li>
-            <li>Thieves are punishable.</li>
-            <li>Jan is punishable because Jan is a thief and thieves are punishable.</li>
-            <li>Jan is punishable because thieves are punishable and Jan is a thief.</li>
+            {% for sentence in sentences %}
+            <li>{{ sentence }}</li>
+            {% endfor %}
         </ul>
     </div>
 

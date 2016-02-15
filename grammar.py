@@ -124,3 +124,10 @@ rules = [
         [Noun('plural')],
         lambda m, n: ('predicate', singular(m[0]))),
 ]
+
+sentences = [
+    'Jan is punishable because Jan is a thief.',
+    'Thieves are punishable.',
+    'Jan is punishable because Jan is a thief and thieves are punishable.',
+    'Jan is punishable because thieves are punishable and Jan is a thief.',
+]

@@ -3,8 +3,11 @@ from typing import List
 
 import flask
 
+import sys
+sys.path.insert(0, '../')
+
 import parser
-import grammar
+import grammar2 as grammar
 from flask import Flask, render_template, request, jsonify
 
 class TokenizeError(Exception):
@@ -41,7 +44,7 @@ def handle_parse_error(error: parser.ParseError):
 
 @app.route('/')
 def hello():
-    return render_template('index.html')
+    return render_template('index.html', sentences=grammar.sentences)
 
 
 @app.route('/api/parse', methods=['POST'])

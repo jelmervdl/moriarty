@@ -18,20 +18,16 @@ jQuery(function($) {
     }
 
     function stringifyParse(parse) {
-        return $('<ol>').addClass('parsed').append($.map(parse, function(arg) {
-            return $('<li>').append(stringifyStatement(arg));
-        }));
+        return stringifyStatement(parse);
     }
 
     function stringifyStatement(parse) {
-        if ($.isArray(parse)) {
-            return $('<span>')
-                .addClass('predicate')
-                .append($('<strong>').text(parse[0]))
-                .append($.map(parse.slice(1), stringifyStatement));
-        } else {
-            return $('<span>').addClass('literal').text(parse);
-        }
+        return $('<li>')
+            .addClass('predicate')
+            .append($('<strong>').text(parse.adu))
+            .append($('<ul>').addClass('supports').append($.map(parse.supports, stringifyStatement)))
+            .append($('<ul>').addClass('attacks').append($.map(parse.attacks, stringifyStatement)));
+            // .append($.map(parse.slice(1), stringifyStatement));
     }
 
     function graphifyParse(parse) {
@@ -75,8 +71,8 @@ jQuery(function($) {
                         .append(stringifyTokens(response.tokens))
                     )
                     .append($('<div class="panel-body">')
-                        .append($.map(response.parses, stringifyParse))
-                        .append($.map(response.parses, graphifyParse))
+                        .append($('<ul>').append($.map(response.parses, stringifyParse)))
+                        // .append($.map(response.parses, graphifyParse))
                     );
             })
             .error(function(response) {
