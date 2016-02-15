@@ -21,6 +21,8 @@ class Sentence:
         return "\n".join(lines)
 
 class Statement(Sentence):
+    """An argumentative discourse unit"""
+    
     def __init__(self, a, b):
         super().__init__()
         self.a = a
