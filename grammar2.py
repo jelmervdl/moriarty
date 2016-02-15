@@ -32,7 +32,7 @@ class Statement(Sentence):
         return "{}({})".format(self.b, self.a)
 
     def __repr__(self):
-        return "{}".format(str(self), newline(indent(super().__repr__(), "|\t")))
+        return "{}{}".format(str(self), newline(indent(super().__repr__(), "|\t")))
 
 
 class CanStatement(Statement):
