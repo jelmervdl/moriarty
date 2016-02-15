@@ -2,14 +2,14 @@
 
 # Based on https://github.com/Hardmath123/nearley/blob/master/lib/nearley.js
 import operator
-from typing import List, Optional, Any, Callable, Union, cast
+from typing import List, Optional, Any, Callable, Generator, Union, cast
 import functools
 import sys
 import re
 
 
 def log(line: str) -> None:
-    pass
+    print("X {}".format(line))
 
 
 def flatten(lists):
@@ -46,15 +46,20 @@ class RuleParseException(Exception):
 
 
 class Symbol:
-    def test(self, literal: str) -> bool:
+    def test(self, data: List[Any], literal: str) -> bool:
         raise NotImplementedError("Sybmol.test is abstract")
+
+    def finish(self, data: List[Any], literal: str):
+        data_copy = data[:]
+        data_copy.append(literal)
+        yield data_copy
 
 
 class Literal(Symbol):
     def __init__(self, literal: str) -> None:
         self.literal = literal
 
-    def test(self, literal: str) -> bool:
+    def test(self, data: List[Any], literal: str) -> bool:
         return self.literal == literal
 
     def __repr__(self) -> str:
@@ -65,7 +70,7 @@ class RuleRef(Symbol):
     def __init__(self, name: str) -> None:
         self.name = name
 
-    def test(self, literal: str) -> bool:
+    def test(self, data: List[Any], literal: str) -> bool:
         return False
 
     def __repr__(self, with_cursor_at: int = None) -> str:
@@ -73,13 +78,13 @@ class RuleRef(Symbol):
 
 
 class Rule:
-    def __init__(self, name: str, symbols: List[Symbol], callback: Optional[Callable[[Any, int], Any]] = None) -> None:
+    def __init__(self, name: str, symbols: List[Symbol], callback: Optional[Callable[[Any, int], Generator[Any,Any,Any]]] = None) -> None:
         self.name = name
         self.symbols = symbols
         if callback is not None:
             self.callback = callback
         else:
-            self.callback = lambda data, n: RuleInstance(self, data)#flatten(data)
+            self.callback = lambda data, n: (yield RuleInstance(self, data))
 
     def __repr__(self, with_cursor_at: int = None) -> str:
         if with_cursor_at is not None:
@@ -92,7 +97,7 @@ class Rule:
 
     def finish(self, data, reference, FAIL) -> Any:
         log("!!! Finishing {} with data {} and reference {}!".format(self.name, data, reference))
-        return self.callback(data, reference)
+        yield from self.callback(data, reference)
 
 
 class RuleInstance:
@@ -108,12 +113,12 @@ class RuleInstance:
 
 
 class Digit(Symbol):
-    def test(self, literal: str) -> bool:
+    def test(self, data: List[Any], literal: str) -> bool:
         return literal.isdigit()
 
 
 class Alpha(Symbol):
-    def test(self, literal:str) -> bool:
+    def test(self, data: List[Any], literal:str) -> bool:
         return literal.isalpha()
 
 
@@ -130,24 +135,23 @@ class State:
 
     def nextState(self, data) -> 'State':
         state = State(self.rule, self.expect + 1, self.reference)
-        state.data = self.data[:]
-        state.data.append(data)
+        state.data = data
         return state
 
     def consumeTerminal(self, inp: str) -> Optional['State']:
         log("consumeTerminal {} using {} expecting {}".format(inp, self.rule, self.rule.symbols[self.expect] if len(
             self.rule.symbols) > self.expect else '>END<'))
-        if len(self.rule.symbols) > self.expect and self.rule.symbols[self.expect].test(inp):
-            log("Terminal consumed")
-            return self.nextState(inp)
-        else:
-            return None
+        if len(self.rule.symbols) > self.expect and self.rule.symbols[self.expect].test(self.data, inp):
+            log("  rule tested true")
+            for state in (self.nextState(data) for data in self.rule.symbols[self.expect].finish(self.data, inp)):
+                log("  yielding new state")
+                yield state
 
-    def consumeNonTerminal(self, inp: Rule) -> Optional['State']:
-        assert isinstance(inp, Rule)
+    def consumeNonTerminal(self, rule: Rule) -> Optional['State']:
+        assert isinstance(rule, Rule)
         assert len(self.rule.symbols) > 0
         assert len(self.rule.symbols) > self.expect, "Expected {}th symbol but rule {} only has {} symbols".format(self.expect + 1, self.rule, len(self.rule.symbols))
-        #log("consumeNonTerminal {} while expecting {}".format(inp, self.rule.symbols[self.expect]))
+        #log("consumeNonTerminal {} while expecting {}".format(rule, self.rule.symbols[self.expect]))
 
         if not isinstance(self.rule.symbols[self.expect], RuleRef):
             return None
@@ -155,9 +159,9 @@ class State:
         assert isinstance(self.rule.symbols[self.expect], RuleRef), "Expected a RuleRef, but found a {}".format(type(self.rule.symbols[self.expect]))
         symbol = cast(RuleRef, self.rule.symbols[self.expect])
 
-        if symbol.name == inp.name:
+        if symbol.name == rule.name:
             log("Nonterminal consumed")
-            return self.nextState(inp)
+            return self.nextState(self.data[:])
         else:
             return None
 
@@ -165,34 +169,33 @@ class State:
         if self.expect == len(self.rule.symbols):
             # We have a completed rule
             try:
-                self.data = self.rule.finish(self.data, self.reference, Parser.FAIL)
+                for data in self.rule.finish(self.data, self.reference, Parser.FAIL):
+                    w = 0
+                    # We need a while here because the empty rule will modify table[reference] when location == reference
+                    while w < len(table[self.reference]):
+                        state = table[self.reference][w]
+                        next = state.consumeNonTerminal(self.rule)
+                        if next is not None:
+                            #next.data[-1] = data
+                            table[location].append(next)
+                        w += 1
 
-                w = 0
-                # We need a while here because the empty rule will modify table[reference] when location == reference
-                while w < len(table[self.reference]):
-                    state = table[self.reference][w]
-                    next = state.consumeNonTerminal(self.rule)
-                    if next is not None:
-                        next.data[-1] = self.data
-                        table[location].append(next)
-                    w += 1
+                        # --- The comment below is OUTDATED. It's left so that future
+                        # editors know not to try and do that.
 
-                    # --- The comment below is OUTDATED. It's left so that future
-                    # editors know not to try and do that.
+                        # Remove this rule from "addedRules" so that another one can be
+                        # added if some future added rule requires it.
+                        # Note: I can be optimized by someone clever and not-lazy. Somehow
+                        # queue rules so that everything that this completion "spawns" can
+                        # affect the rest of the rules yet-to-be-added-to-the-table.
+                        # Maybe.
 
-                    # Remove this rule from "addedRules" so that another one can be
-                    # added if some future added rule requires it.
-                    # Note: I can be optimized by someone clever and not-lazy. Somehow
-                    # queue rules so that everything that this completion "spawns" can
-                    # affect the rest of the rules yet-to-be-added-to-the-table.
-                    # Maybe.
+                        # I repeat, this is a *bad* idea.
 
-                    # I repeat, this is a *bad* idea.
-
-                    # var i = addedRules.indexOf(this.rule);
-                    # if (i !== -1) {
-                    #     addedRules.splice(i, 1);
-                    # }
+                        # var i = addedRules.indexOf(this.rule);
+                        # if (i !== -1) {
+                        #     addedRules.splice(i, 1);
+                        # }
             except ParseError:
                 log("apparently {} could not be parsed here".format(self.rule))
                 pass
@@ -203,8 +206,7 @@ class State:
             for i in range(ind):
                 state = table[location][i]
                 if len(state.rule.symbols) == state.expect and state.reference == location:
-                    x = self.consumeNonTerminal(state.rule)
-                    if x is not None:
+                    for x in self.consumeNonTerminal(state.rule):
                         x.data[-1] = state.data
                         table[location].append(x)
 
@@ -229,8 +231,9 @@ class State:
                             table[location].append(State(rule, 0, location))
                         else:
                             # Empty rule, this is special
-                            copy = self.consumeNonTerminal(rule)
-                            copy.data[-1] = rule.finish([], self.reference, Parser.FAIL)
+                            # FIXME is this a correct assumption, that this nonterminal will only yield once?
+                            copy = next(self.consumeNonTerminal(rule))
+                            copy.data[-1] = next(rule.finish([], self.reference, Parser.FAIL))
                             table[location].append(copy)
 
 
@@ -283,8 +286,7 @@ class Parser:
             w = 0
             while w < len(self.table[self.current + token_pos]):
                 current_state = self.table[self.current + token_pos][w]
-                next_state = current_state.consumeTerminal(token)
-                if next_state is not None:
+                for next_state in current_state.consumeTerminal(token):
                     self.table[self.current + token_pos + 1].append(next_state)
                 w += 1
 
@@ -358,27 +360,69 @@ if __name__ == '__main__':
     # Test simple literals
     # p = Parser([Rule('START', [Literal('a'), Literal('b'), Literal('c')])], 'START')
     # assert len(p.parse(['a', 'b', 'c'])) == 1
+    testcases = list()
 
-    print("Test left recursion")
-    p = Parser([
-        Rule('A', [RuleRef('A'), Literal('A')]),
-        Rule('A', [Literal('A')]),
-    ], 'A')
-    print(p.parse(list('AAAA')))
+    def test(enabled):
+        def test_adder(testcase):
+            testcases.append(testcase)
+            return testcase
+        def test_skipper(testcase):
+            return testcase
+        return test_adder if enabled else test_skipper
 
-    print("Test right recursion")
-    p = Parser([
-        Rule('A', [Literal('A'), RuleRef('A')]),
-        Rule('A', [Literal('A')]),
-    ], 'A')
-    print(p.parse(list('AAAA')))
+    @test(True)
+    def test_left_recursion():
+        print("Test left recursion")
+        p = Parser([
+            Rule('A', [RuleRef('A'), Literal('A')]),
+            Rule('A', [Literal('A')]),
+        ], 'A')
+        print(p.parse(list('AAA')))
+        print(p.table)
+    
+    @test(False)
+    def test_right_recursion():
+        print("\033[95mTest right recursion\033[0m")
+        p = Parser([
+            Rule('A', [Literal('A'), RuleRef('A')]),
+            Rule('A', [Literal('A')]),
+        ], 'A')
+        print(p.parse(list('AAA')))
 
-    print("Test custom literal")
-    p = Parser([
-        Rule('A', [RuleRef('A'), Digit()]),
-        Rule('A', [Literal('A')]),
-    ], 'A')
-    print(p.parse(list('A1234')))
+    @test(False)
+    def test_custom_literal():
+        print("Test custom literal")
+        p = Parser([
+            Rule('A', [RuleRef('A'), Digit()]),
+            Rule('A', [Literal('A')]),
+        ], 'A')
+        print(p.parse(list('A1234')))
+
+    @test(False)
+    def test_complex_literal():
+        print("Test literal that determines their validness depending on the previous symbol")
+        class Setter(Literal):
+            def test(self, data: List[Any], literal: str) -> bool:
+                return True
+
+            def finish(self, data: List[Any], literal: str):
+                yield data + [dict(letter=literal)]
+
+        class Repeater(Literal):
+            def test(self, data: List[Any], literal: str) -> bool:
+                for entry in reverse(data):
+                    if isinstance(entry, dict) and "letter" in entry:
+                        return entry["letter"] == literal
+                return False
+
+            def finish(self, data: List[Any], literal: str):
+                return data
+
+        p = Parser([
+            Rule('A', [RuleRef('A'), Repeater()]),
+            Rule('A', [Setter()]),
+        ], 'A')
+        print(p.parse(list('AAAABBBB')))
 
 
     # Test recursion and the empty rule
@@ -388,5 +432,8 @@ if __name__ == '__main__':
     #     Rule('AB', [])
     # ], 'START')
     # print(p.parse(list('AAABBB')))
+
+    for testcase in testcases:
+        testcase()
 
     print("Done.")
