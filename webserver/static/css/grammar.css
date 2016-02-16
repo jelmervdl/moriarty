@@ -22,3 +22,8 @@ ul.supports li:before {
 ul.attacks li:before {
 	content: 'Attack:';
 }
+
+.network {
+	width: 100%;
+	height: 200px;
+}

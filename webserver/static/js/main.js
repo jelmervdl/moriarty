@@ -26,8 +26,93 @@ jQuery(function($) {
             .addClass('predicate')
             .append($('<strong>').text(parse.adu))
             .append($('<ul>').addClass('supports').append($.map(parse.supports, stringifyStatement)))
-            .append($('<ul>').addClass('attacks').append($.map(parse.attacks, stringifyStatement)));
+            .append($('<ul>').addClass('attacks').append($.map(parse.attacks, stringifyStatement)))
             // .append($.map(parse.slice(1), stringifyStatement));
+    }
+
+    function networkifyParse(parse) {
+        var $el = $('<div>').addClass('network');
+        var counter = 0;
+
+        function extractADUs(adu)
+        {
+            if (!adu.id)
+                adu.id = ++counter;
+
+            var node = [{data: {
+                id: adu.id,
+                label: adu.adu
+            }}];
+
+            var supportEdges = $.map(adu.supports, function(support) {
+                return extractADUs(support)
+                    .concat([{classes: 'support', data: {
+                        source: support.id,
+                        target: adu.id}}]);
+            });
+
+            var attackEdges = $.map(adu.attacks, function(attack) {
+                return extractADUs(attack)
+                    .concat([{classes: 'attack', data: {
+                        source: attack.id,
+                        target: adu.id}}]);
+            });
+
+            return node.concat(supportEdges, attackEdges);
+        };
+
+        console.log(extractADUs(parse));
+
+        var network = cytoscape({
+            container: $el,
+            elements: extractADUs(parse),
+            style: [ // the stylesheet for the graph
+                {
+                    selector: 'node',
+                    style: {
+                        'background-color': '#666',
+                        'label': 'data(label)'
+                    }
+                },
+
+                {
+                    selector: 'edge',
+                    style: {
+                        'width': 3,
+                        'line-color': '#ccc',
+                        'target-arrow-color': '#ccc',
+                        'target-arrow-shape': 'triangle'
+                    }
+                },
+
+                {
+                    selector: '.support',
+                    style: {
+                        'target-arrow-color': 'green',
+                        'target-arrow-shape': 'triangle'
+                    }
+                },
+
+                {
+                    selector: '.attack',
+                    style: {
+                        'target-arrow-color': 'red',
+                        'target-arrow-shape': 'circle'
+                    }
+                }
+            ],
+
+            layout: {
+                name: 'grid',
+                rows: 1
+            }
+        });
+
+        setTimeout(function() {
+            network.resize();
+        }, 50);
+
+        return $el;
     }
 
     function graphifyParse(parse) {
@@ -72,7 +157,7 @@ jQuery(function($) {
                     )
                     .append($('<div class="panel-body">')
                         .append($('<ul>').append($.map(response.parses, stringifyParse)))
-                        // .append($.map(response.parses, graphifyParse))
+                        .append(networkifyParse(response.parses[response.parses.length - 1]))
                     );
             })
             .error(function(response) {
