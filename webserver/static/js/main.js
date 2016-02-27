@@ -30,14 +30,15 @@ jQuery(function($) {
             // .append($.map(parse.slice(1), stringifyStatement));
     }
 
+    var globalIDCounter = 0;
+
     function networkifyParse(parse) {
         var $el = $('<div>').addClass('network');
-        var counter = 0;
-
+        
         function extractADUs(adu)
         {
             if (!adu.id)
-                adu.id = ++counter;
+                adu.id = ++globalIDCounter;
 
             var node = [{data: {
                 id: adu.id,
@@ -64,6 +65,9 @@ jQuery(function($) {
         console.log(extractADUs(parse));
 
         var network = cytoscape({
+            userZoomingEnabled: false,
+            userPanningEnabled: false,
+            boxSelectionEnabled: false,
             container: $el,
             elements: extractADUs(parse),
             style: [ // the stylesheet for the graph
@@ -110,6 +114,7 @@ jQuery(function($) {
 
         setTimeout(function() {
             network.resize();
+            network.layout({name: 'grid'});
         }, 50);
 
         return $el;
