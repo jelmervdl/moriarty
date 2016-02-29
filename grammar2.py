@@ -7,79 +7,71 @@ def newline(text):
 
 class ArgumentativeDiscourseUnit:
     def __init__(self):
-        self.supports = []
-        self.attacks = []
+        self.arrows = []
 
     def __repr__(self):
         lines = []
-        if self.supports:
-            lines.append("Supporting:")
-            lines.extend(map(repr, self.supports))
-        if self.attacks:
-            lines.append("Attacking:")
-            lines.extend(map(repr, self.attacks))
+        if self.arrows:
+            lines.append("Supporting/Attacking:")
+            lines.extend(map(repr, self.arrows))
         return "\n".join(lines)
 
     def as_tuple(self):
         return {
-            "adu": str(self),
-            "supports": list(map(lambda el: el.as_tuple(), self.supports)),
-            "attacks": list(map(lambda el: el.as_tuple(), self.attacks))
+            "type": "adu",
+            "text": str(self),
+            "args": list(map(lambda el: el.as_tuple(), self.arrows))
         }
 
 
 class Statement(ArgumentativeDiscourseUnit):
-    def __init__(self, a, b):
+    def __init__(self, a, verb, b):
         super().__init__()
         self.a = a
+        self.verb = verb
         self.b = b
 
     def __str__(self):
-        return "{}({})".format(self.b, self.a)
+        return "{a} {verb} {b}".format(**self.__dict__)
 
     def __repr__(self):
         return "{}{}".format(str(self), newline(indent(super().__repr__(), "|\t")))
 
 
-class CanStatement(Statement):
+class Arrow(ArgumentativeDiscourseUnit):
+    def __init__(self, source):
+        super().__init__()
+        if isinstance(source, Arrow):
+            self.source = source.source
+            self.arrows = source.arrows
+        else:
+            self.source = source
+
     def __str__(self):
-        return "{} can {}".format(self.a, self.b)
+        return "ARROW({})".format(str(self.source))
+
+    def __repr__(self):
+        return "{}{}".format(str(self), newline(indent(super().__repr__(), "+\t")))
+
+    def as_tuple(self):
+        return {**super().as_tuple(), 'type': 'undefarrow', 'source': self.source.as_tuple()}
 
 
-class IsStatement(Statement):
+class Attack(Arrow):
     def __str__(self):
-        return "{} is a {}".format(self.a, self.b)
+        return "ATTACK({})".format(self.source)
+
+    def as_tuple(self):
+        return {**super().as_tuple(), 'type': 'attack'}
 
 
-class HasStatement(Statement):
+class Support(Arrow):
     def __str__(self):
-        return "{} has {}".format(self.a, self.b)
+        return "SUPPORT({})".format(self.source)
 
+    def as_tuple(self):
+        return {**super().as_tuple(), 'type': 'support'}
 
-class RuleStatement(Statement):
-    def isInstance(self, statement):
-        return False
-
-
-class CanRuleStatement(CanStatement, RuleStatement):
-    def isInstance(self, statement):
-        return isinstance(statement, CanStatement) and statement.b == self.b
-
-
-class HasRuleStatement(HasStatement, RuleStatement):
-    def isInstance(self, statement):
-        return isinstance(statement, HasStatement) and statement.b == self.b
-
-
-def attack(statement, attack):
-        state_copy = copy.deepcopy(statement)
-        state_copy.attacks.append(attack)
-        return state_copy
-
-def support(statement, support):
-        state_copy = copy.deepcopy(statement)
-        state_copy.supports.append(support)
-        return state_copy
 
 class Negation(ArgumentativeDiscourseUnit):
     def __init__(self, statement):
@@ -92,71 +84,58 @@ class Negation(ArgumentativeDiscourseUnit):
         return "¬{}".format(repr(self.statement))
 
     @property
-    def supports(self):
-        return self.statement.supports
-
-    @property
-    def attacks(self):
-        return self.statement.attacks
-
-
-class Combination(ArgumentativeDiscourseUnit):
-    def __init__(self, statements):
-        self.statements = statements
-
-    def as_tuple(self):
-        return {**super().as_tuple(), "statements": list(map(lambda stmt: stmt.as_tuple(), self.statements))}
-
-    def __str__(self):
-        return " ⋀ ".join(map(str, self.statements))
-
-    def __repr__(self):
-        return "AND (\n{}\n)".format(indent("\n".join(map(repr, self.statements)), ".\t"))
-
-    @property
-    def supports(self):
-        return flatten(map(lambda stmt: stmt.supports, self.statements))
-
-    @property
-    def attacks(self):
-        return flatten(map(lambda stmt: stmt.attacks, self.statements))
+    def arrows(self):
+        return self.statement.arrows
 
 
 def find_sentences(parse):
-    if isinstance(parse, Combination):
-        sentences = parse.statements[:]
-    else:
-        sentences = [parse]
-
-    sentences.extend(flatten(map(find_sentences,parse.attacks)))
-    sentences.extend(flatten(map(find_sentences,parse.supports)))
+    sentences = [parse]
+    sentences.extend(flatten(map(find_sentences,parse.arrows)))
     return sentences
 
+
+def attack(statement, attack):
+    state_copy = copy.deepcopy(statement)
+    state_copy.arrows.append(Attack(attack))
+    return state_copy
+
+def support(statement, support):
+    state_copy = copy.deepcopy(statement)
+    state_copy.arrows.append(Support(support))
+    return state_copy
+
+def ruleinstance(rule, instance):
+    arrow = Arrow(instance)
+    arrow.arrows.append(Support(rule))
+    return arrow
 
 
 def passthru(data, n):
     return data[0]
 
+def noop(data, n):
+    return 'empty'
+
 grammar = [
     ("START ::= S .", passthru),
-    ("S ::= IS", passthru),
-    ("S ::= CAN", passthru),
-    ("S ::= CANNOT", passthru),
-    ("S ::= HAS", passthru),
+    ("S ::= INST", passthru),
+    ("S ::= RULE", passthru),
     ("S ::= S but S", lambda data, n: attack(data[0], data[2])),
     ("S ::= S because S", lambda data, n: support(data[0], data[2])),
-    ("S ::= S and S", lambda data, n: Combination([data[0], data[2]])),
-    ("IS ::= INSTANCE is TYPE", lambda data, n: IsStatement(data[0], data[2])),
-    ("IS ::= INSTANCE is not TYPE", lambda data, n: Negation(IsStatement(data[0], data[3]))),
-    ("IS ::= TYPES are TYPES", lambda data, n: IsRuleStatement(data[0], data[2])),
-    ("HAS ::= INSTANCE has TYPES", lambda data, n: HasStatement(data[0], data[2])),
+    ("S ::= INST and RULE", lambda data, n: ruleinstance(data[2], data[0])),
+    ("S ::= RULE and INST", lambda data, n: ruleinstance(data[0], data[2])),
+    ("INST ::= INSTANCE is TYPE", lambda data, n: Statement(data[0], "is", data[2])),
+    ("INST ::= INSTANCE is not TYPE", lambda data, n: Negation(Statement(data[0], "is", data[3]))),
+    ("INST ::= INSTANCE has TYPES", lambda data, n: Statement(data[0], "has", data[2])),
     ("TYPE ::= a NOUN", lambda data, n: data[1]),
     ("TYPES ::= NOUNS", lambda data, n: data[0]),
-    ("CAN ::= INSTANCE can VERB", lambda data, n: CanStatement(data[0], data[2])),
-    ("CAN ::= TYPES can VERB", lambda data, n: CanRuleStatement(data[0], data[2])),
-    ("CANNOT ::= INSTANCE can not VERB", lambda data, n: Negation(CanStatement(data[0], data[3]))),
-    ("CANNOT ::= TYPES can not VERB", lambda data, n: Negation(CanRuleStatement(data[0], data[3]))),
+    ("INST ::= INSTANCE can VERB", lambda data, n: Statement(data[0], "can", data[2])),
+    ("RULE ::= TYPES are TYPES", lambda data, n: Statement(data[0], "are", data[2])),
+    ("RULE ::= TYPES can VERB", lambda data, n: Statement(data[0], "can", data[2])),
+    ("INST ::= INSTANCE can not VERB", lambda data, n: Negation(Statement(data[0], "can", data[3]))),
+    ("RULE ::= TYPES can not VERB", lambda data, n: Negation(Statement(data[0], "can", data[3]))),
     ("INSTANCE ::= Henry", passthru),
+    ("INSTANCE ::= he", passthru),
     ("NOUN ::= bird", passthru),
     ("NOUNS ::= birds", passthru),
     ("NOUN ::= pinguin", passthru),
@@ -169,14 +148,18 @@ grammar = [
 ]
 
 sentences = [
-    "Henry is a bird but Henry can not fly because Henry is a pinguin and pingiuns can not fly .",
-    "Henry is a bird but Henry can not fly because Henry is a pinguin .",
-    "Henry can not fly because Henry is a pinguin .",
-    "Henry can fly because Henry is a bird and Henry is not a pinguin .",
-    "Henry can fly because Henry is a bird because Henry is a pinguin because Henry has feathers .",
-    "Henry can fly because Henry is a bird because Henry has wings .",
-    "Henry can fly because Henry is a bird and because Henry has wings .",
-    "Henry can fly because Henry is a bird and Henry can fly because Henry has wings .",
+    "Henry can fly.",
+    "Henry can fly because he is a bird.",
+    "Henry can fly because he is a bird and birds can fly.",
+    "Henry can fly because birds can fly and he is a bird.",
+    # "Henry is a bird but Henry can not fly because Henry is a pinguin and pingiuns can not fly .",
+    # "Henry is a bird but Henry can not fly because Henry is a pinguin .",
+    # "Henry can not fly because Henry is a pinguin .",
+    # "Henry can fly because Henry is a bird and Henry is not a pinguin .",
+    # "Henry can fly because Henry is a bird because Henry is a pinguin because Henry has feathers .",
+    # "Henry can fly because Henry is a bird because Henry has wings .",
+    # "Henry can fly because Henry is a bird and because Henry has wings .",
+    # "Henry can fly because Henry is a bird and Henry can fly because Henry has wings .",
 ]
 
 rules = [parse_rule(expression, callback) for expression, callback in grammar]
