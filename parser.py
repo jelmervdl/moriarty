@@ -319,13 +319,13 @@ class Parser:
         self.feed(chunk)
         return self.results
 
-    def tokenize_and_parse(self, text: str) -> List[State]:
-        tokens = text.split(" ")
-        return self.parse(tokens)
+
+def tokenize(sentence: str) -> List[str]:
+    return re.compile('\w+|\$[\d\.]+|\S+').findall(sentence)
 
 
 def parse_rule(line:str, callback: Optional[Callable[[Any, int], Any]] = None) -> Rule:
-    match = re.match(r'^(?P<name>\w+) ::= (?P<antecedent>.+)$', line)
+    match = re.match(r'^(?P<name>\w+) ::= (?P<antecedent>.*)$', line)
     if match is None:
         raise RuleParseException("Cannot parse {}".format(line))
     

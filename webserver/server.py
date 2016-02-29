@@ -28,10 +28,6 @@ app.json_encoder = JSONEncoder
 app.debug = True
 
 
-def tokenize(sentence: str) -> List[str]:
-    return re.compile('\w+|\$[\d\.]+|\S+').findall(sentence)
-
-
 @app.errorhandler(parser.ParseError)
 def handle_parse_error(error: parser.ParseError):
     reply = dict(error=str(error))

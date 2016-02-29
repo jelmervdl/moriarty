@@ -1,4 +1,4 @@
-from parser import parse_syntax, parse_rule, Parser, Symbol, ParseError, indent, flatten
+from parser import parse_syntax, parse_rule, Parser, Symbol, ParseError, indent, flatten, tokenize
 import re
 import copy
 
@@ -170,13 +170,14 @@ Operation = ArgumentativeDiscourseUnit # for compatibility for now
 
 if __name__ == '__main__':
     try:
-        sentence = sentences[3]
-        parser = Parser(rules, start)
-        output = parser.tokenize_and_parse(sentence)
-        print(sentence)
-        for i, parsing in enumerate(output):
-            print("{}: {}".format(i + 1, repr(parsing)))
-            print("Summary:")
-            print("\n".join(map(str, find_sentences(parsing))))
+        for sentence in sentences[:4]:
+            parser = Parser(rules, start)
+            tokens = tokenize(sentence)
+            output = parser.parse(tokens)
+            print(sentence)
+            for i, parsing in enumerate(output):
+                print("{}: {}".format(i + 1, repr(parsing)))
+                print("Summary:")
+                print("\n".join(map(str, find_sentences(parsing))))
     except ParseError as e:
         print(repr(e))
