@@ -16,7 +16,7 @@ class TokenizeError(Exception):
 
 class JSONEncoder(flask.json.JSONEncoder):
     def default(self, o):
-        if isinstance(o, grammar.Operation):
+        if 'as_tuple' in dir(o):
             return o.as_tuple()
         else:
             return super().default(o)
@@ -31,8 +31,8 @@ app.debug = True
 @app.errorhandler(parser.ParseError)
 def handle_parse_error(error: parser.ParseError):
     reply = dict(error=str(error))
-    if request.method == 'POST' and 'sentence' in request.form:
-        reply['tokens'] = tokenize(request.form['sentence'])
+    if 'sentence' in request.args:
+        reply['tokens'] = tokenize(request.args['sentence'])
     response = jsonify(reply)
     response.status_code = 400
     return response
@@ -43,9 +43,9 @@ def hello():
     return render_template('index.html', sentences=grammar.sentences)
 
 
-@app.route('/api/parse', methods=['POST'])
+@app.route('/api/parse', methods=['GET'])
 def api_parse_sentence():
-    tokens = tokenize(request.form['sentence'])
+    tokens = parser.tokenize(request.args.get('sentence'))
 
     p = parser.Parser(grammar.rules, grammar.start)
     parses = p.parse(tokens)
