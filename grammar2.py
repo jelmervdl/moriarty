@@ -163,6 +163,8 @@ grammar = [
     ("NOUNS ::= pingiuns", passthru),
     ("NOUN ::= feather", passthru),
     ("NOUNS ::= feathers", passthru),
+    ("NOUN ::= wing", passthru),
+    ("NOUNS ::= wings", passthru),
     ("VERB ::= fly", passthru),
 ]
 
@@ -171,7 +173,10 @@ sentences = [
     "Henry is a bird but Henry can not fly because Henry is a pinguin .",
     "Henry can not fly because Henry is a pinguin .",
     "Henry can fly because Henry is a bird and Henry is not a pinguin .",
-    "Henry can fly because Henry is a bird because Henry is a pinguin because Henry has feathers ."
+    "Henry can fly because Henry is a bird because Henry is a pinguin because Henry has feathers .",
+    "Henry can fly because Henry is a bird because Henry has wings .",
+    "Henry can fly because Henry is a bird and because Henry has wings .",
+    "Henry can fly because Henry is a bird and Henry can fly because Henry has wings .",
 ]
 
 rules = [parse_rule(expression, callback) for expression, callback in grammar]
