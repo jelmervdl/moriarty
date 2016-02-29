@@ -145,18 +145,9 @@ class State:
 
     def consumeNonTerminal(self, inp: Rule) -> Optional['State']:
         assert isinstance(inp, Rule)
-        assert len(self.rule.symbols) > 0
-        assert len(self.rule.symbols) > self.expect, "Expected {}th symbol but rule {} only has {} symbols".format(self.expect + 1, self.rule, len(self.rule.symbols))
-        #log("consumeNonTerminal {} while expecting {}".format(inp, self.rule.symbols[self.expect]))
-
-        if not isinstance(self.rule.symbols[self.expect], RuleRef):
-            return None
-
-        assert isinstance(self.rule.symbols[self.expect], RuleRef), "Expected a RuleRef, but found a {}".format(type(self.rule.symbols[self.expect]))
-        symbol = cast(RuleRef, self.rule.symbols[self.expect])
-
-        if symbol.name == inp.name:
-            log("Nonterminal consumed")
+        if len(self.rule.symbols) > self.expect \
+            and isinstance(self.rule.symbols[self.expect], RuleRef) \
+            and self.rule.symbols[self.expect].name == inp.name:
             return self.nextState(inp)
         else:
             return None
@@ -334,7 +325,7 @@ def parse_rule(line:str, callback: Optional[Callable[[Any, int], Any]] = None) -
     for token in tokens:
         if token.isupper():
             antecedent.append(RuleRef(token))
-        else:
+        elif token != "":
             antecedent.append(Literal(token))
 
     return Rule(match.group("name"), antecedent, callback)
