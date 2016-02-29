@@ -1,4 +1,6 @@
 jQuery(function($) {
+    "use strict"
+
     function closeButton() {
         return $('<button type="button" class="close"><span>&times;</span></button>');
     }
@@ -21,12 +23,18 @@ jQuery(function($) {
         return stringifyStatement(parse);
     }
 
+    function isType(type) {
+        return function(arg) {
+            return arg.type == type;
+        };
+    }
+
     function stringifyStatement(parse) {
         return $('<li>')
             .addClass('predicate')
-            .append($('<strong>').text(parse.adu))
-            .append($('<ul>').addClass('supports').append($.map(parse.supports, stringifyStatement)))
-            .append($('<ul>').addClass('attacks').append($.map(parse.attacks, stringifyStatement)))
+            .append($('<strong>').text(parse.text))
+            .append($('<ul>').addClass('supports').append($.map(parse.args.filter(isType('support')), stringifyStatement)))
+            .append($('<ul>').addClass('attacks').append($.map(parse.args.filter(isType('attack')), stringifyStatement)));
             // .append($.map(parse.slice(1), stringifyStatement));
     }
 
@@ -40,26 +48,41 @@ jQuery(function($) {
             if (!adu.id)
                 adu.id = ++globalIDCounter;
 
-            var node = [{data: {
-                id: adu.id,
-                label: adu.adu
-            }}];
+            var node = [{
+                classes: adu.type,
+                data: {
+                    id: adu.id,
+                    text: adu.text,
+                    type: adu.type
+                }
+            }];
 
-            var supportEdges = $.map(adu.supports, function(support) {
+            var supports = adu.args.filter(isType('support')),
+                attacks = adu.args.filter(isType('attack')),
+                sources = adu.source ? [adu.source] : [];
+
+            var supportEdges = $.map(supports, function(support) {
                 return extractADUs(support)
                     .concat([{classes: 'support', data: {
                         source: support.id,
                         target: adu.id}}]);
             });
 
-            var attackEdges = $.map(adu.attacks, function(attack) {
+            var attackEdges = $.map(attacks, function(attack) {
                 return extractADUs(attack)
                     .concat([{classes: 'attack', data: {
                         source: attack.id,
                         target: adu.id}}]);
             });
 
-            return node.concat(supportEdges, attackEdges);
+            var sourceEdges = $.map(sources, function(source) {
+                return extractADUs(source)
+                    .concat([{classes: 'source', data: {
+                        source: source.id,
+                        target: adu.id}}]);
+            });
+
+            return node.concat(supportEdges, attackEdges, sourceEdges);
         };
 
         console.log(extractADUs(parse));
@@ -75,7 +98,17 @@ jQuery(function($) {
                     selector: 'node',
                     style: {
                         'background-color': '#666',
-                        'label': 'data(label)'
+                        'label': 'data(text)'
+                    }
+                },
+
+                {
+                    selector: 'node.support',
+                    style: {
+                        'width': 3,
+                        'height': 3,
+                        'background-color': '#eee',
+                        'label': 'data(type)'
                     }
                 },
 
@@ -90,7 +123,7 @@ jQuery(function($) {
                 },
 
                 {
-                    selector: '.support',
+                    selector: 'edge.support',
                     style: {
                         'target-arrow-color': 'green',
                         'target-arrow-shape': 'triangle'
@@ -98,7 +131,7 @@ jQuery(function($) {
                 },
 
                 {
-                    selector: '.attack',
+                    selector: 'edge.attack',
                     style: {
                         'target-arrow-color': 'red',
                         'target-arrow-shape': 'circle'
@@ -120,38 +153,8 @@ jQuery(function($) {
         return $el;
     }
 
-    function graphifyParse(parse) {
-        var roots = [];
-        var sent;
-        for (var i = 0; i < parse.length; ++i) {
-            switch (parse[i][0]) {
-                case 'because':
-                    var cause = sentence(parse[i][1]);
-                    var effect = sentence(parse[i][2]);
-                    roots.push(cause);
-                    sent = cause.supportedBy(effect);
-                    break;
-                case 'rule':
-                    if (sent) {
-                        var rule = sentence(parse[i]);
-                        sent = sent.supportedBy(rule);
-                    }
-                    break;
-            }
-        }
-        return $.map(roots, function(sent) {
-            var graph = sent.boundingBox().render();
-            return $('<div>')
-                .addClass('well')
-                .css({'position': 'relative'})
-                .width(parseInt(graph.style.width) * 2)
-                .height(parseInt(graph.style.height) * 2)
-                .append(graph);
-        });
-    }
-
     function parseSentence(sentence) {
-        $.post($('#parse-sentence-form').attr('action'), {sentence: sentence}, 'json')
+        $.get($('#parse-sentence-form').attr('action'), {sentence: sentence}, 'json')
             .success(function(response) {
                 $('<div>')
                     .appendTo('#parses')

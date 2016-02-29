@@ -26,7 +26,7 @@
                     <li class="active"><a href="/">Home</a></li>
                     <li><a href="https://github.com/jelmervdl/moriarty">Github</a></li>
                 </ul>
-                <form method="post" action="{{ url_for('api_parse_sentence') }}" id="parse-sentence-form" class="navbar-form navbar-left">
+                <form method="GET" action="{{ url_for('api_parse_sentence') }}" id="parse-sentence-form" class="navbar-form navbar-left">
                 <div class="form-group">
                     <input type="text" name="sentence" class="form-control" placeholder="Jan is punishable because Jan is a thief." size="60">
                 </div>
