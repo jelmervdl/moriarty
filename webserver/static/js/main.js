@@ -43,7 +43,7 @@ jQuery(function($) {
     function networkifyParse(parse) {
         var $el = $('<div>').addClass('network');
         
-        function extractADUs(adu)
+        function extractADUs(adu, depth)
         {
             if (!adu.id)
                 adu.id = ++globalIDCounter;
@@ -62,21 +62,21 @@ jQuery(function($) {
                 sources = adu.source ? [adu.source] : [];
 
             var supportEdges = $.map(supports, function(support) {
-                return extractADUs(support)
+                return extractADUs(support, depth + 1)
                     .concat([{classes: 'support', data: {
                         source: support.id,
                         target: adu.id}}]);
             });
 
             var attackEdges = $.map(attacks, function(attack) {
-                return extractADUs(attack)
+                return extractADUs(attack, depth + 1)
                     .concat([{classes: 'attack', data: {
                         source: attack.id,
                         target: adu.id}}]);
             });
 
             var sourceEdges = $.map(sources, function(source) {
-                return extractADUs(source)
+                return extractADUs(source, depth + 1)
                     .concat([{classes: 'source', data: {
                         source: source.id,
                         target: adu.id}}]);
@@ -85,14 +85,14 @@ jQuery(function($) {
             return node.concat(supportEdges, attackEdges, sourceEdges);
         };
 
-        console.log(extractADUs(parse));
+        console.log(extractADUs(parse, 0));
 
         var network = cytoscape({
             userZoomingEnabled: false,
             userPanningEnabled: false,
-            boxSelectionEnabled: false,
+            boxSelectionEnabled: true,
             container: $el,
-            elements: extractADUs(parse),
+            elements: extractADUs(parse, 0),
             style: [ // the stylesheet for the graph
                 {
                     selector: 'node',
@@ -108,7 +108,7 @@ jQuery(function($) {
                         'width': 3,
                         'height': 3,
                         'background-color': '#eee',
-                        'label': 'data(type)'
+                        'label': '' // 'data(type)'
                     }
                 },
 
@@ -141,13 +141,12 @@ jQuery(function($) {
 
             layout: {
                 name: 'grid',
-                rows: 1
             }
         });
 
         setTimeout(function() {
             network.resize();
-            network.layout({name: 'grid'});
+            network.layout();
         }, 50);
 
         return $el;
