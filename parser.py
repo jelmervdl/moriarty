@@ -46,7 +46,7 @@ class RuleParseException(Exception):
 
 
 class Symbol:
-    def test(self, literal: str) -> bool:
+    def test(self, literal: str, position: int) -> bool:
         raise NotImplementedError("Sybmol.test is abstract")
 
 
@@ -54,7 +54,7 @@ class Literal(Symbol):
     def __init__(self, literal: str) -> None:
         self.literal = literal
 
-    def test(self, literal: str) -> bool:
+    def test(self, literal: str, position: int) -> bool:
         return self.literal == literal
 
     def __repr__(self) -> str:
@@ -65,7 +65,7 @@ class RuleRef(Symbol):
     def __init__(self, name: str) -> None:
         self.name = name
 
-    def test(self, literal: str) -> bool:
+    def test(self, literal: str, position: int) -> bool:
         return False
 
     def __repr__(self, with_cursor_at: int = None) -> str:
@@ -107,16 +107,6 @@ class RuleInstance:
             return "[{}: {}]".format(self.rule.name, repr(self.data[0]))
 
 
-class Digit(Symbol):
-    def test(self, literal: str) -> bool:
-        return literal.isdigit()
-
-
-class Alpha(Symbol):
-    def test(self, literal:str) -> bool:
-        return literal.isalpha()
-
-
 class State:
     def __init__(self, rule: Rule, expect: int, reference: int) -> None:
         assert len(rule.symbols) > 0
@@ -134,10 +124,10 @@ class State:
         state.data.append(data)
         return state
 
-    def consumeTerminal(self, inp: str) -> Optional['State']:
+    def consumeTerminal(self, inp: str, token_pos: int) -> Optional['State']:
         log("consumeTerminal {} using {} expecting {}".format(inp, self.rule, self.rule.symbols[self.expect] if len(
             self.rule.symbols) > self.expect else '>END<'))
-        if len(self.rule.symbols) > self.expect and self.rule.symbols[self.expect].test(inp):
+        if len(self.rule.symbols) > self.expect and self.rule.symbols[self.expect].test(inp, position=token_pos):
             log("Terminal consumed")
             return self.nextState(inp)
         else:
@@ -274,7 +264,7 @@ class Parser:
             w = 0
             while w < len(self.table[self.current + token_pos]):
                 current_state = self.table[self.current + token_pos][w]
-                next_state = current_state.consumeTerminal(token)
+                next_state = current_state.consumeTerminal(token, token_pos)
                 if next_state is not None:
                     self.table[self.current + token_pos + 1].append(next_state)
                 w += 1
@@ -363,6 +353,15 @@ if __name__ == '__main__':
         Rule('A', [Literal('A')]),
     ], 'A')
     print(p.parse(list('AAAA')))
+
+    class Digit(Symbol):
+        def test(self, literal: str, position: int) -> bool:
+            return literal.isdigit()
+
+
+    class Alpha(Symbol):
+        def test(self, literal:str, position: int) -> bool:
+            return literal.isalpha()
 
     print("Test custom literal")
     p = Parser([

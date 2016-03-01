@@ -32,7 +32,7 @@ app.debug = True
 def handle_parse_error(error: parser.ParseError):
     reply = dict(error=str(error))
     if 'sentence' in request.args:
-        reply['tokens'] = tokenize(request.args['sentence'])
+        reply['tokens'] = parser.tokenize(request.args['sentence'])
     response = jsonify(reply)
     response.status_code = 400
     return response

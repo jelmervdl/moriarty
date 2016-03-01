@@ -1,4 +1,4 @@
-from parser import parse_syntax, parse_rule, Parser, Symbol, ParseError, indent, flatten, tokenize
+from parser import parse_syntax, parse_rule, Parser, Rule, Symbol, ParseError, indent, flatten, tokenize
 import re
 import copy
 
@@ -125,26 +125,23 @@ grammar = [
     ("S ::= INST and RULE", lambda data, n: ruleinstance(data[2], data[0])),
     ("S ::= RULE and INST", lambda data, n: ruleinstance(data[0], data[2])),
     ("INST ::= INSTANCE is TYPE", lambda data, n: Statement(data[0], "is", data[2])),
+    ("INST ::= INSTANCE is VERB_ABLE", lambda data, n: Statement(data[0], "is", data[2])),
+    ("INST ::= INSTANCE is VERB_ING", lambda data, n: Statement(data[0], "is", data[2])),
     ("INST ::= INSTANCE is not TYPE", lambda data, n: Negation(Statement(data[0], "is", data[3]))),
     ("INST ::= INSTANCE has TYPES", lambda data, n: Statement(data[0], "has", data[2])),
     ("TYPE ::= a NOUN", lambda data, n: data[1]),
+    ("TYPE ::= an NOUN", lambda data, n: data[1]),
     ("TYPES ::= NOUNS", lambda data, n: data[0]),
-    ("INST ::= INSTANCE can VERB", lambda data, n: Statement(data[0], "can", data[2])),
+    ("INST ::= INSTANCE can VERB_INF", lambda data, n: Statement(data[0], "can", data[2])),
     ("RULE ::= TYPES are TYPES", lambda data, n: Statement(data[0], "are", data[2])),
-    ("RULE ::= TYPES can VERB", lambda data, n: Statement(data[0], "can", data[2])),
-    ("INST ::= INSTANCE can not VERB", lambda data, n: Negation(Statement(data[0], "can", data[3]))),
-    ("RULE ::= TYPES can not VERB", lambda data, n: Negation(Statement(data[0], "can", data[3]))),
-    ("INSTANCE ::= Henry", passthru),
+    ("RULE ::= TYPES are VERB_ABLE", lambda data, n: Statement(data[0], "are", data[2])),
+    ("RULE ::= TYPES are VERB_ING", lambda data, n: Statement(data[0], "are", data[2])),
+    ("RULE ::= TYPES can VERB_INF", lambda data, n: Statement(data[0], "can", data[2])),
+    ("INST ::= INSTANCE can not VERB_INF", lambda data, n: Negation(Statement(data[0], "can", data[3]))),
+    ("RULE ::= TYPES can not VERB_INF", lambda data, n: Negation(Statement(data[0], "can", data[3]))),
+    ("INSTANCE ::= NAME", passthru),
     ("INSTANCE ::= he", passthru),
-    ("NOUN ::= bird", passthru),
-    ("NOUNS ::= birds", passthru),
-    ("NOUN ::= pinguin", passthru),
-    ("NOUNS ::= pingiuns", passthru),
-    ("NOUN ::= feather", passthru),
-    ("NOUNS ::= feathers", passthru),
-    ("NOUN ::= wing", passthru),
-    ("NOUNS ::= wings", passthru),
-    ("VERB ::= fly", passthru),
+    ("INSTANCE ::= she", passthru)
 ]
 
 sentences = [
@@ -162,7 +159,42 @@ sentences = [
     # "Henry can fly because Henry is a bird and Henry can fly because Henry has wings .",
 ]
 
-rules = [parse_rule(expression, callback) for expression, callback in grammar]
+class Noun(Symbol):
+    def __init__(self, plural):
+        self.plural = plural
+
+    def test(self, literal: str, position: int) -> bool:
+        if not literal.islower() and position != 0:
+            return False
+        if self.plural and literal[-1] != 's':
+            return False
+        return True
+
+class Name(Symbol):
+    def test(self, literal: str, position: int) -> bool:
+        return literal[0].isupper()
+
+
+class ReSymbol(Symbol):
+    def __init__(self, pattern: str, negate=False) -> None:
+        self.pattern = re.compile(pattern)
+        self.negate = negate
+
+    def test(self, literal:str, position:int) -> bool:
+        accept = re.match(self.pattern, literal) is not None
+        return not accept if self.negate else accept
+
+
+rules = list(parse_rule(expression, callback) for expression, callback in grammar)
+
+rules += [
+    Rule("NOUN", [Noun(plural=False)], passthru),
+    Rule("NOUNS", [Noun(plural=True)], passthru),
+    Rule("NAME", [Name()], passthru),
+    Rule("VERB_INF", [ReSymbol('^\w+([^e]ed|ing|able)$', negate=True)], passthru),
+    Rule("VERB_ING", [ReSymbol('^\w+ing$')], passthru),
+    Rule("VERB_ABLE", [ReSymbol('^\w+able$')], passthru),
+]
 
 start = "START"
 
