@@ -38,6 +38,18 @@ class Statement(ArgumentativeDiscourseUnit):
         return "{}{}".format(str(self), newline(indent(super().__repr__(), "|\t")))
 
 
+class CompoundStatement(ArgumentativeDiscourseUnit):
+    def __init__(self, constituents):
+        super().__init__()
+        self.constituents = constituents
+    
+    def __str__(self):
+        return " AND ".join(map(str, self.constituents))
+
+    def as_tuple(self):
+        return {**super().as_tuple(), 'type': 'compound', 'sources': list(source.as_tuple() for source in self.constituents)}
+
+
 class Arrow(ArgumentativeDiscourseUnit):
     def __init__(self, source):
         super().__init__()
@@ -54,7 +66,7 @@ class Arrow(ArgumentativeDiscourseUnit):
         return "{}{}".format(str(self), newline(indent(super().__repr__(), "+\t")))
 
     def as_tuple(self):
-        return {**super().as_tuple(), 'type': 'undefarrow', 'source': self.source.as_tuple()}
+        return {**super().as_tuple(), 'type': 'undefarrow', 'sources': [self.source.as_tuple()]}
 
 
 class Attack(Arrow):
@@ -126,6 +138,7 @@ grammar = [
     ("S ::= S because S and because S", lambda data, n: support(data[0], data[2], data[5])),
     ("S ::= INST and RULE", lambda data, n: ruleinstance(data[2], data[0])),
     ("S ::= RULE and INST", lambda data, n: ruleinstance(data[0], data[2])),
+    ("S ::= INST and INST", lambda data, n: CompoundStatement([data[0], data[2]])),
     ("INST ::= INSTANCE is TYPE", lambda data, n: Statement(data[0], "is", data[2])),
     ("INST ::= INSTANCE is VERB_ABLE", lambda data, n: Statement(data[0], "is", data[2])),
     ("INST ::= INSTANCE is VERB_ING", lambda data, n: Statement(data[0], "is", data[2])),
@@ -139,6 +152,7 @@ grammar = [
     ("RULE ::= TYPES are VERB_ABLE", lambda data, n: Statement(data[0], "are", data[2])),
     ("RULE ::= TYPES are VERB_ING", lambda data, n: Statement(data[0], "are", data[2])),
     ("RULE ::= TYPES can VERB_INF", lambda data, n: Statement(data[0], "can", data[2])),
+    ("RULE ::= TYPES have TYPES", lambda data, n: Statement(data[0], "have", data[2])),
     ("INST ::= INSTANCE can not VERB_INF", lambda data, n: Negation(Statement(data[0], "can", data[3]))),
     ("RULE ::= TYPES can not VERB_INF", lambda data, n: Negation(Statement(data[0], "can", data[3]))),
     ("INSTANCE ::= NAME", passthru),
@@ -153,6 +167,8 @@ sentences = [
     "Henry can fly because birds can fly and he is a bird.",
     "Henry can fly because he is a bird and because he has wings.",
     "Henry can fly because he has wings but he is not a bird.",
+    "Henry can fly because he is a bird and he has wings.",
+    "Henry can fly because he is a bird and he has wings because birds have wings and he is a bird."
     # "Henry is a bird but Henry can not fly because Henry is a pinguin and pingiuns can not fly .",
     # "Henry is a bird but Henry can not fly because Henry is a pinguin .",
     # "Henry can not fly because Henry is a pinguin .",

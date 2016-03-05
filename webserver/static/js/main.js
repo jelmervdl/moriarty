@@ -33,7 +33,7 @@ jQuery(function($) {
         return $('<li>')
             .addClass('predicate')
             .append($('<strong>').text(parse.text))
-            .append($('<ul>').addClass('source').append(parse.source ? stringifyStatement(parse.source) : null))
+            .append($('<ul>').addClass('source').append($.map(parse.sources || [], stringifyStatement)))
             .append($('<ul>').addClass('supports').append($.map(parse.args.filter(isType('support')), stringifyStatement)))
             .append($('<ul>').addClass('attacks').append($.map(parse.args.filter(isType('attack')), stringifyStatement)));
     }
@@ -59,7 +59,7 @@ jQuery(function($) {
 
             var supports = adu.args.filter(isType('support')),
                 attacks = adu.args.filter(isType('attack')),
-                sources = adu.source ? [adu.source] : [];
+                sources = adu.sources || [];
 
             var supportEdges = $.map(supports, function(support) {
                 return extractADUs(support, depth + 1)
@@ -101,7 +101,7 @@ jQuery(function($) {
                 },
 
                 {
-                    selector: 'node.support, node.attack',
+                    selector: 'node.support, node.attack, node.compound',
                     style: {
                         'width': 3,
                         'height': 3,
