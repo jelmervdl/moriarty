@@ -36,7 +36,6 @@ jQuery(function($) {
             .append($('<ul>').addClass('source').append(parse.source ? stringifyStatement(parse.source) : null))
             .append($('<ul>').addClass('supports').append($.map(parse.args.filter(isType('support')), stringifyStatement)))
             .append($('<ul>').addClass('attacks').append($.map(parse.args.filter(isType('attack')), stringifyStatement)));
-            // .append($.map(parse.slice(1), stringifyStatement));
     }
 
     var globalIDCounter = 0;
@@ -86,8 +85,6 @@ jQuery(function($) {
             return node.concat(supportEdges, attackEdges, sourceEdges);
         };
 
-        console.log(extractADUs(parse, 0));
-
         var network = cytoscape({
             userZoomingEnabled: false,
             userPanningEnabled: false,
@@ -104,7 +101,7 @@ jQuery(function($) {
                 },
 
                 {
-                    selector: 'node.support',
+                    selector: 'node.support, node.attack',
                     style: {
                         'width': 3,
                         'height': 3,
@@ -137,11 +134,18 @@ jQuery(function($) {
                         'target-arrow-color': 'red',
                         'target-arrow-shape': 'circle'
                     }
+                },
+
+                {
+                    selector: 'edge.source',
+                    style: {
+                        'target-arrow-shape': 'none'
+                    }
                 }
             ],
 
             layout: {
-                name: 'grid',
+                name: 'cose',
             }
         });
 
@@ -164,8 +168,9 @@ jQuery(function($) {
                         .append(stringifyTokens(response.tokens))
                     )
                     .append($('<div class="panel-body">')
-                        .append($('<ul>').append($.map(response.parses, stringifyParse)))
-                        .append(networkifyParse(response.parses[response.parses.length - 1]))
+                        .append($('<ul>').append($.map(response.parses, function(parse) {
+                            return stringifyParse(parse).append(networkifyParse(parse));
+                        })))
                     );
             })
             .error(function(response) {
