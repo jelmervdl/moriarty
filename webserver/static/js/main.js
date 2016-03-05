@@ -33,6 +33,7 @@ jQuery(function($) {
         return $('<li>')
             .addClass('predicate')
             .append($('<strong>').text(parse.text))
+            .append($('<ul>').addClass('source').append(parse.source ? stringifyStatement(parse.source) : null))
             .append($('<ul>').addClass('supports').append($.map(parse.args.filter(isType('support')), stringifyStatement)))
             .append($('<ul>').addClass('attacks').append($.map(parse.args.filter(isType('attack')), stringifyStatement)));
             // .append($.map(parse.slice(1), stringifyStatement));
