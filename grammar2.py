@@ -99,9 +99,10 @@ def attack(statement, attack):
     state_copy.arrows.append(Attack(attack))
     return state_copy
 
-def support(statement, support):
+def support(statement, *args):
     state_copy = copy.deepcopy(statement)
-    state_copy.arrows.append(Support(support))
+    for support in args:
+        state_copy.arrows.append(Support(support))
     return state_copy
 
 def ruleinstance(rule, instance):
@@ -122,6 +123,7 @@ grammar = [
     ("S ::= RULE", passthru),
     ("S ::= S but S", lambda data, n: attack(data[0], data[2])),
     ("S ::= S because S", lambda data, n: support(data[0], data[2])),
+    ("S ::= S because S and because S", lambda data, n: support(data[0], data[2], data[5])),
     ("S ::= INST and RULE", lambda data, n: ruleinstance(data[2], data[0])),
     ("S ::= RULE and INST", lambda data, n: ruleinstance(data[0], data[2])),
     ("INST ::= INSTANCE is TYPE", lambda data, n: Statement(data[0], "is", data[2])),
@@ -149,6 +151,7 @@ sentences = [
     "Henry can fly because he is a bird.",
     "Henry can fly because he is a bird and birds can fly.",
     "Henry can fly because birds can fly and he is a bird.",
+    "Henry can fly because he is a bird and because he has wings.",
     # "Henry is a bird but Henry can not fly because Henry is a pinguin and pingiuns can not fly .",
     # "Henry is a bird but Henry can not fly because Henry is a pinguin .",
     # "Henry can not fly because Henry is a pinguin .",
