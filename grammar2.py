@@ -152,6 +152,7 @@ sentences = [
     "Henry can fly because he is a bird and birds can fly.",
     "Henry can fly because birds can fly and he is a bird.",
     "Henry can fly because he is a bird and because he has wings.",
+    "Henry can fly because he has wings but he is not a bird.",
     # "Henry is a bird but Henry can not fly because Henry is a pinguin and pingiuns can not fly .",
     # "Henry is a bird but Henry can not fly because Henry is a pinguin .",
     # "Henry can not fly because Henry is a pinguin .",
