@@ -1,0 +1,39 @@
+[[Someone is tresspassing] when [[they enter a house] and [they do not have permission]].]
+[[John is tresspassing] [because [he enters the house] and [he does not have permission]].]
+
+[[John is tresspassing] [because [[he enters the house] and [he does not have permission]]] [but [he has a key]].]
+
+
+STMT: INST VERB OBJ
+
+INST: "someone" | "one" | "they" | NAME
+
+NAME: "John" | "Henry" | "Albert" | "Bowie"
+
+LABEL: "tresspassing"
+
+VERB: "enter"
+VERB: "is"
+VERB: "have"
+VERB: "do" "not" VERB
+
+OBJ: "a" NOUN
+OBJ: "permission"
+NOUN: "house" | "crook" | "thief" | "liar"
+
+RULE: STMT "when" COND
+
+COND: STMT
+COND: STMT "and" COND
+
+STMT: INST VERB OBJ ARGS
+
+ARGS: ARG
+ARGS: ARG ARGS
+
+ARG: "but" STMTS
+ARG: "because" STMTS
+
+STMTS: STMT
+STMTS: STMT "and" STMTS
+
