@@ -3,37 +3,65 @@
 
 [[John is tresspassing] [because [[he enters the house] and [he does not have permission]]] [but [he has a key]].]
 
+[[Henry is a crook] because [he is a liar] and [liars are crooks].]
+[[Henry is a crook] because [he is a liar] and [a liar is a crook].]
+[[Henry is a crook] because [[someone is a crook] when [they are [a liar and a thief]]] and [Henry is [a liar and a thief]].]
+[[Henry is a crook] [because he is a liar and liars are crooks] [but [he is [also kind and honest]]].]
+
+START: SENTENCE "."
+START: SENTENCES "and" SENTENCE "."
+
+SENTENCES: SENTENCE
+SENTENCES: SENTENCES "," SENTENCE
+
+; For example, John can fly because...
+SENTENCE: ARGCLAIM
+
+; For example, Someone is tresspassing when...
+SENTENCE: RULE
+
+; ARGCLAIM is a CLAIM with optional supports or attacks
+ARGCLAIM: CLAIM SUPPORT ATTACK
+
+; CLAIM and STMT differ in that a CLAIM can consist of multiple STMT's.
+CLAIM: STMT
+CLAIM: STMT_LIST "and" STMT
+
+STMT_LIST: STMT
+STMT_LIST: STMT "," STMT_LIST
 
 STMT: INST VERB OBJ
 
-INST: "someone" | "one" | "they" | NAME
+INST: "Someone" | "someone" | "one" | "they" | "it" | NAME
 
 NAME: "John" | "Henry" | "Albert" | "Bowie"
 
-LABEL: "tresspassing"
-
 VERB: "enter"
 VERB: "is"
+VERB: "has"
 VERB: "have"
 VERB: "do" "not" VERB
 
 OBJ: "a" NOUN
 OBJ: "permission"
-NOUN: "house" | "crook" | "thief" | "liar"
+OBJ: VERB_ING
+
+NOUN: "house" | "crook" | "thief" | "liar" | "bird"
+NOUN_PL: "houses" | "crooks" | "thieves" | "liars" | "birds" | "wings"
+
+VERB_ING: "tresspassing"
 
 RULE: STMT "when" COND
+RULE: NOUN_PL "are" NOUN_PL
 
+; Right now a CLAIM and a COND are the same
+; No, not really because claim supports "A, B and C" instead of "A and B and C".
 COND: STMT
 COND: STMT "and" COND
 
-STMT: INST VERB OBJ ARGS
+SUPPORT:
+SUPPORT: "because" ARGCLAIM
+SUPPORT: SUPPORT "and" SUPPORT
 
-ARGS: ARG
-ARGS: ARG ARGS
-
-ARG: "but" STMTS
-ARG: "because" STMTS
-
-STMTS: STMT
-STMTS: STMT "and" STMTS
-
+ATTACK:
+ATTACK: "but" ARGCLAIM

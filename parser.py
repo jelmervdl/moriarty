@@ -103,8 +103,10 @@ class RuleInstance:
     def __repr__(self):
         if len(self.data) > 1:
             return "[{}:\n{}\n]".format(self.rule.name, indent("\n".join(map(repr, self.data))))
-        else:
+        elif len(self.data) == 1:
             return "[{}: {}]".format(self.rule.name, repr(self.data[0]))
+        else:
+            return "[{}: (empty)]".format(self.rule.name)
 
 
 class State:

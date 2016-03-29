@@ -1,18 +1,21 @@
 import parser
-from grammar import rules
+from grammar import parse_grammar
 
-sentences = [
-    'Jan is punishable because Jan is a thief .',
-    'Jan is punishable because Jan is a thief and thieves are punishable .',
-    #'When you steal something you are a thief .',
-    #'Only when you steal something you are a thief .'
-    #'Jan did not steal anything .'
-]
+p = None
 
-for sentence in sentences:
-    p = parser.Parser(rules, 'ARGSET')
-    p.feed(sentence.split(' '))
+with open('grammar.txt', 'r') as fh:
+    rules, sentences = parse_grammar(fh)
+    p = parser.Parser(rules, 'START')
 
-    print("\nPossible parses:")
-    for n, parse in enumerate(p.results):
-        print("{}) {}".format(n, parse))
+    for rule in rules:
+        print(rule)
+
+    for sentence in sentences:
+        print(sentence)
+        try:
+            tokens = parser.tokenize(sentence)
+            output = p.parse(tokens)
+            print(output)
+        except parser.ParseError as e:
+            print(e)
+            # print(p.table)

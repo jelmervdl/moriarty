@@ -190,6 +190,12 @@ class Noun(Symbol):
             return False
         return True
 
+    def singular(self, literal: str) -> str:
+        word = re.sub('(e?s)$', '', word)  # Strip 'es' from thieves
+        word = re.sub('v$', 'f', word)  # Replace 'v' in 'thiev' with 'f'
+        return word
+
+
 class Name(Symbol):
     def test(self, literal: str, position: int) -> bool:
         return literal[0].isupper()
@@ -211,9 +217,9 @@ rules += [
     Rule("NOUN", [Noun(plural=False)], passthru),
     Rule("NOUNS", [Noun(plural=True)], passthru),
     Rule("NAME", [Name()], passthru),
-    Rule("VERB_INF", [ReSymbol('^\w+([^e]ed|ing|able)$', negate=True)], passthru),
-    Rule("VERB_ING", [ReSymbol('^\w+ing$')], passthru),
-    Rule("VERB_ABLE", [ReSymbol('^\w+able$')], passthru),
+    Rule("VERB_INF", [ReSymbol(r'^\w+([^e]ed|ing|able)$', negate=True)], passthru),
+    Rule("VERB_ING", [ReSymbol(r'^\w+ing$')], passthru),
+    Rule("VERB_ABLE", [ReSymbol(r'^\w+able$')], passthru),
 ]
 
 start = "START"
