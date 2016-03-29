@@ -15,7 +15,13 @@ with open('grammar.txt', 'r') as fh:
         try:
             tokens = parser.tokenize(sentence)
             output = p.parse(tokens)
-            print(output)
+            
+            if len(output) == 0:
+                print("No possible parses")
+            else:
+                for n, parse in enumerate(output):
+                    print("{}: {}\n".format(n, parse))
+
         except parser.ParseError as e:
             print(e)
             # print(p.table)

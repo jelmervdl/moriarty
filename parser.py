@@ -27,7 +27,7 @@ class ParseError(Exception):
         self.position = position
         self.token = token
         self.sentence = sentence
-        super().__init__("No possible parse for {} (at position {})".format(token, position))
+        super().__init__("No possible parse for '{}' (at position {})".format(token, position))
 
     def __repr__(self) -> str:
         return "{}\n{}\n{}{}{}{}".format(
