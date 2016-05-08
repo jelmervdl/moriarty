@@ -304,7 +304,7 @@ class Parser:
 
 
 def tokenize(sentence: str) -> List[str]:
-    return re.compile('\w+|\$[\d\.]+|\S+').findall(sentence)
+    return re.compile('\w+|\$[\d\.\;]+|\S+').findall(sentence)
 
 
 def parse_rule(line:str, callback: Optional[Callable[[Any, int], Any]] = None) -> Rule:
