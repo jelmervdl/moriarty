@@ -1,9 +1,14 @@
-from parser import parse_syntax, parse_rule, Parser, Rule, Symbol, ParseError, indent, flatten, tokenize
+import itertools
+
+from parser import parse_syntax, parse_rule, Parser, Rule, State, Symbol, ParseError, indent, flatten, tokenize
+from typing import List, Optional, Any, Callable, Union, cast, Set
 import re
 import copy
 
+
 def newline(text):
     return "\n" + text if text else ""
+
 
 class ArgumentativeDiscourseUnit:
     def __init__(self):
@@ -15,6 +20,9 @@ class ArgumentativeDiscourseUnit:
             lines.append("Supporting/Attacking:")
             lines.extend(map(repr, self.arrows))
         return "\n".join(lines)
+
+    def elements(self) -> Set[Any]:
+        return set()
 
     def as_tuple(self):
         return {
@@ -31,6 +39,9 @@ class Statement(ArgumentativeDiscourseUnit):
         self.verb = verb
         self.b = b
 
+    def elements(self):
+        return set([self.a, self.b])
+
     def __str__(self):
         return "{a} {verb} {b}".format(**self.__dict__)
 
@@ -42,12 +53,16 @@ class CompoundStatement(ArgumentativeDiscourseUnit):
     def __init__(self, constituents):
         super().__init__()
         self.constituents = constituents
-    
+
+    def elements(self):
+        return set(itertools.chain(*[con.elements() for con in self.constituents]))
+
     def __str__(self):
         return " AND ".join(map(str, self.constituents))
 
     def as_tuple(self):
-        return {**super().as_tuple(), 'type': 'compound', 'sources': list(source.as_tuple() for source in self.constituents)}
+        return {**super().as_tuple(), 'type': 'compound',
+                'sources': list(source.as_tuple() for source in self.constituents)}
 
 
 class Arrow(ArgumentativeDiscourseUnit):
@@ -58,6 +73,9 @@ class Arrow(ArgumentativeDiscourseUnit):
             self.arrows = source.arrows
         else:
             self.source = source
+
+    def elements(self) -> List[Any]:
+        return self.source.elements()
 
     def __str__(self):
         return "ARROW({})".format(str(self.source))
@@ -89,6 +107,9 @@ class Negation(ArgumentativeDiscourseUnit):
     def __init__(self, statement):
         self.statement = statement
 
+    def elements(self):
+        return self.statement.elements()
+
     def __str__(self):
         return "¬{}".format(str(self.statement))
 
@@ -102,7 +123,7 @@ class Negation(ArgumentativeDiscourseUnit):
 
 def find_sentences(parse):
     sentences = [parse]
-    sentences.extend(flatten(map(find_sentences,parse.arrows)))
+    sentences.extend(flatten(map(find_sentences, parse.arrows)))
     return sentences
 
 
@@ -111,11 +132,13 @@ def attack(statement, attack):
     state_copy.arrows.append(Attack(attack))
     return state_copy
 
+
 def support(statement, *args):
     state_copy = copy.deepcopy(statement)
     for support in args:
         state_copy.arrows.append(Support(support))
     return state_copy
+
 
 def ruleinstance(rule, instance):
     arrow = Arrow(instance)
@@ -126,8 +149,10 @@ def ruleinstance(rule, instance):
 def passthru(data, n):
     return data[0]
 
+
 def noop(data, n):
     return 'empty'
+
 
 grammar = [
     ("START ::= S .", passthru),
@@ -156,7 +181,7 @@ grammar = [
     ("INST ::= INSTANCE can not VERB_INF", lambda data, n: Negation(Statement(data[0], "can", data[3]))),
     ("RULE ::= TYPES can not VERB_INF", lambda data, n: Negation(Statement(data[0], "can", data[3]))),
     ("INSTANCE ::= NAME", passthru),
-    ("INSTANCE ::= he", passthru),
+    ("INSTANCE ::= PRONOUN", passthru),
     ("INSTANCE ::= she", passthru)
 ]
 
@@ -168,7 +193,7 @@ sentences = [
     "Henry can fly because he is a bird and because he has wings.",
     "Henry can fly because he has wings but he is not a bird.",
     "Henry can fly because he is a bird and he has wings.",
-    "Henry can fly because he is a bird and he has wings because birds have wings and he is a bird."
+    "Henry can fly because he is a bird and he has wings because birds have wings and he is a bird.",
     # "Henry is a bird but Henry can not fly because Henry is a pinguin and pingiuns can not fly .",
     # "Henry is a bird but Henry can not fly because Henry is a pinguin .",
     # "Henry can not fly because Henry is a pinguin .",
@@ -177,28 +202,66 @@ sentences = [
     # "Henry can fly because Henry is a bird because Henry has wings .",
     # "Henry can fly because Henry is a bird and because Henry has wings .",
     # "Henry can fly because Henry is a bird and Henry can fly because Henry has wings .",
+    "Henry can fly because he has wings and because Ducky is a bird and he has wings.",
 ]
+
 
 class Noun(Symbol):
     def __init__(self, plural):
         self.plural = plural
 
-    def test(self, literal: str, position: int) -> bool:
+    def test(self, literal: str, position: int, state: 'State') -> bool:
         if not literal.islower() and position != 0:
             return False
         if self.plural and literal[-1] != 's':
             return False
         return True
 
-    def singular(self, literal: str) -> str:
+    def singular(self, word: str) -> str:
         word = re.sub('(e?s)$', '', word)  # Strip 'es' from thieves
         word = re.sub('v$', 'f', word)  # Replace 'v' in 'thiev' with 'f'
         return word
 
 
-class Name(Symbol):
-    def test(self, literal: str, position: int) -> bool:
+class Name(object):
+    def __init__(self, name: List[str]):
+        self.name = " ".join(name)
+
+    def __str__(self) -> str:
+        return self.name
+
+    def __repr__(self):
+        return "Name({})".format(self.name)
+
+
+class NameSymbol(Symbol):
+    def test(self, literal: str, position: int, state: State) -> bool:
         return literal[0].isupper()
+
+
+class Pronoun(object):
+    def __init__(self, pronoun: str):
+        self.pronoun = pronoun
+
+    def __str__(self):
+        return "Pronoun({})".format(self.pronoun)
+
+
+class PronounSymbol(Symbol):
+    def findNames(self, state: State) -> Set[Name]:
+        names = set()
+        if state.parent:
+            names.update(self.findNames(state.parent))
+        for item in state.data:
+            if isinstance(item, ArgumentativeDiscourseUnit):
+                names.update(element for element in item.elements() if isinstance(element, Name))
+        return names
+
+    def test(self, literal: str, position: int, state: State) -> bool:
+        return literal in ('he', 'she', 'it')
+
+    def finish(self, literal: str, state: State):
+        return self.findNames(state)
 
 
 class ReSymbol(Symbol):
@@ -206,7 +269,7 @@ class ReSymbol(Symbol):
         self.pattern = re.compile(pattern)
         self.negate = negate
 
-    def test(self, literal:str, position:int) -> bool:
+    def test(self, literal: str, position: int, state: State) -> bool:
         accept = re.match(self.pattern, literal) is not None
         return not accept if self.negate else accept
 
@@ -216,7 +279,8 @@ rules = list(parse_rule(expression, callback) for expression, callback in gramma
 rules += [
     Rule("NOUN", [Noun(plural=False)], passthru),
     Rule("NOUNS", [Noun(plural=True)], passthru),
-    Rule("NAME", [Name()], passthru),
+    Rule("NAME", [NameSymbol()], lambda data, n: Name(data)),
+    Rule("PRONOUN", [PronounSymbol()], lambda data, n: Pronoun(data[0])),
     Rule("VERB_INF", [ReSymbol(r'^\w+([^e]ed|ing|able)$', negate=True)], passthru),
     Rule("VERB_ING", [ReSymbol(r'^\w+ing$')], passthru),
     Rule("VERB_ABLE", [ReSymbol(r'^\w+able$')], passthru),
@@ -224,7 +288,7 @@ rules += [
 
 start = "START"
 
-Operation = ArgumentativeDiscourseUnit # for compatibility for now
+Operation = ArgumentativeDiscourseUnit  # for compatibility for now
 
 if __name__ == '__main__':
     try:

@@ -22,6 +22,7 @@ def flatten(lists):
 def indent(text: str, indent: str = "\t"):
     return "\n".join((indent + line for line in text.split("\n"))) if text else ""
 
+
 class ParseError(Exception):
     def __init__(self, position: int, token: str, sentence: List[str] = None):
         self.position = position
@@ -37,24 +38,25 @@ class ParseError(Exception):
             " " if self.position > 0 else "",
             "^" * len(self.sentence[self.position]),
             " " * len(" ".join(self.sentence[self.position + 1:])))
-        
+
 
 class RuleParseException(Exception):
     pass
 
 
-
-
 class Symbol:
-    def test(self, literal: str, position: int) -> bool:
-        raise NotImplementedError("Sybmol.test is abstract")
+    def test(self, literal: str, position: int, state: 'State') -> bool:
+        raise NotImplementedError("Symbol.test is abstract")
+
+    def finish(self, literal: str, state: 'State'):
+        return literal
 
 
 class Literal(Symbol):
     def __init__(self, literal: str) -> None:
         self.literal = literal
 
-    def test(self, literal: str, position: int) -> bool:
+    def test(self, literal: str, position: int, state: 'State') -> bool:
         return self.literal == literal
 
     def __repr__(self) -> str:
@@ -65,7 +67,7 @@ class RuleRef(Symbol):
     def __init__(self, name: str) -> None:
         self.name = name
 
-    def test(self, literal: str, position: int) -> bool:
+    def test(self, literal: str, position: int, state: 'State') -> bool:
         return False
 
     def __repr__(self, with_cursor_at: int = None) -> str:
@@ -79,14 +81,14 @@ class Rule:
         if callback is not None:
             self.callback = callback
         else:
-            self.callback = lambda data, n: RuleInstance(self, data)#flatten(data)
+            self.callback = lambda data, n: RuleInstance(self, data)  # flatten(data)
 
     def __repr__(self, with_cursor_at: int = None) -> str:
         if with_cursor_at is not None:
             return "{} --> {} ● {}".format(
-                    self.name,
-                    " ".join(map(repr, self.symbols[:with_cursor_at])),
-                    " ".join(map(repr, self.symbols[with_cursor_at:])))
+                self.name,
+                " ".join(map(repr, self.symbols[:with_cursor_at])),
+                " ".join(map(repr, self.symbols[with_cursor_at:])))
         else:
             return "{} --> {}".format(self.name, " ".join(map(repr, self.symbols)))
 
@@ -110,18 +112,19 @@ class RuleInstance:
 
 
 class State:
-    def __init__(self, rule: Rule, expect: int, reference: int) -> None:
+    def __init__(self, rule: Rule, expect: int, reference: int, parent: Optional['State'] = None) -> None:
         assert len(rule.symbols) > 0
         self.rule = rule
         self.expect = expect
         self.reference = reference
-        self.data = [] # type: List[Any]
+        self.parent = parent
+        self.data = []  # type: List[Any]
 
     def __repr__(self) -> str:
-        return "{{}}, from: {}".format(self.rule.__repr__(self.expect), self.reference)
+        return "{rule}, from: {ref} (data:{data!r}, parent:\n{parent!r})".format(rule=self.rule.__repr__(self.expect), ref=self.reference, data=self.data, parent=self.parent)
 
     def nextState(self, data) -> 'State':
-        state = State(self.rule, self.expect + 1, self.reference)
+        state = State(self.rule, self.expect + 1, self.reference, parent=self)
         state.data = self.data[:]
         state.data.append(data)
         return state
@@ -129,17 +132,17 @@ class State:
     def consumeTerminal(self, inp: str, token_pos: int) -> Optional['State']:
         log("consumeTerminal {} using {} expecting {}".format(inp, self.rule, self.rule.symbols[self.expect] if len(
             self.rule.symbols) > self.expect else '>END<'))
-        if len(self.rule.symbols) > self.expect and self.rule.symbols[self.expect].test(inp, position=token_pos):
+        if len(self.rule.symbols) > self.expect and self.rule.symbols[self.expect].test(inp, position=token_pos, state=self):
             log("Terminal consumed")
-            return self.nextState(inp)
+            return self.nextState(self.rule.symbols[self.expect].finish(inp, self))
         else:
             return None
 
     def consumeNonTerminal(self, inp: Rule) -> Optional['State']:
         assert isinstance(inp, Rule)
         if len(self.rule.symbols) > self.expect \
-            and isinstance(self.rule.symbols[self.expect], RuleRef) \
-            and self.rule.symbols[self.expect].name == inp.name:
+                and isinstance(self.rule.symbols[self.expect], RuleRef) \
+                and self.rule.symbols[self.expect].name == inp.name:
             return self.nextState(inp)
         else:
             return None
@@ -154,10 +157,10 @@ class State:
                 # We need a while here because the empty rule will modify table[reference] when location == reference
                 while w < len(table[self.reference]):
                     state = table[self.reference][w]
-                    next = state.consumeNonTerminal(self.rule)
-                    if next is not None:
-                        next.data[-1] = self.data
-                        table[location].append(next)
+                    next_state = state.consumeNonTerminal(self.rule)
+                    if next_state is not None:
+                        next_state.data[-1] = self.data
+                        table[location].append(next_state)
                     w += 1
 
                     # --- The comment below is OUTDATED. It's left so that future
@@ -186,6 +189,7 @@ class State:
             for i in range(ind):
                 state = table[location][i]
                 if len(state.rule.symbols) == state.expect and state.reference == location:
+                    raise NotImplementedError("Code should not reach this place because we don't do nullables")
                     x = self.consumeNonTerminal(state.rule)
                     if x is not None:
                         x.data[-1] = state.data
@@ -209,7 +213,7 @@ class State:
                         # null rule means anyway)
                         if len(rule.symbols) > 0:
                             added_rules.append(rule)
-                            table[location].append(State(rule, 0, location))
+                            table[location].append(State(rule, 0, location, parent=self))
                         else:
                             # Empty rule, this is special
                             copy = self.consumeNonTerminal(rule)
@@ -223,7 +227,7 @@ class Parser:
     def __init__(self, rules: List[Rule], start: str) -> None:
         self.rules = rules
         self.start = start
-        self.table = []  # type: List[List[State]]
+        self.table = []  # type: List[List[State]] (first index is token, second index is possible state)
         self.results = []  # type: List[Any]
         self.current = 0
         self.reset()
@@ -307,12 +311,12 @@ def tokenize(sentence: str) -> List[str]:
     return re.compile('\w+|\$[\d\.\;]+|\S+').findall(sentence)
 
 
-def parse_rule(line:str, callback: Optional[Callable[[Any, int], Any]] = None) -> Rule:
+def parse_rule(line: str, callback: Optional[Callable[[Any, int], Any]] = None) -> Rule:
     match = re.match(r'^(?P<name>\w+) ::= (?P<antecedent>.*)$', line)
     if match is None:
         raise RuleParseException("Cannot parse {}".format(line))
-    
-    antecedent = [] # type: List[Symbol]
+
+    antecedent = []  # type: List[Symbol]
     tokens = match.group("antecedent").split(" ")
     for token in tokens:
         if token.isupper():
@@ -323,17 +327,17 @@ def parse_rule(line:str, callback: Optional[Callable[[Any, int], Any]] = None) -
     return Rule(match.group("name"), antecedent, callback)
 
 
-def parse_syntax(syntax:str) -> List[Rule]:
+def parse_syntax(syntax: str) -> List[Rule]:
     rules = []
     for i, line in enumerate(syntax.splitlines()):
         if line == "":
             continue
-        
+
         try:
             rules.append(parse_rule(line))
         except RuleParseException as e:
             raise RuleParseException("{} (line {})".format(str(e), i))
-        
+
     return rules
 
 
@@ -356,14 +360,16 @@ if __name__ == '__main__':
     ], 'A')
     print(p.parse(list('AAAA')))
 
+
     class Digit(Symbol):
-        def test(self, literal: str, position: int) -> bool:
+        def test(self, literal: str, position: int, state: 'State') -> bool:
             return literal.isdigit()
 
 
     class Alpha(Symbol):
-        def test(self, literal:str, position: int) -> bool:
+        def test(self, literal: str, position: int, state: 'State') -> bool:
             return literal.isalpha()
+
 
     print("Test custom literal")
     p = Parser([
@@ -371,7 +377,6 @@ if __name__ == '__main__':
         Rule('A', [Literal('A')]),
     ], 'A')
     print(p.parse(list('A1234')))
-
 
     # Test recursion and the empty rule
     # p = Parser([
