@@ -1,7 +1,7 @@
 import itertools
 
 from parser import parse_syntax, parse_rule, Parser, Rule, State, Symbol, ParseError, indent, flatten, tokenize
-from typing import List, Optional, Any, Callable, Union, cast, Set
+from typing import List, Optional, Any, Callable, Union, cast, Set, Dict
 import re
 import copy
 
@@ -240,28 +240,40 @@ class NameSymbol(Symbol):
 
 
 class Pronoun(object):
-    def __init__(self, pronoun: str):
+    def __init__(self, pronoun: str, name: Name):
         self.pronoun = pronoun
+        self.name = name
 
     def __str__(self):
-        return "Pronoun({})".format(self.pronoun)
+        return "{} ({})".format(self.pronoun, self.name)
 
 
 class PronounSymbol(Symbol):
-    def findNames(self, state: State) -> Set[Name]:
-        names = set()
+    def findNames(self, state: State) -> Dict[Name, str]:
+        names = dict()
+
         if state.parent:
-            names.update(self.findNames(state.parent))
-        for item in state.data:
-            if isinstance(item, ArgumentativeDiscourseUnit):
-                names.update(element for element in item.elements() if isinstance(element, Name))
+            for name, pronoun in self.findNames(state.parent).items():
+                names[name] = names.get(name, pronoun)
+
+        for adu in state.data:
+            if isinstance(adu, ArgumentativeDiscourseUnit):
+                for item in adu.elements():
+                    if isinstance(item, Name) and item not in names:
+                        names[item] = None
+                    if isinstance(item, Pronoun):
+                        names[item.name] = item.pronoun
+
         return names
 
     def test(self, literal: str, position: int, state: State) -> bool:
-        return literal in ('he', 'she', 'it')
+        names = self.findNames(state)
+        return literal in names.values() or None in names.values()
 
     def finish(self, literal: str, state: State):
-        return self.findNames(state)
+        for name, pronoun in self.findNames(state).items():
+            if pronoun is None:
+                return Pronoun(literal, name)
 
 
 class ReSymbol(Symbol):
@@ -280,7 +292,7 @@ rules += [
     Rule("NOUN", [Noun(plural=False)], passthru),
     Rule("NOUNS", [Noun(plural=True)], passthru),
     Rule("NAME", [NameSymbol()], lambda data, n: Name(data)),
-    Rule("PRONOUN", [PronounSymbol()], lambda data, n: Pronoun(data[0])),
+    Rule("PRONOUN", [PronounSymbol()], lambda data, n: data[0]),
     Rule("VERB_INF", [ReSymbol(r'^\w+([^e]ed|ing|able)$', negate=True)], passthru),
     Rule("VERB_ING", [ReSymbol(r'^\w+ing$')], passthru),
     Rule("VERB_ABLE", [ReSymbol(r'^\w+able$')], passthru),
