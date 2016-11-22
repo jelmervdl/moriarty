@@ -6,11 +6,11 @@ jQuery(function($) {
     }
 
     $.fn.alert = function(message) {
-        $('<div>')
-            .addClass('alert alert-danger alert-dismissible')
-            .append(closeButton().data('dismiss', 'alert'))
-            .append($('<p>').text(' ' + message).prepend($('<strong>Error!</strong>')))
-            .appendTo(this);
+        var $alert = $('<div>')
+            .addClass('alert alert-danger alert-dismissible dismissible')
+            .append(closeButton())
+            .append($('<p>').text(' ' + message).prepend($('<strong>Error!</strong>')));
+        $(this).prepend($alert);
     };
 
     function stringifyTokens(tokens) {
@@ -160,18 +160,19 @@ jQuery(function($) {
     function parseSentence(sentence) {
         $.get($('#parse-sentence-form').attr('action'), {sentence: sentence}, 'json')
             .success(function(response) {
-                $('<div>')
-                    .appendTo('#parses')
-                    .addClass('parse panel panel-default')
-                    .append($('<div class="panel-heading">')
-                        .append(closeButton())
-                        .append(stringifyTokens(response.tokens))
-                    )
-                    .append($('<div class="panel-body">')
-                        .append($('<ul>').append($.map(response.parses, function(parse) {
-                            return stringifyParse(parse).append(networkifyParse(parse));
-                        })))
-                    );
+                $('#parses').prepend(
+                    $('<div>')
+                        .addClass('parse panel panel-default dismissible')
+                        .append($('<div class="panel-heading">')
+                            .append(closeButton())
+                            .append(stringifyTokens(response.tokens))
+                        )
+                        .append($('<div class="panel-body">')
+                            .append($('<ul>').append($.map(response.parses, function(parse) {
+                                return stringifyParse(parse).append(networkifyParse(parse));
+                            })))
+                        )
+                );
             })
             .error(function(response) {
                 try {
@@ -182,9 +183,9 @@ jQuery(function($) {
             });
     }
 
-    $('#parses').on('click', 'button.close', function(e) {
+    $('body').on('click', '.dismissible button.close', function(e) {
         e.preventDefault();
-        $(this).closest('.parse').remove();
+        $(this).closest('.dismissible').remove();
     });
 
     $('#parse-sentence-form').submit(function(e) {
