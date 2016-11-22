@@ -181,8 +181,7 @@ grammar = [
     ("INST ::= INSTANCE can not VERB_INF", lambda data, n: Negation(Statement(data[0], "can", data[3]))),
     ("RULE ::= TYPES can not VERB_INF", lambda data, n: Negation(Statement(data[0], "can", data[3]))),
     ("INSTANCE ::= NAME", passthru),
-    ("INSTANCE ::= PRONOUN", passthru),
-    ("INSTANCE ::= she", passthru)
+    ("INSTANCE ::= PRONOUN", passthru)
 ]
 
 sentences = [
@@ -272,7 +271,7 @@ class PronounSymbol(Symbol):
 
     def finish(self, literal: str, state: State):
         for name, pronoun in self.findNames(state).items():
-            if pronoun is None:
+            if pronoun == literal or pronoun is None:
                 return Pronoun(literal, name)
 
 
