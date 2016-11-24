@@ -4,6 +4,10 @@ from parser import parse_syntax, parse_rule, Parser, Rule, State, Symbol, ParseE
 from typing import List, Optional, Any, Callable, Union, cast, Set, Dict
 import re
 import copy
+import debug
+
+
+logger = debug.Console()
 
 
 def newline(text):
@@ -40,7 +44,7 @@ class Statement(ArgumentativeDiscourseUnit):
         self.b = b
 
     def elements(self):
-        return set([self.a, self.b])
+        return {self.a, self.b}
 
     def __str__(self):
         return "{a} {verb} {b}".format(**self.__dict__)
@@ -105,6 +109,7 @@ class Support(Arrow):
 
 class Negation(ArgumentativeDiscourseUnit):
     def __init__(self, statement):
+        super().__init__()
         self.statement = statement
 
     def elements(self):
@@ -146,42 +151,154 @@ def ruleinstance(rule, instance):
     return arrow
 
 
-def passthru(data, n):
+def passthru(state, data):
     return data[0]
 
 
-def noop(data, n):
+def noop(state, data):
     return 'empty'
+
+
+class Instance(object):
+    def __init__(self, name: str = None, noun: str = None, pronoun: str = None, origin: 'Instance' = None):
+        self.name = name
+        self.noun = noun
+        self.pronoun = pronoun
+        self.origin = origin
+
+    def __str__(self):
+        if self.name is not None:
+            return self.name
+        if self.noun is not None:
+            return "the {}".format(self.noun)
+        else:
+            return "(instance)"
+
+    def __repr__(self):
+        return "Instance({})".format(" ".join("{}={}".format(k, v) for k,v in self.__dict__.items() if v is not None))
+
+    def replaces(self, instance: 'Instance') -> bool:
+        """
+        Test whether this instance is an updated version of the supplied instance.
+        :param instance: the supposed origin of this instance
+        :return: whether this instance is a more accurate version of the supplied instance
+        """
+        previous = self.origin
+        while previous is not None:
+            if previous == instance:
+                return True
+            previous = previous.origin
+        return False
+
+    def update(self, name: str = None, noun: str = None, pronoun: str = None) -> 'Instance':
+        return Instance(
+            name=name if name is not None else self.name,
+            noun=noun if noun is not None else self.noun,
+            pronoun=pronoun if pronoun is not None else self.pronoun,
+            origin=self)
+
+
+class InstanceList(object):
+    @classmethod
+    def from_state(cls, state: State) -> 'InstanceList':
+        instances = cls()
+        for adu in state.data:
+            if isinstance(adu, ArgumentativeDiscourseUnit):
+                for item in adu.elements():
+                    if isinstance(item, Instance) and item not in instances:
+                        instances.append(item)
+        if state.parent:
+            instances.extend(InstanceList.from_state(state.parent))
+        return instances
+
+    def __init__(self):
+        self.instances = list() # type: List[Instance]
+
+    def __iter__(self):
+        return self.instances.__iter__()
+
+    def __len__(self):
+        return len(self.instances)
+
+    def append(self, new_instance: Instance):
+        for known_instance in self.instances:
+            if new_instance.replaces(known_instance):
+                self.instances.remove(known_instance)
+                break
+            if known_instance.replaces(new_instance):
+                logger.warn("Trying to add an instance ({!r}) of which already a more specific one ({!r}) is known. "
+                            "Ignoring new instance.".format(new_instance, known_instance))
+                return
+        self.instances.append(new_instance)
+
+    def extend(self, instances: 'InstanceList'):
+        for instance in instances:
+            self.append(instance)
+
+
+def find_instance_by_name(state: State, name: str) -> Instance:
+    """
+    We've received a name, and now we want to link this to an existing instance
+    with the same name, or create a new instance.
+    :param state:
+    :param name:
+    :return:
+    """
+    for instance in InstanceList.from_state(state):
+        if instance.name == name:
+            return instance
+    return Instance(name=name)
+
+
+def find_instance_by_pronoun(state: State, pronoun: str) -> Instance:
+    instances = InstanceList.from_state(state)
+    # First of all, we assume the pronoun refers to at least something
+    if len(instances) == 0:
+        raise Exception("Cannot figure out where '{}' refers to".format(pronoun))
+    # Then, we assume that the pronoun refers to the last mentioned instance
+    for instance in instances:
+        if instance.pronoun == pronoun:
+            return instance
+        if instance.pronoun is None:
+            return instance.update(pronoun=pronoun)
+
+
+def find_instance_by_noun(state: State, noun: str) -> Instance:
+    for instance in InstanceList.from_state(state):
+        if instance.noun == noun:
+            return instance
+    return Instance(noun=noun)
 
 
 grammar = [
     ("START ::= S .", passthru),
-    ("S ::= INST", passthru),
-    ("S ::= RULE", passthru),
-    ("S ::= S but S", lambda data, n: attack(data[0], data[2])),
-    ("S ::= S because S", lambda data, n: support(data[0], data[2])),
-    ("S ::= S because S and because S", lambda data, n: support(data[0], data[2], data[5])),
-    ("S ::= INST and RULE", lambda data, n: ruleinstance(data[2], data[0])),
-    ("S ::= RULE and INST", lambda data, n: ruleinstance(data[0], data[2])),
-    ("S ::= INST and INST", lambda data, n: CompoundStatement([data[0], data[2]])),
-    ("INST ::= INSTANCE is TYPE", lambda data, n: Statement(data[0], "is", data[2])),
-    ("INST ::= INSTANCE is VERB_ABLE", lambda data, n: Statement(data[0], "is", data[2])),
-    ("INST ::= INSTANCE is VERB_ING", lambda data, n: Statement(data[0], "is", data[2])),
-    ("INST ::= INSTANCE is not TYPE", lambda data, n: Negation(Statement(data[0], "is", data[3]))),
-    ("INST ::= INSTANCE has TYPES", lambda data, n: Statement(data[0], "has", data[2])),
-    ("TYPE ::= a NOUN", lambda data, n: data[1]),
-    ("TYPE ::= an NOUN", lambda data, n: data[1]),
-    ("TYPES ::= NOUNS", lambda data, n: data[0]),
-    ("INST ::= INSTANCE can VERB_INF", lambda data, n: Statement(data[0], "can", data[2])),
-    ("RULE ::= TYPES are TYPES", lambda data, n: Statement(data[0], "are", data[2])),
-    ("RULE ::= TYPES are VERB_ABLE", lambda data, n: Statement(data[0], "are", data[2])),
-    ("RULE ::= TYPES are VERB_ING", lambda data, n: Statement(data[0], "are", data[2])),
-    ("RULE ::= TYPES can VERB_INF", lambda data, n: Statement(data[0], "can", data[2])),
-    ("RULE ::= TYPES have TYPES", lambda data, n: Statement(data[0], "have", data[2])),
-    ("INST ::= INSTANCE can not VERB_INF", lambda data, n: Negation(Statement(data[0], "can", data[3]))),
-    ("RULE ::= TYPES can not VERB_INF", lambda data, n: Negation(Statement(data[0], "can", data[3]))),
-    ("INSTANCE ::= NAME", passthru),
-    ("INSTANCE ::= PRONOUN", passthru)
+    ("S ::= SPECIFIC", passthru),
+    ("S ::= GENERAL", passthru),
+    ("S ::= S but S", lambda state, data: attack(data[0], data[2])),
+    ("S ::= S because S", lambda state, data: support(data[0], data[2])),
+    ("S ::= S because S and because S", lambda state, data: support(data[0], data[2], data[5])),
+    ("S ::= SPECIFIC and GENERAL", lambda state, data: ruleinstance(data[2], data[0])),
+    ("S ::= GENERAL and SPECIFIC", lambda state, data: ruleinstance(data[0], data[2])),
+    ("S ::= SPECIFIC and SPECIFIC", lambda state, data: CompoundStatement([data[0], data[2]])),
+    ("SPECIFIC ::= INSTANCE is TYPE", lambda state, data: Statement(data[0], "is", data[2])),
+    ("SPECIFIC ::= INSTANCE is VERB_ABLE", lambda state, data: Statement(data[0], "is", data[2])),
+    ("SPECIFIC ::= INSTANCE is VERB_ING", lambda state, data: Statement(data[0], "is", data[2])),
+    ("SPECIFIC ::= INSTANCE is not TYPE", lambda state, data: Negation(Statement(data[0], "is", data[3]))),
+    ("SPECIFIC ::= INSTANCE has TYPES", lambda state, data: Statement(data[0], "has", data[2])),
+    ("TYPE ::= a NOUN", lambda state, data: data[1]),
+    ("TYPE ::= an NOUN", lambda state, data: data[1]),
+    ("TYPES ::= NOUNS", lambda state, data: data[0]),
+    ("SPECIFIC ::= INSTANCE can VERB_INF", lambda state, data: Statement(data[0], "can", data[2])),
+    ("GENERAL ::= TYPES are TYPES", lambda state, data: Statement(data[0], "are", data[2])),
+    ("GENERAL ::= TYPES are VERB_ABLE", lambda state, data: Statement(data[0], "are", data[2])),
+    ("GENERAL ::= TYPES are VERB_ING", lambda state, data: Statement(data[0], "are", data[2])),
+    ("GENERAL ::= TYPES can VERB_INF", lambda state, data: Statement(data[0], "can", data[2])),
+    ("GENERAL ::= TYPES have TYPES", lambda state, data: Statement(data[0], "have", data[2])),
+    ("SPECIFIC ::= INSTANCE can not VERB_INF", lambda state, data: Negation(Statement(data[0], "can", data[3]))),
+    ("GENERAL ::= TYPES can not VERB_INF", lambda state, data: Negation(Statement(data[0], "can", data[3]))),
+    ("INSTANCE ::= NAME", lambda state, data: find_instance_by_name(state, data[0])),
+    ("INSTANCE ::= PRONOUN", lambda state, data: find_instance_by_pronoun(state, data[0])),
+    ("INSTANCE ::= the NOUN", lambda state, data: find_instance_by_noun(state, data[1]))
 ]
 
 sentences = [
@@ -205,7 +322,7 @@ sentences = [
 ]
 
 
-class Noun(Symbol):
+class NounSymbol(Symbol):
     def __init__(self, plural):
         self.plural = plural
 
@@ -222,57 +339,14 @@ class Noun(Symbol):
         return word
 
 
-class Name(object):
-    def __init__(self, name: List[str]):
-        self.name = " ".join(name)
-
-    def __str__(self) -> str:
-        return self.name
-
-    def __repr__(self):
-        return "Name({})".format(self.name)
-
-
 class NameSymbol(Symbol):
     def test(self, literal: str, position: int, state: State) -> bool:
         return literal[0].isupper()
 
 
-class Pronoun(object):
-    def __init__(self, pronoun: str, name: Name):
-        self.pronoun = pronoun
-        self.name = name
-
-    def __str__(self):
-        return "{} ({})".format(self.pronoun, self.name)
-
-
 class PronounSymbol(Symbol):
-    def findNames(self, state: State) -> Dict[Name, str]:
-        names = dict()
-
-        if state.parent:
-            for name, pronoun in self.findNames(state.parent).items():
-                names[name] = names.get(name, pronoun)
-
-        for adu in state.data:
-            if isinstance(adu, ArgumentativeDiscourseUnit):
-                for item in adu.elements():
-                    if isinstance(item, Name) and item not in names:
-                        names[item] = None
-                    if isinstance(item, Pronoun):
-                        names[item.name] = item.pronoun
-
-        return names
-
     def test(self, literal: str, position: int, state: State) -> bool:
-        names = self.findNames(state)
-        return literal in names.values() or None in names.values()
-
-    def finish(self, literal: str, state: State):
-        for name, pronoun in self.findNames(state).items():
-            if pronoun == literal or pronoun is None:
-                return Pronoun(literal, name)
+        return literal in ('he', 'she', 'it')
 
 
 class ReSymbol(Symbol):
@@ -288,10 +362,10 @@ class ReSymbol(Symbol):
 rules = list(parse_rule(expression, callback) for expression, callback in grammar)
 
 rules += [
-    Rule("NOUN", [Noun(plural=False)], passthru),
-    Rule("NOUNS", [Noun(plural=True)], passthru),
-    Rule("NAME", [NameSymbol()], lambda data, n: Name(data)),
-    Rule("PRONOUN", [PronounSymbol()], lambda data, n: data[0]),
+    Rule("NOUN", [NounSymbol(plural=False)], passthru),
+    Rule("NOUNS", [NounSymbol(plural=True)], passthru),
+    Rule("NAME", [NameSymbol()], lambda state, data: data[0]),
+    Rule("PRONOUN", [PronounSymbol()], lambda state, data: data[0]),
     Rule("VERB_INF", [ReSymbol(r'^\w+([^e]ed|ing|able)$', negate=True)], passthru),
     Rule("VERB_ING", [ReSymbol(r'^\w+ing$')], passthru),
     Rule("VERB_ABLE", [ReSymbol(r'^\w+able$')], passthru),

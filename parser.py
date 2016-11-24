@@ -92,9 +92,12 @@ class Rule:
         else:
             return "{} --> {}".format(self.name, " ".join(map(repr, self.symbols)))
 
-    def finish(self, data, reference, FAIL) -> Any:
-        log("!!! Finishing {} with data {} and reference {}!".format(self.name, data, reference))
-        return self.callback(data, reference)
+    def consume(self, state: 'State'):
+        return self
+
+    def finish(self, state: 'State', data: List[Any]) -> Any:
+        log("!!! Finishing {} with data {} and reference {}!".format(self.name, state.data, state.reference))
+        return self.callback(state, data)
 
 
 class RuleInstance:
@@ -143,7 +146,7 @@ class State:
         if len(self.rule.symbols) > self.expect \
                 and isinstance(self.rule.symbols[self.expect], RuleRef) \
                 and self.rule.symbols[self.expect].name == inp.name:
-            return self.nextState(inp)
+            return self.nextState(inp.consume(self))
         else:
             return None
 
@@ -151,7 +154,7 @@ class State:
         if self.expect == len(self.rule.symbols):
             # We have a completed rule
             try:
-                self.data = self.rule.finish(self.data, self.reference, Parser.FAIL)
+                self.data = self.rule.finish(self, self.data)
 
                 w = 0
                 # We need a while here because the empty rule will modify table[reference] when location == reference
@@ -217,7 +220,7 @@ class State:
                         else:
                             # Empty rule, this is special
                             copy = self.consumeNonTerminal(rule)
-                            copy.data[-1] = rule.finish([], self.reference, Parser.FAIL)
+                            copy.data[-1] = rule.finish(self, [])
                             table[location].append(copy)
 
 
