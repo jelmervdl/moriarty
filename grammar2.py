@@ -26,7 +26,7 @@ class ArgumentativeDiscourseUnit:
         return "\n".join(lines)
 
     def elements(self) -> Set[Any]:
-        return set()
+        return set(itertools.chain(*[arrow.elements() for arrow in self.arrows]))
 
     def as_tuple(self):
         return {
@@ -44,7 +44,7 @@ class Statement(ArgumentativeDiscourseUnit):
         self.b = b
 
     def elements(self):
-        return {self.a, self.b}
+        return {self.a, self.b} | super().elements()
 
     def __str__(self):
         return "{a} {verb} {b}".format(**self.__dict__)
@@ -59,7 +59,7 @@ class CompoundStatement(ArgumentativeDiscourseUnit):
         self.constituents = constituents
 
     def elements(self):
-        return set(itertools.chain(*[con.elements() for con in self.constituents]))
+        return set(itertools.chain(*[con.elements() for con in self.constituents])) | super().elements()
 
     def __str__(self):
         return " AND ".join(map(str, self.constituents))
@@ -79,7 +79,7 @@ class Arrow(ArgumentativeDiscourseUnit):
             self.source = source
 
     def elements(self) -> List[Any]:
-        return self.source.elements()
+        return self.source.elements() | super().elements()
 
     def __str__(self):
         return "ARROW({})".format(str(self.source))
@@ -113,7 +113,7 @@ class Negation(ArgumentativeDiscourseUnit):
         self.statement = statement
 
     def elements(self):
-        return self.statement.elements()
+        return self.statement.elements() | super().elements()
 
     def __str__(self):
         return "¬{}".format(str(self.statement))
@@ -127,9 +127,7 @@ class Negation(ArgumentativeDiscourseUnit):
 
 
 def find_sentences(parse):
-    sentences = [parse]
-    sentences.extend(flatten(map(find_sentences, parse.arrows)))
-    return sentences
+    return [parse] + flatten(map(find_sentences, parse.arrows))
 
 
 def attack(statement, attack):
@@ -319,6 +317,9 @@ sentences = [
     # "Henry can fly because Henry is a bird and because Henry has wings .",
     # "Henry can fly because Henry is a bird and Henry can fly because Henry has wings .",
     "Henry can fly because he has wings and because Ducky is a bird and he has wings.",
+    "the queen can fly because Henry is a bird and he has wings and because she is a queen.",
+    "the queen can fly because Henry is a bird and he has wings and she is a queen.",
+    "Jan can fly because Piet has wings and wings are tools and because he has feathers.",
 ]
 
 
