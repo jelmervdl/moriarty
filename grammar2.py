@@ -26,6 +26,8 @@ class ArgumentativeDiscourseUnit:
         return "\n".join(lines)
 
     def elements(self) -> Set[Any]:
+        # Maybe it is unwise to use a set instead of a list here, as the
+        # order does matter!
         return set(itertools.chain(*[arrow.elements() for arrow in self.arrows]))
 
     def as_tuple(self):
