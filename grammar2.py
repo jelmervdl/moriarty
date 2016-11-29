@@ -111,7 +111,7 @@ class Support(Arrow):
 
 class Negation(ArgumentativeDiscourseUnit):
     def __init__(self, statement):
-        super().__init__()
+        #super().__init__() // Don't call super.init since we've overridden the arrows attribute!
         self.statement = statement
 
     def elements(self):
@@ -322,6 +322,7 @@ sentences = [
     "the queen can fly because Henry is a bird and he has wings and because she is a queen.",
     "the queen can fly because Henry is a bird and he has wings and she is a queen.",
     "Jan can fly because Piet has wings and wings are tools and because he has feathers.",
+    "Jan is a prisoner but Jan is not a thief.",
 ]
 
 
