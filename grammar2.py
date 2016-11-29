@@ -318,11 +318,16 @@ sentences = [
     # "Henry can fly because Henry is a bird because Henry has wings .",
     # "Henry can fly because Henry is a bird and because Henry has wings .",
     # "Henry can fly because Henry is a bird and Henry can fly because Henry has wings .",
+    
+    # == Anaphora == 
     "Henry can fly because he has wings and because Ducky is a bird and he has wings.",
     "the queen can fly because Henry is a bird and he has wings and because she is a queen.",
     "the queen can fly because Henry is a bird and he has wings and she is a queen.",
     "Jan can fly because Piet has wings and wings are tools and because he has feathers.",
+
+    # == Undercutter ==
     "Jan is a prisoner but Jan is not a thief.",
+    "Jan is a prisoner because thieves are prisoners but Jan is not a thief.",
 ]
 
 
