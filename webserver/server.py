@@ -40,7 +40,7 @@ def handle_parse_error(error: parser.ParseError):
 
 @app.route('/')
 def hello():
-    return render_template('index.html', sentences=grammar.sentences)
+    return render_template('index.html', sections=grammar.sentences)
 
 
 @app.route('/api/parse', methods=['GET'])
@@ -56,4 +56,4 @@ def api_parse_sentence():
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(extra_files=grammar.sentence_files)

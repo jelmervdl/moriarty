@@ -194,7 +194,7 @@ jQuery(function($) {
         parseSentence(sentence);
     });
 
-    $('#example-sentences').on('click', 'li', function(e) {
+    $(document.body).on('click', '.example-sentence', function(e) {
         e.preventDefault();
         var sentence = $(e.target).text();
         parseSentence(sentence);

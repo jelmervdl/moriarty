@@ -1,10 +1,12 @@
 import itertools
 
-from parser import parse_syntax, parse_rule, Parser, Rule, State, Symbol, ParseError, indent, flatten, tokenize
+from parser import parse_syntax, parse_rule, read_sentences, Parser, Rule, State, Symbol, ParseError, indent, flatten, tokenize
 from typing import List, Optional, Any, Callable, Union, cast, Set, Dict
+from collections import OrderedDict
 import re
 import copy
 import debug
+import os.path
 
 
 logger = debug.Console()
@@ -301,34 +303,12 @@ grammar = [
     ("INSTANCE ::= the NOUN", lambda state, data: find_instance_by_noun(state, data[1]))
 ]
 
-sentences = [
-    "Henry can fly.",
-    "Henry can fly because he is a bird.",
-    "Henry can fly because he is a bird and birds can fly.",
-    "Henry can fly because birds can fly and he is a bird.",
-    "Henry can fly because he is a bird and because he has wings.",
-    "Henry can fly because he has wings but he is not a bird.",
-    "Henry can fly because he is a bird and he has wings.",
-    "Henry can fly because he is a bird and he has wings because birds have wings and he is a bird.",
-    # "Henry is a bird but Henry can not fly because Henry is a pinguin and pingiuns can not fly .",
-    # "Henry is a bird but Henry can not fly because Henry is a pinguin .",
-    # "Henry can not fly because Henry is a pinguin .",
-    # "Henry can fly because Henry is a bird and Henry is not a pinguin .",
-    # "Henry can fly because Henry is a bird because Henry is a pinguin because Henry has feathers .",
-    # "Henry can fly because Henry is a bird because Henry has wings .",
-    # "Henry can fly because Henry is a bird and because Henry has wings .",
-    # "Henry can fly because Henry is a bird and Henry can fly because Henry has wings .",
-    
-    # == Anaphora == 
-    "Henry can fly because he has wings and because Ducky is a bird and he has wings.",
-    "the queen can fly because Henry is a bird and he has wings and because she is a queen.",
-    "the queen can fly because Henry is a bird and he has wings and she is a queen.",
-    "Jan can fly because Piet has wings and wings are tools and because he has feathers.",
+sentence_files = [os.path.join(os.path.dirname(__file__), 'sentences.txt')]
+sentences = OrderedDict()
 
-    # == Undercutter ==
-    "Jan is a prisoner but Jan is not a thief.",
-    "Jan is a prisoner because thieves are prisoners but Jan is not a thief.",
-]
+for sentence_file in sentence_files:
+    with open(sentence_file, 'r') as fh:
+        sentences.update(read_sentences(fh))
 
 
 class NounSymbol(Symbol):

@@ -1,0 +1,32 @@
+# General
+Henry can fly.
+Henry can fly because he is a bird.
+Henry can fly because he is a bird and birds can fly.
+Henry can fly because birds can fly and he is a bird.
+Henry can fly because he is a bird and because he has wings.
+Henry can fly because he has wings but he is not a bird.
+Henry can fly because he is a bird and he has wings.
+
+# Rules: Order
+Henry can fly because he is a bird and birds can fly.
+Henry can fly because birds can fly and he is a bird.
+
+# Rules: "a bird" instead of "birds"
+Henry can fly because a bird can fly and he is a bird.
+
+# Rules: Multi-stage inference
+Henry can fly because he is a sparrow and birds can fly and sparrows are birds.
+Henry can fly because he is a sparrow, sparrows are birds, and birds can fly.
+
+# Anaphora
+Henry can fly because he has wings and because Ducky is a bird and he has wings.
+the queen can fly because Henry is a bird and he has wings and because she is a queen.
+the queen can fly because Henry is a bird and he has wings and she is a queen.
+Jan can fly because Piet has wings and wings are tools and because he has feathers.
+
+# Undercutter
+Jan is a prisoner but Jan is not a thief.
+Jan is a prisoner because thieves are prisoners but Jan is not a thief.
+
+# "although"
+Henry can not fly because Henry is a penguin, and although birds can fly and a penguin is a bird, a penguin can not fly.

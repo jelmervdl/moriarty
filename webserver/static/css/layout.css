@@ -1,9 +1,14 @@
-#example-sentences li {
+#example-sentences li.example-sentence {
     cursor: pointer;
 }
 
-#example-sentences li:hover {
+#example-sentences li.example-sentence:hover {
     text-decoration: underline;
+}
+
+#example-sentences {
+	list-style: none;
+	padding: 0;
 }
 
 .bounding-box div {

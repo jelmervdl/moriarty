@@ -3,6 +3,7 @@
 # Based on https://github.com/Hardmath123/nearley/blob/master/lib/nearley.js
 import operator
 from typing import List, Optional, Any, Callable, Union, cast
+from collections import OrderedDict
 import functools
 import sys
 import re
@@ -342,6 +343,21 @@ def parse_syntax(syntax: str) -> List[Rule]:
             raise RuleParseException("{} (line {})".format(str(e), i))
 
     return rules
+
+
+def read_sentences(fh):
+    sections = OrderedDict()
+    section = None
+    
+    for line in fh:
+        if line.startswith('#'):
+            section = line[1:].strip()
+            if section not in sections:
+                sections[section] = list()
+        elif len(line.strip()) > 0:
+            sections[section].append(line.strip())
+
+    return sections
 
 
 if __name__ == '__main__':

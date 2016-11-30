@@ -11,8 +11,13 @@
     <div class="row">
         <h2>Example sentences</h2>
         <ul id="example-sentences">
-            {% for sentence in sentences %}
-            <li>{{ sentence }}</li>
+            {% for section, sentences in sections.items() %}
+                <li>{{ section }}</li>
+                <ul>
+                    {% for sentence in sentences %}
+                    <li class="example-sentence">{{ sentence }}</li>
+                    {% endfor %}
+                </ul>
             {% endfor %}
         </ul>
     </div>
