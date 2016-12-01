@@ -36,6 +36,7 @@ class ArgumentativeDiscourseUnit:
         return {
             "type": "adu",
             "text": str(self),
+            "repr": repr(self),
             "args": list(map(lambda el: el.as_tuple(), self.arrows))
         }
 
@@ -46,6 +47,14 @@ class Statement(ArgumentativeDiscourseUnit):
         self.a = a
         self.verb = verb
         self.b = b
+
+    @property
+    def subject(self):
+        return self.a
+
+    @property
+    def object(self):
+        return self.b
 
     def elements(self):
         return {self.a, self.b} | super().elements()
@@ -61,37 +70,39 @@ class RuleStatement(Statement):
     def __str__(self):
         return "Rule({})".format(super().__str__())
 
+    @property
+    def premise(self):
+        return self.a
+    
+    @property
+    def consequent(self):
+        return self.b
+
     def is_applicable(self, instances):
         for instance in instances:
             print("  {!r}".format(instance))
         return True
 
 
-class CompoundStatement(ArgumentativeDiscourseUnit):
-    def __init__(self, left, right):
+class Conjunction(ArgumentativeDiscourseUnit):
+    def __init__(self, general: List[Statement] = [], specific: List[Statement] = []):
         super().__init__()
-        self.constituents = []
-
-        if isinstance(left, self.__class__):
-            self.constituents.extend(left.constituents)
-        else:
-            self.constituents.append(left)
-
-        if isinstance(right, self.__class__):
-            self.constituents.extend(right.constituents)
-        else:
-            self.constituents.append(right)
-
-    def elements(self):
-        return set(itertools.chain(*[con.elements() for con in self.constituents])) | super().elements()
+        self.general = general
+        self.specific = specific
 
     def __str__(self):
-        return " AND ".join(map(str, self.constituents))
+        adus = self.general + self.specific
+        return "{} and {}".format(", ".join(map(str, adus[:-1])) if len(adus) > 2 else adus[0], adus[-1])
+
+    def __repr__(self):
+        return "RuleInstanceConjunction({!r})".format(self.general + self.specific)
+
+    def elements(self):
+        return set(itertools.chain(*[adu.elements() for adu in self.general + self.specific])) | super().elements()
 
     def as_tuple(self):
         return {**super().as_tuple(), 'type': 'compound',
-                'sources': list(source.as_tuple() for source in self.constituents)}
-
+                'sources': list(source.as_tuple() for source in self.general + self.specific)}
 
 class Arrow(ArgumentativeDiscourseUnit):
     def __init__(self, source):
@@ -160,10 +171,47 @@ def attack(statement, attack):
     return state_copy
 
 
-def support(statement, *args):
+def support(statement, args):
+    support_arrow = Support(Conjunction(specific=args))
     state_copy = copy.deepcopy(statement)
+    state_copy.arrows.append(support_arrow)
+    return state_copy
+
+
+def support_with_rule(statement, rule: RuleStatement, args: List[Statement]):
+    # Say we have the following case:
+    #
+    #   statement = Henry can fly
+    #   rule = birds can fly
+    #   args = [Henry is a bird, Henry is cool]
+    #
+    # Then, the support which supports the rule need
+    # to have the same subject as the statement, and
+    # the rhs of the statement has to be the consequent
+    # of the rule. The rhs of the support has to be the
+    # premise of the rule.
+
+    if statement.object != rule.consequent:
+        print("Statement's object ({!r}) is not equal to the rule's consequent ({!r}).".format(statement.object, rule.consequent))
+        return Parser.FAIL
+
+    rule_supported = False
+
     for support in args:
-        state_copy.arrows.append(Support(support))
+        if support.subject.is_same(statement.subject):
+            if support.object.is_same(rule.premise):
+                rule_supported = True
+            else:
+                print("Same subjects, but premise ({!r}) does not match object ({!r}).".format(rule.premise, support.object))
+
+    if not rule_supported:
+        print("Rule premise ({!r}) not supported.".format(rule.premise))
+        return Parser.FAIL
+
+    support_arrow = Support(Conjunction(specific=args))
+    support_arrow.arrows.append(Support(rule))
+    state_copy = copy.deepcopy(statement)
+    state_copy.arrows.append(support_arrow)
     return state_copy
 
 
@@ -192,6 +240,11 @@ class Instance(object):
 
     def __repr__(self):
         return "Instance({})".format(" ".join("{}={}".format(k, v) for k,v in self.__dict__.items() if v is not None))
+
+    def is_same(self, other):
+        are_same_individuals = self.replaces(other) or other.replaces(self)
+        print("Comparing {!r} and {!r}: {!r}".format(self, other, are_same_individuals))
+        return are_same_individuals
 
     def replaces(self, instance: 'Instance') -> bool:
         """
@@ -289,15 +342,23 @@ def find_instance_by_noun(state: State, noun: str) -> Instance:
 grammar = [
     ("START ::= S .", passthru),
     ("S ::= STMT", passthru),
-    ("S ::= ANDC", passthru), 
-    ("AND ::= STMT and STMT", lambda state, data: CompoundStatement(data[0], data[2])),
-    ("ANDC ::= AND", passthru),
-    ("ANDC ::= STMT , ANDC", lambda state, data: CompoundStatement(data[0], data[2])),
-    ("S ::= S but S", lambda state, data: attack(data[0], data[2])),
-    ("S ::= S because S", lambda state, data: support(data[0], data[2])),
-    ("S ::= S because S and because S", lambda state, data: support(data[0], data[2], data[5])),
     ("STMT ::= GENERAL", passthru),
     ("STMT ::= SPECIFIC", passthru),
+    
+    # ("S ::= S but S", lambda state, data: attack(data[0], data[2])),
+    ("S ::= S because SPECIFIC", lambda state, data: support(data[0], args=[data[2]])),
+    ("S ::= S because SCON", lambda state, data: support(data[0], args=data[2].specific)),
+    ("S ::= S because GCON", lambda state, data: support_with_rule(data[0], rule=data[2].general[0], args=data[2].specific)),
+    # ("S ::= S because S and because S", lambda state, data: support(data[0], data[2], data[5])),
+    
+    ("GCON ::= GENERAL and SPECIFIC", lambda state, data: Conjunction(general=[data[0]], specific=[data[2]])),
+    ("GCON ::= SPECIFIC and GENERAL", lambda state, data: Conjunction(specific=[data[0]], general=[data[2]])),
+    ("GCON ::= GENERAL , SCON", lambda state, data: Conjunction(general=[data[0]], specific=data[2].specific)),
+    ("GCON ::= SPECIFIC , GCON", lambda state, data: Conjunction(general=data[2].general, specific=[data[0]] + data[2].specific)),
+
+    ("SCON ::= SPECIFIC and SPECIFIC", lambda state, data: Conjunction(specific=[data[0], data[2]])),
+    ("SCON ::= SPECIFIC , SCON", lambda state, data: Conjunction(specific=[data[0]] + data[2].specific)),
+
     ("SPECIFIC ::= INSTANCE is TYPE", lambda state, data: Statement(data[0], "is", data[2])),
     ("SPECIFIC ::= INSTANCE is VERB_ABLE", lambda state, data: Statement(data[0], "is", data[2])),
     ("SPECIFIC ::= INSTANCE is VERB_ING", lambda state, data: Statement(data[0], "is", data[2])),
@@ -316,7 +377,7 @@ grammar = [
     ("GENERAL ::= TYPES can not VERB_INF", lambda state, data: Negation(RuleStatement(data[0], "can", data[3]))),
     ("INSTANCE ::= NAME", lambda state, data: find_instance_by_name(state, data[0])),
     ("INSTANCE ::= PRONOUN", lambda state, data: find_instance_by_pronoun(state, data[0])),
-    ("INSTANCE ::= the NOUN", lambda state, data: find_instance_by_noun(state, data[1]))
+    ("INSTANCE ::= the NOUN", lambda state, data: find_instance_by_noun(state, data[1])),
 ]
 
 sentence_files = [os.path.join(os.path.dirname(__file__), 'sentences.txt')]
@@ -338,10 +399,29 @@ class NounSymbol(Symbol):
             return False
         return True
 
+    def finish(self, literal: str, state: 'State'):
+        return Noun(literal, self.singular(literal) if self.plural else literal)
+
     def singular(self, word: str) -> str:
         word = re.sub('(e?s)$', '', word)  # Strip 'es' from thieves
         word = re.sub('v$', 'f', word)  # Replace 'v' in 'thiev' with 'f'
         return word
+
+
+class Noun(object):
+    def __init__(self, literal: str, singular: str):
+        self.literal = literal
+        self.singular = singular
+
+    def is_same(self, other):
+        return self.singular == other.singular
+
+    def __str__(self):
+        return self.literal
+
+    def __repr__(self):
+        return "Noun({})".format(self.literal) if self.literal == self.singular \
+            else "Noun({}, singular={})".format(self.literal, self.singular)
 
 
 class NameSymbol(Symbol):
