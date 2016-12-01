@@ -67,9 +67,6 @@ class Statement(ArgumentativeDiscourseUnit):
 
 
 class RuleStatement(Statement):
-    def __str__(self):
-        return "Rule({})".format(super().__str__())
-
     @property
     def premise(self):
         return self.a
@@ -77,11 +74,6 @@ class RuleStatement(Statement):
     @property
     def consequent(self):
         return self.b
-
-    def is_applicable(self, instances):
-        for instance in instances:
-            print("  {!r}".format(instance))
-        return True
 
 
 class Conjunction(ArgumentativeDiscourseUnit):

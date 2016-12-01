@@ -177,10 +177,21 @@ jQuery(function($) {
                             .append(repeatButton(sentence))
                             .append(stringifyTokens(response.tokens))
                         )
-                        .append($('<div class="panel-body">')
-                            .append($('<ul>').append($.map(response.parses, function(parse) {
-                                return stringifyParse(parse).append(networkifyParse(parse));
-                            })))
+                        .append($('<div class="list-group">')
+                            .append($.map(response.parses, function(parse) {
+                                return $('<div>')
+                                    .addClass('list-group-item')
+                                    .append($('<div>')
+                                        .addClass('row')
+                                        .append($('<div>')
+                                            .addClass('col-md-8')
+                                            .append($('<ul>')
+                                                .append(stringifyParse(parse))))
+                                        .append($('<div>')
+                                            .addClass('col-md-4')
+                                            .append(networkifyParse(parse)))
+                                    )
+                            }))
                         )
                 );
             })
