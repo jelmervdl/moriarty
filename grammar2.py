@@ -105,39 +105,29 @@ class Conjunction(ArgumentativeDiscourseUnit):
                 'sources': list(source.as_tuple() for source in self.general + self.specific)}
 
 class Arrow(ArgumentativeDiscourseUnit):
-    def __init__(self, source):
+    def __init__(self, sources: List[Statement]):
         super().__init__()
-        if isinstance(source, Arrow):
-            self.source = source.source
-            self.arrows = source.arrows
-        else:
-            self.source = source
+        self.sources = sources
 
     def elements(self) -> List[Any]:
-        return self.source.elements() | super().elements()
+        return set(itertools.chain(*[src.elements() for src in self.sources])) | super().elements()
 
     def __str__(self):
-        return "ARROW({})".format(str(self.source))
+        return "{}({})".format(self.__class__.__name__, ", ".join(map(str, self.sources)))
 
     def __repr__(self):
         return "{}{}".format(str(self), newline(indent(super().__repr__(), "+\t")))
 
     def as_tuple(self):
-        return {**super().as_tuple(), 'type': 'undefarrow', 'sources': [self.source.as_tuple()]}
+        return {**super().as_tuple(), 'type': 'undefarrow', 'sources': [src.as_tuple() for src in self.sources]}
 
 
 class Attack(Arrow):
-    def __str__(self):
-        return "ATTACK({})".format(self.source)
-
     def as_tuple(self):
         return {**super().as_tuple(), 'type': 'attack'}
 
 
 class Support(Arrow):
-    def __str__(self):
-        return "SUPPORT({})".format(self.source)
-
     def as_tuple(self):
         return {**super().as_tuple(), 'type': 'support'}
 
@@ -165,14 +155,50 @@ def find_sentences(parse):
     return [parse] + flatten(map(find_sentences, parse.arrows))
 
 
-def attack(statement, attack):
+def attack(statement, args):
     state_copy = copy.deepcopy(statement)
-    state_copy.arrows.append(Attack(attack))
+    state_copy.arrows.append(Attack(args))
     return state_copy
 
 
 def support(statement, args):
-    support_arrow = Support(Conjunction(specific=args))
+    state_copy = copy.deepcopy(statement)
+    state_copy.arrows.append(Support(args))
+    return state_copy
+
+
+def _unused_support_with_rule(statement, rule: RuleStatement, args: List[Statement]):
+    # Say we have the following case:
+    #
+    #   statement = Henry can fly
+    #   rule = birds can fly
+    #   args = [Henry is a bird, Henry is cool]
+    #
+    # Then, the support which supports the rule need
+    # to have the same subject as the statement, and
+    # the rhs of the statement has to be the consequent
+    # of the rule. The rhs of the support has to be the
+    # premise of the rule.
+
+    if not statement.object.is_same(rule.consequent):
+        print("Statement's object ({!r}) is not equal to the rule's consequent ({!r}).".format(statement.object, rule.consequent))
+        return Parser.FAIL
+
+    rule_supported = False
+
+    for support in args:
+        if support.subject.is_same(statement.subject):
+            if support.object.is_same(rule.premise):
+                rule_supported = True
+            else:
+                print("Same subjects, but premise ({!r}) does not match object ({!r}).".format(rule.premise, support.object))
+
+    if not rule_supported:
+        print("Rule premise ({!r}) not supported.".format(rule.premise))
+        return Parser.FAIL
+
+    support_arrow = Support(args)
+    support_arrow.arrows.append(Support([rule]))
     state_copy = copy.deepcopy(statement)
     state_copy.arrows.append(support_arrow)
     return state_copy
@@ -191,15 +217,22 @@ def support_with_rule(statement, rule: RuleStatement, args: List[Statement]):
     # of the rule. The rhs of the support has to be the
     # premise of the rule.
 
-    if statement.object.is_same(rule.consequent):
+    if not statement.object.is_same(rule.consequent):
         print("Statement's object ({!r}) is not equal to the rule's consequent ({!r}).".format(statement.object, rule.consequent))
         return Parser.FAIL
 
+    
+    state_copy = copy.deepcopy(statement)
+    
     rule_supported = False
 
     for support in args:
+        support_arrow = Support([support])
+        state_copy.arrows.append(support_arrow)
+
         if support.subject.is_same(statement.subject):
             if support.object.is_same(rule.premise):
+                support_arrow.arrows.append(Support([rule]))
                 rule_supported = True
             else:
                 print("Same subjects, but premise ({!r}) does not match object ({!r}).".format(rule.premise, support.object))
@@ -208,10 +241,6 @@ def support_with_rule(statement, rule: RuleStatement, args: List[Statement]):
         print("Rule premise ({!r}) not supported.".format(rule.premise))
         return Parser.FAIL
 
-    support_arrow = Support(Conjunction(specific=args))
-    support_arrow.arrows.append(Support(rule))
-    state_copy = copy.deepcopy(statement)
-    state_copy.arrows.append(support_arrow)
     return state_copy
 
 
@@ -414,6 +443,7 @@ class Noun(object):
         self.singular = singular
 
     def is_same(self, other):
+        print("Noun: comparing {} to {}".format(self.singular, other.singular))
         return self.singular == other.singular
 
     def __str__(self):
@@ -429,6 +459,7 @@ class Verb(object):
         self.literal = literal
 
     def is_same(self, other):
+        print("Verb: comparing {!r} to {!r}".format(self.literal, other.literal))
         return self.literal == other.literal
 
     def __str__(self):
