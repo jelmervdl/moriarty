@@ -57,6 +57,16 @@ class Statement(ArgumentativeDiscourseUnit):
         return "{}{}".format(str(self), newline(indent(super().__repr__(), "|\t")))
 
 
+class RuleStatement(Statement):
+    def __str__(self):
+        return "Rule({})".format(super().__str__())
+
+    def is_applicable(self, instances):
+        for instance in instances:
+            print("  {!r}".format(instance))
+        return True
+
+
 class CompoundStatement(ArgumentativeDiscourseUnit):
     def __init__(self, constituents):
         super().__init__()
@@ -291,11 +301,11 @@ grammar = [
     ("TYPE ::= an NOUN", lambda state, data: data[1]),
     ("TYPES ::= NOUNS", lambda state, data: data[0]),
     ("SPECIFIC ::= INSTANCE can VERB_INF", lambda state, data: Statement(data[0], "can", data[2])),
-    ("GENERAL ::= TYPES are TYPES", lambda state, data: Statement(data[0], "are", data[2])),
-    ("GENERAL ::= TYPES are VERB_ABLE", lambda state, data: Statement(data[0], "are", data[2])),
-    ("GENERAL ::= TYPES are VERB_ING", lambda state, data: Statement(data[0], "are", data[2])),
-    ("GENERAL ::= TYPES can VERB_INF", lambda state, data: Statement(data[0], "can", data[2])),
-    ("GENERAL ::= TYPES have TYPES", lambda state, data: Statement(data[0], "have", data[2])),
+    ("GENERAL ::= TYPES are TYPES", lambda state, data: RuleStatement(data[0], "are", data[2])),
+    ("GENERAL ::= TYPES are VERB_ABLE", lambda state, data: RuleStatement(data[0], "are", data[2])),
+    ("GENERAL ::= TYPES are VERB_ING", lambda state, data: RuleStatement(data[0], "are", data[2])),
+    ("GENERAL ::= TYPES can VERB_INF", lambda state, data: RuleStatement(data[0], "can", data[2])),
+    ("GENERAL ::= TYPES have TYPES", lambda state, data: RuleStatement(data[0], "have", data[2])),
     ("SPECIFIC ::= INSTANCE can not VERB_INF", lambda state, data: Negation(Statement(data[0], "can", data[3]))),
     ("GENERAL ::= TYPES can not VERB_INF", lambda state, data: Negation(Statement(data[0], "can", data[3]))),
     ("INSTANCE ::= NAME", lambda state, data: find_instance_by_name(state, data[0])),
