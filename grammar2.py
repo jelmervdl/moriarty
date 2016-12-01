@@ -63,7 +63,7 @@ class Statement(ArgumentativeDiscourseUnit):
         return "{a} {verb} {b}".format(**self.__dict__)
 
     def __repr__(self):
-        return "{}{}".format(str(self), newline(indent(super().__repr__(), "|\t")))
+        return "Statement({}){}".format(str(self), newline(indent(super().__repr__(), "|\t")))
 
 
 class RuleStatement(Statement):
@@ -95,7 +95,7 @@ class Conjunction(ArgumentativeDiscourseUnit):
         return "{} and {}".format(", ".join(map(str, adus[:-1])) if len(adus) > 2 else adus[0], adus[-1])
 
     def __repr__(self):
-        return "RuleInstanceConjunction({!r})".format(self.general + self.specific)
+        return "Conjunction({!r})".format(self.general + self.specific)
 
     def elements(self):
         return set(itertools.chain(*[adu.elements() for adu in self.general + self.specific])) | super().elements()
@@ -191,7 +191,7 @@ def support_with_rule(statement, rule: RuleStatement, args: List[Statement]):
     # of the rule. The rhs of the support has to be the
     # premise of the rule.
 
-    if statement.object != rule.consequent:
+    if statement.object.is_same(rule.consequent):
         print("Statement's object ({!r}) is not equal to the rule's consequent ({!r}).".format(statement.object, rule.consequent))
         return Parser.FAIL
 
@@ -424,6 +424,20 @@ class Noun(object):
             else "Noun({}, singular={})".format(self.literal, self.singular)
 
 
+class Verb(object):
+    def __init__(self, literal: str):
+        self.literal = literal
+
+    def is_same(self, other):
+        return self.literal == other.literal
+
+    def __str__(self):
+        return self.literal
+
+    def __repr__(self):
+        return "Verb({})".format(self.literal)
+
+
 class NameSymbol(Symbol):
     def test(self, literal: str, position: int, state: State) -> bool:
         return literal[0].isupper()
@@ -451,9 +465,9 @@ rules += [
     Rule("NOUNS", [NounSymbol(plural=True)], passthru),
     Rule("NAME", [NameSymbol()], lambda state, data: data[0]),
     Rule("PRONOUN", [PronounSymbol()], lambda state, data: data[0]),
-    Rule("VERB_INF", [ReSymbol(r'^\w+([^e]ed|ing|able)$', negate=True)], passthru),
-    Rule("VERB_ING", [ReSymbol(r'^\w+ing$')], passthru),
-    Rule("VERB_ABLE", [ReSymbol(r'^\w+able$')], passthru),
+    Rule("VERB_INF", [ReSymbol(r'^\w+([^e]ed|ing|able)$', negate=True)], lambda state, data: Verb(data[0])),
+    Rule("VERB_ING", [ReSymbol(r'^\w+ing$')], lambda state, data: Verb(data[0])),
+    Rule("VERB_ABLE", [ReSymbol(r'^\w+able$')], lambda state, data: Verb(data[0])),
 ]
 
 start = "START"
