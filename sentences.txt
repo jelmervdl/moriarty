@@ -7,11 +7,12 @@ Henry can fly because he has wings but he is not a bird.
 Henry can fly because he is a bird and he has wings.
 
 # Conjunction
-Henry can fly because he has wings , he has feathers and he is capable.
+Henry can fly because he has wings, he has feathers and he is capable.
 
 # Rules
 Henry can fly because he is a bird and birds can fly.
 Henry can fly because he is a bird and thieves are punishable.
+Henry can fly because birds can fly, he is a bird, he has wings and he has feathers.
 
 # Rules: Order
 Henry can fly because he is a bird and birds can fly.
