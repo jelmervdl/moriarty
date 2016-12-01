@@ -14,12 +14,15 @@ Henry can fly because he is a bird and birds can fly.
 Henry can fly because he is a bird and thieves are punishable.
 Henry can fly because birds can fly, he is a bird, he has wings and he has feathers.
 
+Jack is a thief because he is a liar and liars are thieves.
+
 # Rules: Order
 Henry can fly because he is a bird and birds can fly.
 Henry can fly because birds can fly and he is a bird.
 
 # Rules: "a bird" instead of "birds"
 Henry can fly because a bird can fly and he is a bird.
+Jack is a thief because he is a liar and a liar is a thief.
 
 # Rules: Multi-stage inference
 Henry can fly because he is a sparrow and birds can fly and sparrows are birds.

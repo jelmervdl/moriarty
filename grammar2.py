@@ -397,11 +397,14 @@ grammar = [
     ("TYPE ::= an NOUN", lambda state, data: data[1]),
     ("TYPES ::= NOUNS", lambda state, data: data[0]),
     ("SPECIFIC ::= INSTANCE can VERB_INF", lambda state, data: Statement(data[0], "can", data[2])),
+    ("GENERAL ::= VERB_ING is ADJECTIVE", lambda state, data: RuleStatement(data[0], "is", data[2])),
     ("GENERAL ::= TYPES are TYPES", lambda state, data: RuleStatement(data[0], "are", data[2])),
-    ("GENERAL ::= TYPES are VERB_ABLE", lambda state, data: RuleStatement(data[0], "are", data[2])),
-    ("GENERAL ::= TYPES are VERB_ING", lambda state, data: RuleStatement(data[0], "are", data[2])),
+    ("GENERAL ::= TYPES are ADJECTIVE", lambda state, data: RuleStatement(data[0], "are", data[2])),
     ("GENERAL ::= TYPES can VERB_INF", lambda state, data: RuleStatement(data[0], "can", data[2])),
     ("GENERAL ::= TYPES have TYPES", lambda state, data: RuleStatement(data[0], "have", data[2])),
+    ("GENERAL ::= TYPE can VERB_INF", lambda state, data: RuleStatement(data[0], "can", data[2])),
+    ("GENERAL ::= TYPE is VERB_NOUN", lambda state, data: RuleStatement(data[0], "is", data[2])),
+    ("GENERAL ::= TYPE is TYPE", lambda state, data: RuleStatement(data[0], "is", data[2])),
     ("SPECIFIC ::= INSTANCE can not VERB_INF", lambda state, data: Negation(Statement(data[0], "can", data[3]))),
     ("GENERAL ::= TYPES can not VERB_INF", lambda state, data: Negation(RuleStatement(data[0], "can", data[3]))),
     ("INSTANCE ::= NAME", lambda state, data: find_instance_by_name(state, data[0])),
@@ -497,8 +500,8 @@ rules += [
     Rule("NAME", [NameSymbol()], lambda state, data: data[0]),
     Rule("PRONOUN", [PronounSymbol()], lambda state, data: data[0]),
     Rule("VERB_INF", [ReSymbol(r'^\w+([^e]ed|ing|able)$', negate=True)], lambda state, data: Verb(data[0])),
-    Rule("VERB_ING", [ReSymbol(r'^\w+ing$')], lambda state, data: Verb(data[0])),
-    Rule("VERB_ABLE", [ReSymbol(r'^\w+able$')], lambda state, data: Verb(data[0])),
+    Rule("VERB_NOUN", [ReSymbol(r'^\w+ing$')], lambda state, data: Verb(data[0])),
+    Rule("ADJECTIVE", [ReSymbol(r'^\w+able$')], lambda state, data: Verb(data[0])),
 ]
 
 start = "START"
