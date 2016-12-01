@@ -2,7 +2,15 @@ jQuery(function($) {
     "use strict"
 
     function closeButton() {
-        return $('<button type="button" class="close"><span>&times;</span></button>');
+        return $('<button type="button" class="close" aria-label="Close results" title="Close results"><span>&times;</span></button>');
+    }
+
+    function editButton(sentence) {
+        return $('<button type="button" class="edit-sentence" aria-label="Edit sentence" title="Edit sentence"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span></button>').data('sentence', sentence);
+    }
+
+    function repeatButton(sentence) {
+        return $('<button type="button" class="repeat-sentence" aria-label="Repeat sentence" title="Repeat sentence"><span class="glyphicon glyphicon-repeat" aria-hidden="true"></span></button>').data('sentence', sentence);
     }
 
     $.fn.alert = function(message) {
@@ -152,7 +160,7 @@ jQuery(function($) {
         setTimeout(function() {
             network.resize();
             network.layout();
-        }, 50);
+        }, 100);
 
         return $el;
     }
@@ -165,6 +173,8 @@ jQuery(function($) {
                         .addClass('parse panel panel-default dismissible')
                         .append($('<div class="panel-heading">')
                             .append(closeButton())
+                            .append(editButton(sentence))
+                            .append(repeatButton(sentence))
                             .append(stringifyTokens(response.tokens))
                         )
                         .append($('<div class="panel-body">')
@@ -188,15 +198,28 @@ jQuery(function($) {
         $(this).closest('.dismissible').remove();
     });
 
+    $('body').on('click', '.edit-sentence', function(e) {
+        $('#parse-sentence-form input[name=sentence]').val($(this).data('sentence')).get(0).focus();
+    });
+
+    $('body').on('click', '.repeat-sentence',function(e) {
+        parseSentence($(this).data('sentence'))
+    })
+
     $('#parse-sentence-form').submit(function(e) {
         e.preventDefault();
         var sentence = $(this).find('input[name=sentence]').val();
         parseSentence(sentence);
     });
 
-    $(document.body).on('click', '.example-sentence', function(e) {
+    $('body').on('click', '.example-sentence', function(e) {
         e.preventDefault();
         var sentence = $(e.target).text();
         parseSentence(sentence);
     });
+
+    var stream = new EventSource('/api/stream');
+    stream.onmessage = function(e) {
+        console.info('Python:', e.data);
+    };
 });
