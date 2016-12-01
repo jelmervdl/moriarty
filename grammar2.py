@@ -68,9 +68,19 @@ class RuleStatement(Statement):
 
 
 class CompoundStatement(ArgumentativeDiscourseUnit):
-    def __init__(self, constituents):
+    def __init__(self, left, right):
         super().__init__()
-        self.constituents = constituents
+        self.constituents = []
+
+        if isinstance(left, self.__class__):
+            self.constituents.extend(left.constituents)
+        else:
+            self.constituents.append(left)
+
+        if isinstance(right, self.__class__):
+            self.constituents.extend(right.constituents)
+        else:
+            self.constituents.append(right)
 
     def elements(self):
         return set(itertools.chain(*[con.elements() for con in self.constituents])) | super().elements()
@@ -155,12 +165,6 @@ def support(statement, *args):
     for support in args:
         state_copy.arrows.append(Support(support))
     return state_copy
-
-
-def ruleinstance(rule, instance):
-    arrow = Arrow(instance)
-    arrow.arrows.append(Support(rule))
-    return arrow
 
 
 def passthru(state, data):
@@ -284,14 +288,16 @@ def find_instance_by_noun(state: State, noun: str) -> Instance:
 
 grammar = [
     ("START ::= S .", passthru),
-    ("S ::= SPECIFIC", passthru),
-    ("S ::= GENERAL", passthru),
+    ("S ::= STMT", passthru),
+    ("S ::= ANDC", passthru), 
+    ("AND ::= STMT and STMT", lambda state, data: CompoundStatement(data[0], data[2])),
+    ("ANDC ::= AND", passthru),
+    ("ANDC ::= STMT , ANDC", lambda state, data: CompoundStatement(data[0], data[2])),
     ("S ::= S but S", lambda state, data: attack(data[0], data[2])),
     ("S ::= S because S", lambda state, data: support(data[0], data[2])),
     ("S ::= S because S and because S", lambda state, data: support(data[0], data[2], data[5])),
-    ("S ::= SPECIFIC and GENERAL", lambda state, data: ruleinstance(data[2], data[0])),
-    ("S ::= GENERAL and SPECIFIC", lambda state, data: ruleinstance(data[0], data[2])),
-    ("S ::= SPECIFIC and SPECIFIC", lambda state, data: CompoundStatement([data[0], data[2]])),
+    ("STMT ::= GENERAL", passthru),
+    ("STMT ::= SPECIFIC", passthru),
     ("SPECIFIC ::= INSTANCE is TYPE", lambda state, data: Statement(data[0], "is", data[2])),
     ("SPECIFIC ::= INSTANCE is VERB_ABLE", lambda state, data: Statement(data[0], "is", data[2])),
     ("SPECIFIC ::= INSTANCE is VERB_ING", lambda state, data: Statement(data[0], "is", data[2])),
@@ -307,7 +313,7 @@ grammar = [
     ("GENERAL ::= TYPES can VERB_INF", lambda state, data: RuleStatement(data[0], "can", data[2])),
     ("GENERAL ::= TYPES have TYPES", lambda state, data: RuleStatement(data[0], "have", data[2])),
     ("SPECIFIC ::= INSTANCE can not VERB_INF", lambda state, data: Negation(Statement(data[0], "can", data[3]))),
-    ("GENERAL ::= TYPES can not VERB_INF", lambda state, data: Negation(Statement(data[0], "can", data[3]))),
+    ("GENERAL ::= TYPES can not VERB_INF", lambda state, data: Negation(RuleStatement(data[0], "can", data[3]))),
     ("INSTANCE ::= NAME", lambda state, data: find_instance_by_name(state, data[0])),
     ("INSTANCE ::= PRONOUN", lambda state, data: find_instance_by_pronoun(state, data[0])),
     ("INSTANCE ::= the NOUN", lambda state, data: find_instance_by_noun(state, data[1]))
