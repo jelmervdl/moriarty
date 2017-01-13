@@ -1,197 +1,676 @@
-function Node(text) {
-    this.text = text;
-    this.edges = [];
+function Claim(graph, text)
+{
+	this.graph = graph;
+	this.text = text.split(/\n/);
+	this.ax = 0;
+	this.ay = 0;
+	this.dx = 0;
+	this.dy = 0;
+	this.width = null;
+	this.height = null;
 }
 
-function Edge(from, to) {
-    if (from.constructor !== Node)
-        throw new Error("Edges are always coming from nodes");
+Claim.prototype = {
+	setPosition: function(x, y) {
+		this.ax = x;
+		this.ay = y;
+	},
+	delete: function() {
+		// Remove the claims from the graph
+		this.graph.claims = this.graph.claims.filter(function(claim) {
+			return claim !== this;
+		}, this);
 
-    if (to.constructor !== Node && to.constructor !== Edge)
-        throw new Error("Edges should point to either nodes or other edges");
+		// Also from the current selection
+		this.graph.selectedClaims = this.graph.selectedClaims.filter(function(claim) {
+			return claim !== this;
+		}, this);
 
-    this.from = from;
-    this.to = to;
-    this.edges = [];
+		// And delete any of the relations that are connected to this claim
+		this.graph.relations.forEach(function(relation) {
+			if (relation.claim === this || relation.target === this)
+				relation.delete();
+		}, this);
+	},
+	
+	get x() {
+		return this.ax + this.dx;
+	},
+	
+	get y() {
+		return this.ay + this.dy;
+	},
+
+	get center() {
+		return {
+			x: this.x + 0.5 * this.width,
+			y: this.y + 0.5 * this.height
+		};
+	}
 }
 
-function Rectangle(width, height, left, top, data) {
-    this.width = width;
-    this.height = height;
-    this.left = left || 0;
-    this.top = top || 0;
-    this.data = data;
+function Relation(graph, claim, target, type) {
+	this.graph = graph;
+	this.claim = claim;
+	this.target = target;
+	this.type = type;
 }
 
-Rectangle.horizontal = function(boxes) {
-    var box = new Rectangle(0, 0, 0, 0, []);
-    for (var i = 0; i < boxes.length; ++i) {
-        box.data.push(boxes[i].translate(box.width, 0));
-        box.width += boxes[i].width;
-        box.height = Math.max(box.height, boxes[i].height);
-    }
-    for (var i = 0; i < box.data.length; ++i) {
-        if (box.data[i].data.constructor === Array)
-            box.data[i].top = (box.height - box.data[i].data[0].height) / 2;
-        else
-            box.data[i].top = (box.height - box.data[i].height) / 2;
-    }
-    return box;
-};
+Relation.SUPPORT = 'support';
 
-Rectangle.vertical = function(boxes) {
-    var box = new Rectangle(0, 0, 0, 0, []);
-    for (var i = 0; i < boxes.length; ++i) {
-        box.data.push(boxes[i].translate(0, boxes[i].height));
-        box.width  = Math.max(box.width, boxes[i].width);
-        box.height += boxes[i].height;
-    }
-    for (var i = 0; i < box.data.length; ++i) {
-        if (box.data[i].data.constructor === Array)
-            box.data[i].left = (box.width - box.data[i].data[0].width) / 2;
-        else
-            box.data[i].left = (box.width - box.data[i].width) / 2;
-    }
-    return box;
-};
+Relation.ATTACK = 'attack';
 
-Rectangle.prototype.translate = function(left, top) {
-    var rect = new Rectangle(
-        this.width, this.height,
-        this.left + left, this.top + top,
-        this.data);
-    return rect;
-};
+Relation.prototype = {
+	delete: function() {
+		// Delete the relation from the graph
+		this.graph.relations.forEach(function(relation) {
+			if (relation.target === this)
+				relation.delete();
+		}, this);
 
-Node.prototype.supportedBy = function(sent) {
-    if (sent.constructor !== Node)
-        throw new Error("Nodes can only be supported by other nodes");
-    var edge = new Edge(sent, this);
-    this.edges.push(edge);
-    return edge;
-};
-
-Node.prototype.size = function() {
-    return new Rectangle(200, 50, 0, 0, this);
-};
-
-Node.prototype.boundingBox = function() {
-    var size = this.size();
-    if (this.edges.length) {
-        var bbox = this.edges[0].boundingBox();
-        if (this.edges[0].orientation() == 'horizontal') {
-            size = Rectangle.horizontal([size, bbox]);
-        } else {
-            size = Rectangle.vertical([size, bbox]);
-        }
-    }
-    return size;
-};
-
-Edge.prototype.supportedBy = function(sent) {
-    var edge = new Edge(sent, this);
-    this.edges.push(edge);
-    return edge;
-};
-
-Edge.prototype.orientation = function() {
-    return this.to.constructor === Edge ? 'horizontal' : 'vertical';
-};
-
-Edge.prototype.size = function() {
-    return this.orientation() == 'horizontal'
-        ? new Rectangle(100, 20, 0, 0, this)
-        : new Rectangle(20, 100, 0, 0, this);
-};
-
-Edge.prototype.boundingBox = function() {
-    var size = this.size();
-
-    size.source = this;
-
-    if (this.edges.length) {
-        var bboxEdge = this.edges[0].boundingBox();
-        //var bboxNode = this.edges[0].from.boundingBox();
-
-        if (this.orientation() == 'vertical') {
-            // Edges are always coming in from the right if we are vertical,
-            size = Rectangle.horizontal([size, bboxEdge]);
-        } else {
-            // or from the bottom if we are horizontal.
-            size = Rectangle.vertical([size, bboxEdge]);
-        }
-    }
-
-    var bboxNode = this.from.boundingBox();
-    if (this.orientation() == 'vertical')
-        size = Rectangle.vertical([size, bboxNode]);
-    else
-        size = Rectangle.horizontal([size, bboxNode]);
-
-    return size;
-};
-
-Rectangle.prototype.render = function() {
-    var div = document.createElement('div');
-    div.style.position = 'absolute';
-    div.style.width = this.width + 'px';
-    div.style.height = this.height + 'px';
-    div.style.top = this.top + 'px';
-    div.style.left = this.left + 'px';
-
-    if (this.data && this.data.constructor === Array) {
-        for (var i = 0; i < this.data.length; ++i) {
-            if ('render' in this.data[i]) {
-                div.appendChild(this.data[i].render());
-            }
-        }
-    } else if (this.data && 'render' in this.data) {
-        div.appendChild(this.data.render());
-    }
-
-    return div;
-};
-
-Node.prototype.render = function() {
-    var span = document.createElement('span');
-    span.className = 'arg-node';
-    span.appendChild(document.createTextNode(this.text));
-    return span;
-};
-
-Edge.prototype.render = function() {
-    var arrow = document.createElement('span');
-    arrow.className = 'arg-arrow';
-    arrow.appendChild(document.createTextNode('o'));
-
-    if (this.orientation() == 'horizontal') {
-        arrow.appendChild(document.createTextNode('–––––––––––––'));
-    } else {
-        for (var i = 0; i < 4; ++i) {
-            arrow.appendChild(document.createElement('br'));
-            arrow.appendChild(document.createTextNode('|'));
-        }
-    }
-
-    return arrow;
-};
-
-function sentence(text) {
-    return new Node(text);
+		// And also delete any relation that targets this relation
+		this.graph.relations = this.graph.relations.filter(function(relation) {
+			return relation !== this;
+		}, this);
+	},
+	
+	get x() {
+		return this.claim.x + (this.target.x - this.claim.x) / 2;
+	},
+	
+	get y() {
+		return this.claim.y + (this.target.y - this.claim.y) / 2;
+	},
+	
+	get width() {
+		return 1;
+	},
+	
+	get height() {
+		return 1;
+	},
+	
+	get center() {
+		return {
+			x: this.claim.center.x + (this.target.center.x - this.claim.center.x) / 2,
+			y: this.claim.center.y + (this.target.center.y - this.claim.center.y) / 2
+		};
+	}
 }
 
-/*
-var jelmer_is_dief = sentence("Jelmer is een dief");
-var jelmer_steelt = sentence("Jelmer heeft iets gestolen");
-var stelers_zijn_dieven = sentence("Mensen die stelen zijn een dief");
-var support = jelmer_is_dief.supportedBy(jelmer_steelt);
-support.supportedBy(stelers_zijn_dieven);
+function Graph(container)
+{
+	this.container = container;
 
-console.log(jelmer_is_dief.boundingBox());
+	this.canvas = document.createElement('canvas');
+	this.canvas.style.width = '100%';
+	this.canvas.style.height = '100%';
+	this.canvas.tabIndex = 1;
+	this.container.appendChild(this.canvas);
 
-var div = document.createElement('div');
-div.className = 'bounding-box';
-div.style.position = 'relative';
-div.appendChild(jelmer_is_dief.boundingBox().render());
-document.body.appendChild(div);
-*/
+	this.context = this.canvas.getContext('2d');
+
+	this.claims = [];
+	this.relations = [];
+
+	this.selectedClaims = [];
+	this.dragStartPosition = null;
+	this.wasDragging = false;
+
+	this.listeners = {
+		'draw': [],
+		'drop': []
+	};
+
+	this.canvas.addEventListener('mousedown', this.onMouseDown.bind(this));
+	this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
+	this.canvas.addEventListener('mouseup', this.onMouseUp.bind(this));
+	this.canvas.addEventListener('dblclick', this.onDoubleClick.bind(this));
+	this.canvas.addEventListener('keydown', this.onKeyDown.bind(this));
+
+	this.style = {
+		scale: window.devicePixelRatio || 1.0,
+		claim: {
+			padding: 5,
+			fontSize: 13,
+			lineHeight: 16,
+			fontColor: 'black',
+			background: 'white',
+			border: 'black'
+		},
+		relation: {
+			size: 5
+		}
+	};
+
+	this.input = document.createElement('input');
+	this.input.type = 'text';
+	this.input.style.position = 'absolute';
+	this.input.style.display = 'none';
+	this.canvas.parentNode.appendChild(this.input);
+
+	window.addEventListener('resize', this.resize.bind(this));
+
+	this.updateCanvasSize();
+}
+
+Graph.prototype = {
+	addClaim: function(text) {
+		var claim = new Claim(this, text);
+		this.claims.push(claim);
+		this.update();
+		return claim;
+	},
+
+	addRelation: function(claim, target, type) {
+		if (Array.isArray(claim)) {
+			if (claim.length === 0) {
+				return null;
+			}
+			else if (claim.length > 1) {
+				// We need a compound statement to merge stuff
+				var compound = this.addClaim('&');
+
+				claim.forEach(function(claim) {
+					this.addRelation(claim, compound, null);
+				}, this);
+
+				return this.addRelation(compound, target, type);
+			}
+			else {
+				// Treat it as a single argument
+				claim = claim[0];
+			}
+		}
+
+		var relation = new Relation(this, claim, target, type);
+		this.relations.push(relation);
+		this.update();
+		return relation;
+	},
+
+	findRootClaims: function() {
+		// Find all claims that are the source for a relation
+		var sources = this.relations.map(function(relation) {
+			return relation.claim;
+		});
+
+		// Now filter from all known claims those source claims
+		var roots = this.claims.filter(function(claim) {
+			return sources.indexOf(claim) === -1;
+		});
+
+		// and we should be left with the roots
+		// (which are only attacked or supported, or neither)
+		return roots;
+	},
+
+	findRelations: function(criteria) {
+		// You can pass in an array of conditions to get the joined set, for example
+		// when you pass in [{claim: x}, {target: x}], you get all relations that
+		// have either the claim or the target as x. When you pass in [{claim: x, target: x}]
+		// you only get the relations that have both X as the claim and target at the same time.
+
+		if (!Array.isArray(criteria))
+			criteria = [criteria];
+
+		function test(relation) {
+			return criteria.some(function(condition) {
+				return (!('claim' in condition) || relation.claim === condition.claim)
+				    && (!('target' in condition) || relation.target === condition.target)
+				    && (!('type' in condition || relation.type === condition.type));
+			});
+		};
+
+		return this.relations.filter(test);
+	},
+
+	onMouseDown: function(e) {
+		this.wasDragging = false;
+
+		this.dragStartPosition = {
+			x: e.offsetX,
+			y: e.offsetY
+		};
+
+		var claim = this.claims.find(function(claim) {
+			return e.offsetX > claim.x
+				&& e.offsetY > claim.y
+				&& e.offsetX < claim.x + claim.width
+				&& e.offsetY < claim.y + claim.height;
+		});
+
+		if (!claim) {
+			if (this.selectedClaims.length != 0) {
+				this.selectedClaims = [];
+				this.update();
+			}
+		}
+		else if (!this.selectedClaims.includes(claim)) {
+			if (e.shiftKey)
+				this.selectedClaims.push(claim);
+			else
+				this.selectedClaims = [claim];
+
+			this.update();
+		}
+	},
+
+	onDoubleClick: function(e) {
+		/*
+		var claim = this.claims.find(function(claim) {
+			return e.clientX > claim.x - claim.width / 2
+				&& e.clientY > claim.y - claim.height / 2
+				&& e.clientX < claim.x + claim.width / 2
+				&& e.clientY < claim.y + claim.height / 2;
+		});
+
+		if (!claim)
+			return;
+
+		if (this.input.style.display != 'hidden')
+			this.input.blur();
+
+		input.value = claim.text;
+		input.
+		*/
+	},
+
+	onMouseMove: function(e) {
+		if (this.dragStartPosition === null) {
+			if (this.claims.some(function(claim) {
+				return e.offsetX > claim.x
+					&& e.offsetY > claim.y
+					&& e.offsetX < claim.x + claim.width
+					&& e.offsetY < claim.y + claim.height;
+			}))
+				this.canvas.style.cursor = 'pointer';
+			else
+				this.canvas.style.cursor = 'default';	
+		} else {
+			var delta = {
+				x: e.offsetX - this.dragStartPosition.x,
+				y: e.offsetY - this.dragStartPosition.y
+			};
+
+			// If we have been dragging a bit, cancel the onClick
+			if (Math.abs(delta.x) > 2 || Math.abs(delta.y) > 2)
+				this.wasDragging = true;
+
+			this.selectedClaims.forEach(function(claim) {
+				claim.dx = delta.x;
+				claim.dy = delta.y;
+			});
+
+			this.update();
+		}
+	},
+
+	onMouseUp: function(e) {
+		e.preventDefault();
+
+		this.canvas.style.cursor = 'default';
+
+		this.selectedClaims.forEach(function(claim) {
+			claim.ax += claim.dx;
+			claim.ay += claim.dy;
+			claim.dx = 0;
+			claim.dy = 0;
+		});
+
+		this.dragStartPosition = null;
+
+		this.fire('drop');
+	},
+
+	onKeyDown: function(e) {
+		var stepSize = 2 * this.style.scale;
+
+		switch (e.keyCode) {
+			case 8: // Backspace
+			case 46: // Delete
+				this.selectedClaims.forEach(function(claim) {
+					claim.delete();
+				});
+				e.preventDefault();
+				this.update();
+				break;
+
+			case 9: // Capture [tab] key
+				// If there are no claims, there is nothing to move focus to
+				if (this.claims.length === 0)
+					return;
+
+				var direction = e.shiftKey ? -1 : 1;
+				var idx = -1;
+				
+				// Find the first claim in selectedClaims
+				if (this.selectedClaims.length > 0)
+					idx = this.claims.indexOf(this.selectedClaims[0]);
+
+				if (idx < this.claims.length - 1)
+					this.selectedClaims = [this.claims[(this.claims.length + idx + direction) % this.claims.length]];
+				else
+					this.selectedClaims = [];
+
+				e.preventDefault();
+				this.update();
+				break;
+
+			case 40: // down
+				this.selectedClaims.forEach(function(claim) {
+					claim.ay += stepSize;
+				});
+				e.preventDefault();
+				this.update();
+				break;
+
+			case 38: // up
+				this.selectedClaims.forEach(function(claim) {
+					claim.ay -= stepSize;
+				});
+				e.preventDefault();
+				this.update();
+				break;
+
+			case 37: // left
+				this.selectedClaims.forEach(function(claim) {
+					claim.ax -= stepSize;
+				});
+				e.preventDefault();
+				this.update();
+				break;
+
+			case 39: // right
+				this.selectedClaims.forEach(function(claim) {
+					claim.ax += stepSize;
+				});
+				e.preventDefault();
+				this.update();
+				break;
+		}
+	},
+
+	on: function(eventName, callback) {
+		this.listeners[eventName].push(callback);
+	},
+
+	off: function(eventName, callback) {
+		this.listeners[eventName] = this.listeners[eventName].filter(function(registeredCallback) {
+			return callback !== registeredCallback;
+		});
+	},
+
+	fire: function(eventName) {
+		this.listeners[eventName].forEach(function(callback) {
+			callback(this);
+		}, this);
+	},
+
+	resize: function() {
+		window.requestAnimationFrame(this.updateCanvasSize.bind(this));
+	},
+
+	fit: function(padding) {
+		padding = padding || 0;
+
+		// Find initial offsets
+		var startX = this.claims.map(function(claim) { return claim.x; }).min();
+		var startY = this.claims.map(function(claim) { return claim.y; }).min();
+
+		// Remove that empty offset
+		this.claims.forEach(function(claim) {
+			claim.setPosition(
+				claim.x - startX + padding,
+				claim.y - startY + padding);
+		});
+
+		// Find outer limits
+		var width = this.claims.map(function(claim) { return claim.x + claim.width; }).max();
+		var height = this.claims.map(function(claim) { return claim.y + claim.height; }).max();
+
+		this.container.style.width = padding + width + 'px';
+		this.container.style.height = padding + height + 'px';
+		this.resize();
+	},
+
+	destroy: function() {
+		this.canvas.parentNode.removeChild(this.canvas);
+	},
+
+	updateCanvasSize: function(e) {
+		this.canvas.width = this.style.scale * this.container.clientWidth;
+		this.canvas.height = this.style.scale * this.container.clientHeight;
+		this.update();
+	},
+
+	updateClaimSizes: function() {
+		var ctx = this.context,
+			padding = this.style.claim.padding,
+			scale = this.style.scale,
+			fontSize = this.style.claim.fontSize,
+			lineHeight = this.style.claim.lineHeight;
+
+		ctx.font = (scale * fontSize) + 'px sans-serif';
+
+		this.claims.forEach(function(claim) {
+			if (claim.width === null || claim.height === null) {
+				var textWidth = claim.text
+					.map(function(line) {
+						return ctx.measureText(line).width;
+					})
+					.reduce(function(a, b) {
+						return Math.max(a, b);
+					});
+				claim.width = textWidth / scale + 2 * padding;
+				claim.height = claim.text.length * lineHeight + 2 * padding;
+			}
+		});
+	},
+
+	update: function() {
+		window.requestAnimationFrame(this.draw.bind(this));
+	},
+
+	draw: function() {
+		var ctx = this.context,
+			padding = this.style.claim.padding,
+			scale = this.style.scale,
+			claimColor = this.style.claim.background,
+			claimBorder = this.style.claim.border,
+			arrowRadius = this.style.relation.size;
+
+		// Clear the canvas
+		ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+		// Update the size of all the claim boxes
+		this.updateClaimSizes();
+
+		this.drawClaims();
+
+		ctx.strokeStyle = '#000';
+		ctx.fillStyle = 'black';
+		ctx.lineWidth = scale * 1;
+
+		this.drawRelations();
+
+		this.drawSelection();
+
+		this.fire('draw');
+	},
+
+	drawClaims: function()
+	{
+		var ctx = this.context,
+			padding = this.style.claim.padding,
+			scale = this.style.scale,
+			claimColor = this.style.claim.background,
+			claimBorder = this.style.claim.border,
+			fontColor = this.style.claim.fontColor,
+			fontSize = this.style.claim.fontSize,
+			lineHeight = this.style.claim.lineHeight;
+
+		// Sort claims with last selected drawn last (on top)
+		this.claims.slice().sort(function(a, b) {
+			return this.selectedClaims.indexOf(a) - this.selectedClaims.indexOf(b); 
+		}.bind(this));
+
+		// Set the font
+		ctx.font = (scale * fontSize) + 'px sans-serif';
+
+		// Draw all claims
+		this.claims.forEach(function(claim) {
+			// Draw the background
+			ctx.fillStyle = claimColor;
+			ctx.fillRect(
+				scale * claim.x,
+				scale * claim.y,
+				scale * claim.width,
+				scale * claim.height);
+
+			// Draw the border
+			ctx.strokeStyle = claimBorder;
+			ctx.lineWidth = scale * 1;
+			ctx.strokeRect(
+				scale * claim.x,
+				scale * claim.y,
+				scale * claim.width,
+				scale * claim.height);
+
+			// Draw the inner text
+			ctx.fillStyle = fontColor;
+			claim.text.forEach(function(line, i) {
+				ctx.fillText(line,
+					scale * (claim.x + padding),
+					scale * (claim.y + padding / 2 + (i + 1) * lineHeight));
+			});
+		});
+	},
+
+	drawSelection: function()
+	{
+		var ctx = this.context,
+			scale = this.style.scale;
+
+		ctx.lineWidth = scale * 3;
+		ctx.strokeStyle = 'blue';
+		
+		// Draw an extra outline for the selected claims
+		this.selectedClaims.forEach(function(claim) {
+			ctx.strokeRect(
+				scale * claim.x,
+				scale * claim.y,
+				scale * claim.width,
+				scale * claim.height);
+		});
+	},
+
+	drawRelations: function()
+	{
+		var ctx = this.context,
+			scale = this.style.scale,
+			arrowRadius = this.style.relation.size;
+
+		// Draw all the relation arrows
+		this.relations.forEach(function(relation) {
+			// Offset the target position of the line a bit towards the border. So that
+			// when drawing an arrow, we draw it towards the border, and not the center
+			// where it will be behind the actual box.
+
+			var s = this.offsetPosition(relation.target, relation.claim);
+			// var s = relation.claim;
+
+			var t = this.offsetPosition(relation.claim, relation.target);
+
+			ctx.lineWidth = scale * 1;
+
+			ctx.beginPath();
+			ctx.moveTo(scale * s.x, scale * s.y);
+
+			// To almost the target (but a bit less)
+			var angle = Math.atan2(
+				t.y - s.y,
+				t.x - s.x);
+
+			switch (relation.type) {
+				case Relation.SUPPORT:
+					ctx.lineTo(
+						scale * t.x - scale * arrowRadius * Math.cos(angle),
+						scale * t.y - scale * arrowRadius * Math.sin(angle));
+					ctx.stroke();
+
+					ctx.lineWidth = scale * 2;
+					
+					ctx.arrow(scale * arrowRadius, 
+						scale * s.x,
+						scale * s.y,
+						scale * t.x,
+						scale * t.y);
+					ctx.fill();
+					break;
+
+				case Relation.ATTACK:
+					ctx.lineTo(
+						scale * t.x - scale * arrowRadius * Math.cos(angle),
+						scale * t.y - scale * arrowRadius * Math.sin(angle));
+					ctx.stroke();
+
+					ctx.lineWidth = scale * 2;
+
+					ctx.cross(0.75 * scale * arrowRadius, 
+						scale * s.x,
+						scale * s.y,
+						scale * t.x,
+						scale * t.y);
+					ctx.stroke();
+					break;
+
+				default:
+					ctx.lineTo(
+						scale * t.x,
+						scale * t.y);
+					ctx.stroke();
+					break;
+			}
+		}, this);
+	},
+
+	offsetPosition: function(sourceBox, targetBox) {
+		function center(box) {
+			return {
+				x: box.center.x,
+				y: box.center.y,
+				width: box.width,
+				height: box.height
+			};
+		}
+
+		var source = center(sourceBox);
+		var target = center(targetBox);
+
+		var D = {
+			x: source.x - target.x,
+			y: source.y - target.y
+		};
+
+		var t = {
+			x: target.x + (target.x > source.x ? -0.5 : 0.5) * target.width,
+			y: target.y + (D.y / D.x) * (target.x > source.x ? -0.5 : 0.5) * target.width
+		};
+
+		// console.log(
+		// 	D.x / D.y * target.height < -0.5 * target.width,
+		// 	D.y / D.x * target.width < -0.5 * target.height
+		// );
+
+		if ((D.x / D.y < target.width / target.height)
+		 	&& !(D.x / D.y * target.height < -0.5 * target.width))
+			t = {
+				x: target.x + (D.x / D.y) * (target.y > source.y ? -0.5 : 0.5) * target.height,
+				y: target.y + (target.y > source.y ? -0.5 : 0.5) * target.height
+			};
+
+		return t;
+	}
+}
+

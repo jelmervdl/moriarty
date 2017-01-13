@@ -51,116 +51,44 @@ jQuery(function($) {
     function networkifyParse(parse) {
         var $el = $('<div>').addClass('network');
         
-        function extractADUs(adu, depth)
+        var graph = new Graph($el.get(0));
+
+        function extractClaim(adu)
         {
-            if (!adu.id)
-                adu.id = ++globalIDCounter;
+            var claim = graph.addClaim(adu.text);
 
-            var node = [{
-                classes: adu.type,
-                data: {
-                    id: adu.id,
-                    text: adu.text,
-                    type: adu.type
+            adu.args.forEach(function(arg) {
+                switch (arg.type) {
+                    case 'support':
+                    case 'attack':
+                    case 'undefarrow':
+                        // [support] >> --> << [claim]
+                        var relation = graph.addRelation(arg.sources.map(extractClaim), claim, arg.type);
+                        
+                        // [support] --> [claim]
+                        //       >>   |    <<
+                        //       >> [rule] <<
+                        arg.args.map(extractClaim).forEach(function(relatedClaim) {
+                            graph.addRelation(relatedClaim, relation, arg.type);
+                        });
+                        break;
                 }
-            }];
-
-            var supports = adu.args.filter(isType('support')),
-                attacks = adu.args.filter(isType('attack')),
-                sources = adu.sources || [];
-
-            var supportEdges = $.map(supports, function(support) {
-                return extractADUs(support, depth + 1)
-                    .concat([{classes: 'support', data: {
-                        source: support.id,
-                        target: adu.id}}]);
             });
 
-            var attackEdges = $.map(attacks, function(attack) {
-                return extractADUs(attack, depth + 1)
-                    .concat([{classes: 'attack', data: {
-                        source: attack.id,
-                        target: adu.id}}]);
-            });
-
-            var sourceEdges = $.map(sources, function(source) {
-                return extractADUs(source, depth + 1)
-                    .concat([{classes: 'source', data: {
-                        source: source.id,
-                        target: adu.id}}]);
-            });
-
-            return node.concat(supportEdges, attackEdges, sourceEdges);
+            return claim;
         };
 
-        var network = cytoscape({
-            userZoomingEnabled: false,
-            userPanningEnabled: false,
-            boxSelectionEnabled: true,
-            container: $el,
-            elements: extractADUs(parse, 0),
-            style: [ // the stylesheet for the graph
-                {
-                    selector: 'node',
-                    style: {
-                        'background-color': '#666',
-                        'label': 'data(text)'
-                    }
-                },
+        extractClaim(parse);
 
-                {
-                    selector: 'node.support, node.attack, node.compound',
-                    style: {
-                        'width': 3,
-                        'height': 3,
-                        'background-color': '#eee',
-                        'label': '' // 'data(type)'
-                    }
-                },
+        graph.layout().apply();
 
-                {
-                    selector: 'edge',
-                    style: {
-                        'width': 3,
-                        'line-color': '#ccc',
-                        'target-arrow-color': '#ccc',
-                        'target-arrow-shape': 'triangle'
-                    }
-                },
+        graph.fit(10);
 
-                {
-                    selector: 'edge.support',
-                    style: {
-                        'target-arrow-color': 'green',
-                        'target-arrow-shape': 'triangle'
-                    }
-                },
-
-                {
-                    selector: 'edge.attack',
-                    style: {
-                        'target-arrow-color': 'red',
-                        'target-arrow-shape': 'circle'
-                    }
-                },
-
-                {
-                    selector: 'edge.source',
-                    style: {
-                        'target-arrow-shape': 'none'
-                    }
-                }
-            ],
-
-            layout: {
-                name: 'cose',
-            }
+        graph.on('drop', function() {
+            graph.fit(10);
         });
 
-        setTimeout(function() {
-            network.resize();
-            network.layout();
-        }, 100);
+        $el.data('graph', graph);
 
         return $el;
     }
@@ -181,16 +109,9 @@ jQuery(function($) {
                             .append($.map(response.parses, function(parse) {
                                 return $('<div>')
                                     .addClass('list-group-item')
-                                    .append($('<div>')
-                                        .addClass('row')
-                                        .append($('<div>')
-                                            .addClass('col-md-8')
-                                            .append($('<ul>')
-                                                .append(stringifyParse(parse))))
-                                        .append($('<div>')
-                                            .addClass('col-md-4')
-                                            .append(networkifyParse(parse)))
-                                    )
+                                    .append(networkifyParse(parse))
+                                    .append($('<ul>')
+                                        .append(stringifyParse(parse)));
                             }))
                         )
                 );
