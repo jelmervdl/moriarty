@@ -25,11 +25,12 @@ def indent(text: str, indent: str = "\t"):
 
 
 class ParseError(Exception):
-    def __init__(self, position: int, token: str, sentence: List[str] = None):
+    def __init__(self, position: int, token: str, sentence: List[str] = None, expected: List[str] = None):
         self.position = position
         self.token = token
         self.sentence = sentence
-        super().__init__("No possible parse for '{}' (at position {})".format(token, position))
+        super().__init__("No possible parse for '{}' (at position {}{})".format(token, position + 1,
+            ", expected " + " | ".join(expected) if expected is not None else ""))
 
     def __repr__(self) -> str:
         return "{}\n{}\n{}{}{}{}".format(
@@ -290,7 +291,8 @@ class Parser:
             # If needed, throw an error
             if len(self.table[-1]) == 0:
                 # No states at all! This is not good
-                raise ParseError(self.current + token_pos, token, sentence=chunk)
+                raise ParseError(self.current + token_pos, token, sentence=chunk,
+                    expected=[str(state.rule.symbols[state.expect]) for state in self.table[-2]])
 
         self.current += len(chunk)
 
