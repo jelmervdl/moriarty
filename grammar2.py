@@ -369,7 +369,9 @@ grammar = [
     # ("S ::= S but S", lambda state, data: attack(data[0], data[2])),
     ("S ::= S because SPECIFIC", lambda state, data: support(data[0], args=[data[2]])),
     ("S ::= S because SCON", lambda state, data: support(data[0], args=data[2].specific)),
+    
     ("S ::= S because GCON", lambda state, data: support_with_rule(data[0], rule=data[2].general[0], args=data[2].specific)),
+    ("S ::= S because GCON", lambda state, data: _unused_support_with_rule(data[0], rule=data[2].general[0], args=data[2].specific)),
     # ("S ::= S because S and because S", lambda state, data: support(data[0], data[2], data[5])),
     
     ("GCON ::= GENERAL and SPECIFIC", lambda state, data: Conjunction(general=[data[0]], specific=[data[2]])),
@@ -381,17 +383,16 @@ grammar = [
     ("SCON ::= SPECIFIC , SCON", lambda state, data: Conjunction(specific=[data[0]] + data[2].specific)),
 
     ("SPECIFIC ::= INSTANCE is TYPE", lambda state, data: Statement(data[0], "is", data[2])),
-    ("SPECIFIC ::= INSTANCE is VERB_ABLE", lambda state, data: Statement(data[0], "is", data[2])),
-    ("SPECIFIC ::= INSTANCE is VERB_ING", lambda state, data: Statement(data[0], "is", data[2])),
+    ("SPECIFIC ::= INSTANCE is VERB_NOUN", lambda state, data: Statement(data[0], "is", data[2])),
     ("SPECIFIC ::= INSTANCE is not TYPE", lambda state, data: Negation(Statement(data[0], "is", data[3]))),
     ("SPECIFIC ::= INSTANCE has TYPES", lambda state, data: Statement(data[0], "has", data[2])),
     ("TYPE ::= a NOUN", lambda state, data: data[1]),
     ("TYPE ::= an NOUN", lambda state, data: data[1]),
     ("TYPES ::= NOUNS", lambda state, data: data[0]),
     ("SPECIFIC ::= INSTANCE can VERB_INF", lambda state, data: Statement(data[0], "can", data[2])),
-    ("GENERAL ::= VERB_ING is ADJECTIVE", lambda state, data: RuleStatement(data[0], "is", data[2])),
+    ("GENERAL ::= VERB_NOUN is VERB_NOUN", lambda state, data: RuleStatement(data[0], "is", data[2])),
     ("GENERAL ::= TYPES are TYPES", lambda state, data: RuleStatement(data[0], "are", data[2])),
-    ("GENERAL ::= TYPES are ADJECTIVE", lambda state, data: RuleStatement(data[0], "are", data[2])),
+    ("GENERAL ::= TYPES are VERB_NOUN", lambda state, data: RuleStatement(data[0], "are", data[2])),
     ("GENERAL ::= TYPES can VERB_INF", lambda state, data: RuleStatement(data[0], "can", data[2])),
     ("GENERAL ::= TYPES have TYPES", lambda state, data: RuleStatement(data[0], "have", data[2])),
     ("GENERAL ::= TYPE can VERB_INF", lambda state, data: RuleStatement(data[0], "can", data[2])),
@@ -483,6 +484,9 @@ class ReSymbol(Symbol):
         accept = re.match(self.pattern, literal) is not None
         return not accept if self.negate else accept
 
+    def __repr__(self):
+        return "ReSymbol({}{!r})".format("¬" if self.negate else "", self.pattern)
+
 
 rules = list(parse_rule(expression, callback) for expression, callback in grammar)
 
@@ -492,8 +496,7 @@ rules += [
     Rule("NAME", [NameSymbol()], lambda state, data: data[0]),
     Rule("PRONOUN", [PronounSymbol()], lambda state, data: data[0]),
     Rule("VERB_INF", [ReSymbol(r'^\w+([^e]ed|ing|able)$', negate=True)], lambda state, data: Verb(data[0])),
-    Rule("VERB_NOUN", [ReSymbol(r'^\w+ing$')], lambda state, data: Verb(data[0])),
-    Rule("ADJECTIVE", [ReSymbol(r'^\w+able$')], lambda state, data: Verb(data[0])),
+    Rule("VERB_NOUN", [ReSymbol(r'^\w+([^e]ed|ing|able)$')], lambda state, data: Verb(data[0]))
 ]
 
 start = "START"
