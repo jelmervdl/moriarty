@@ -7,7 +7,7 @@ import re
 import copy
 import debug
 import os.path
-
+from langutil import indefinite_article
 
 logger = debug.Console()
 
@@ -425,29 +425,34 @@ class NounSymbol(Symbol):
         return True
 
     def finish(self, literal: str, state: 'State'):
-        return Noun(literal, self.singular(literal) if self.plural else literal)
+        return Noun(literal, self.plural)
 
-    def singular(self, word: str) -> str:
-        word = re.sub('(e?s)$', '', word)  # Strip 'es' from thieves
-        word = re.sub('v$', 'f', word)  # Replace 'v' in 'thiev' with 'f'
-        return word
+    
 
 
 class Noun(object):
-    def __init__(self, literal: str, singular: str):
+    def __init__(self, literal: str, plural: bool):
         self.literal = literal
-        self.singular = singular
+        self.plural = plural
+
+    def singular(self) -> str:
+        word = self.literal
+        if self.plural:
+            word = re.sub('(e?s)$', '', word)  # Strip 'es' from thieves
+            word = re.sub('v$', 'f', word)  # Replace 'v' in 'thiev' with 'f'
+        return word
 
     def is_same(self, other):
-        print("Noun: comparing {} to {}".format(self.singular, other.singular))
-        return self.singular == other.singular
+        return self.singular() == other.singular()
 
     def __str__(self):
-        return self.literal
+        if self.plural:
+            return self.literal
+        else:
+            return "{} {}".format(indefinite_article(self.literal), self.literal)
 
     def __repr__(self):
-        return "Noun({})".format(self.literal) if self.literal == self.singular \
-            else "Noun({}, singular={})".format(self.literal, self.singular)
+        return "Noun({})".format(self.literal)
 
 
 class Verb(object):
