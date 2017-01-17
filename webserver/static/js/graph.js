@@ -127,6 +127,8 @@ function Graph(container)
 	this.canvas.addEventListener('mouseup', this.onMouseUp.bind(this));
 	this.canvas.addEventListener('dblclick', this.onDoubleClick.bind(this));
 	this.canvas.addEventListener('keydown', this.onKeyDown.bind(this));
+	this.canvas.addEventListener('focus', this.update.bind(this));
+	this.canvas.addEventListener('blur', this.update.bind(this));
 
 	this.style = {
 		scale: window.devicePixelRatio || 1.0,
@@ -311,16 +313,18 @@ Graph.prototype = {
 
 		this.canvas.style.cursor = 'default';
 
-		this.selectedClaims.forEach(function(claim) {
-			claim.ax += claim.dx;
-			claim.ay += claim.dy;
-			claim.dx = 0;
-			claim.dy = 0;
-		});
+		if (this.selectedClaims.length > 0) {
+			this.selectedClaims.forEach(function(claim) {
+				claim.ax += claim.dx;
+				claim.ay += claim.dy;
+				claim.dx = 0;
+				claim.dy = 0;
+			});
+
+			this.fire('drop');
+		}
 
 		this.dragStartPosition = null;
-
-		this.fire('drop');
 	},
 
 	onKeyDown: function(e) {
@@ -572,8 +576,10 @@ Graph.prototype = {
 		var ctx = this.context,
 			scale = this.style.scale;
 
+		var color = document.activeElement == this.canvas ? 'blue' : 'gray';
+
 		ctx.lineWidth = scale * 3;
-		ctx.strokeStyle = 'blue';
+		ctx.strokeStyle = color;
 		
 		// Draw an extra outline for the selected claims
 		this.selectedClaims.forEach(function(claim) {
