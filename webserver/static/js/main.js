@@ -40,7 +40,7 @@ jQuery(function($) {
     function stringifyStatement(parse) {
         return $('<li>')
             .addClass('predicate')
-            .append($('<strong>').text(parse.text).attr('title', parse.repr))
+            .append($('<strong>').text(parse.repr).attr('title', parse.repr))
             .append($('<ul>').addClass('source').append($.map(parse.sources || [], stringifyStatement)))
             .append($('<ul>').addClass('supports').append($.map(parse.args.filter(isType('support')), stringifyStatement)))
             .append($('<ul>').addClass('attacks').append($.map(parse.args.filter(isType('attack')), stringifyStatement)));
@@ -110,8 +110,8 @@ jQuery(function($) {
                                 return $('<div>')
                                     .addClass('list-group-item')
                                     .append(networkifyParse(parse))
-                                    .append($('<ul>')
-                                        .append(stringifyParse(parse)));
+                                    // .append($('<ul>')
+                                    //     .append(stringifyParse(parse)));
                             }))
                         )
                 );
