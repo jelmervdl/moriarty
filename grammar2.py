@@ -371,7 +371,7 @@ grammar = [
     ("S ::= S because SCON", lambda state, data: support(data[0], args=data[2].specific)),
     
     ("S ::= S because GCON", lambda state, data: support_with_rule(data[0], rule=data[2].general[0], args=data[2].specific)),
-    ("S ::= S because GCON", lambda state, data: _unused_support_with_rule(data[0], rule=data[2].general[0], args=data[2].specific)),
+    # ("S ::= S because GCON", lambda state, data: _unused_support_with_rule(data[0], rule=data[2].general[0], args=data[2].specific)),
     # ("S ::= S because S and because S", lambda state, data: support(data[0], data[2], data[5])),
     
     ("GCON ::= GENERAL and SPECIFIC", lambda state, data: Conjunction(general=[data[0]], specific=[data[2]])),
