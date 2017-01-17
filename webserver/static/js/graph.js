@@ -434,6 +434,26 @@ Graph.prototype = {
 		this.resize();
 	},
 
+	fitVertically: function(padding) {
+		padding = padding || 0;
+
+		// Find initial offsets
+		var startY = this.claims.map(function(claim) { return claim.y; }).min();
+
+		// Remove that empty offset
+		this.claims.forEach(function(claim) {
+			claim.setPosition(
+				claim.x,
+				claim.y - startY + padding);
+		});
+
+		// Find outer limits
+		var height = this.claims.map(function(claim) { return claim.y + claim.height; }).max();
+
+		this.container.style.height = padding + height + 'px';
+		this.resize();
+	},
+
 	destroy: function() {
 		this.canvas.parentNode.removeChild(this.canvas);
 	},

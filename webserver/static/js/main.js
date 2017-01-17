@@ -82,10 +82,10 @@ jQuery(function($) {
 
         graph.layout().apply();
 
-        graph.fit(10);
+        graph.fitVertically(10);
 
         graph.on('drop', function() {
-            graph.fit(10);
+            graph.fitVertically(10);
         });
 
         $el.data('graph', graph);
