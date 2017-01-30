@@ -1,6 +1,5 @@
 from parser import Parser, Rule, RuleRef, passthru
-from grammar.shared import negation
-from grammar import claim, general, specific
+from grammar.shared import negation, claim, general, specific
 import traceback
 import sys
 

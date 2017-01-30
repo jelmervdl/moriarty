@@ -5,6 +5,7 @@ class NameParser(Symbol):
     def test(self, literal: str, position: int, state: State) -> bool:
         return literal[0].isupper()
 
+
 grammar = {
     Rule("NAME", [NameParser()], passthru),
     

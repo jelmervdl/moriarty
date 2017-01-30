@@ -1,6 +1,7 @@
 from parser import Rule, RuleRef, Literal, Symbol, State, passthru
 from grammar.shared import name, pronoun, noun
 
+
 class Instance(object):
     def __init__(self, name: str = None, noun: str = None, pronoun: str = None, plural = False, origin: 'Instance' = None):
         self.name = name
@@ -44,6 +45,7 @@ class Instance(object):
             noun=noun if noun is not None else self.noun,
             pronoun=pronoun if pronoun is not None else self.pronoun,
             origin=self)
+
 
 grammar = name.grammar | noun.grammar | pronoun.grammar | {
     # Singular

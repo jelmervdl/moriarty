@@ -1,5 +1,5 @@
 from grammar.shared import category, prototype, verb
-from grammar.claim import Claim
+from grammar.shared.claim import Claim
 from parser import Rule, RuleRef, Literal
 
 

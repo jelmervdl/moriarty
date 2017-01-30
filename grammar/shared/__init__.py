@@ -1,4 +1,7 @@
-from grammar.shared import prototype, instance, category, verb
+from grammar.shared import prototype, instance, category, verb, negation
 
-grammar = prototype.grammar | instance.grammar | category.grammar | verb.grammar
-
+grammar = prototype.grammar \
+    | instance.grammar \
+    | category.grammar \
+    | verb.grammar \
+    | negation.grammar
