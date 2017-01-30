@@ -11,14 +11,16 @@ grammar = claim.grammar | general.grammar | specific.grammar | negation.grammar 
 sentences = [
     ['Tweety', 'is', 'a', 'bird'],
     ['birds', 'can', 'fly'],
+    ['the', 'birds', 'can', 'fly'],
     ['Tweety', 'can', 'fly'],
-    ['Tweety', 'can', 'not', 'fly']
+    ['Tweety', 'can', 'not', 'fly'],
+    ['Tweety', 'and', 'Birdy', 'are', 'pretty']
 ]
 
 parser = Parser(grammar, 'CLAIM')
 
 print("Grammar:")
-for rule in grammar:
+for rule in sorted(grammar, key=lambda rule: rule.name):
     print("  " + str(rule))
 print()
 
@@ -28,6 +30,6 @@ for sentence in sentences:
         print("  > Input: {}".format(" ".join(sentence)))
         parses = parser.parse(sentence)
         for n, parse in enumerate(parses):
-            print("  {0: 2d}: {1!s}\n    {1!r}".format(n, parse))
+            print("   {0: 2d}: {1!s}\n       {1!r}".format(n, parse))
     except Exception:
         traceback.print_exc(file=sys.stderr)
