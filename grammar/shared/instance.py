@@ -1,13 +1,13 @@
 from parser import Rule, RuleRef, Literal, Symbol, State, passthru
 from grammar.shared import name, pronoun, noun
+import english
 
 
 class Instance(object):
-    def __init__(self, name: str = None, noun: str = None, pronoun: str = None, plural = False, origin: 'Instance' = None):
+    def __init__(self, name: str = None, noun: str = None, pronoun: str = None, origin: 'Instance' = None):
         self.name = name
         self.noun = noun
         self.pronoun = pronoun
-        self.plural = plural
         self.origin = origin
         
     def __str__(self):
@@ -19,7 +19,7 @@ class Instance(object):
             return "(instance)"
 
     def __repr__(self):
-        return "Instance({})".format(" ".join("{}={}".format(k, v) for k,v in self.__dict__.items() if v is not None))
+        return "Instance({})".format(" ".join("{}={!r}".format(k, v) for k,v in self.__dict__.items() if v is not None))
 
     def is_same(self, other):
         are_same_individuals = self.replaces(other) or other.replaces(self)
@@ -47,6 +47,39 @@ class Instance(object):
             origin=self)
 
 
+class InstanceGroup(object):
+    def __init__(self, instances = None, noun = None, pronoun = None):
+        self.instances = instances if instances is not None else []
+        self.noun = noun
+        self.pronoun = pronoun
+
+    def __repr__(self):
+        return "InstanceGroup({})".format(" ".join("{}={!r}".format(k, v) for k,v in self.__dict__.items() if v is not None))
+
+    def __str__(self):
+        if len(self.instances):
+            return english.join(self.instances)
+        elif self.noun:
+            return "the {}".format(self.noun)
+        elif self.pronoun:
+            return self.pronoun
+        else:
+            return "(anonymous group of instances)"
+
+    @classmethod
+    def from_pronoun_rule(cls, state, data):
+        return cls(pronoun=data[0])
+
+    @classmethod
+    def from_names_rule(cls, state, data):
+        return cls(instances=[Instance(name=name) for name in data[0]])
+
+    @classmethod
+    def from_noun_rule(cls, state, data):
+        return cls(noun=data[1]) # 1 because of the 'the' at pos 0.
+
+
+
 grammar = name.grammar | noun.grammar | pronoun.grammar | {
     # Singular
     Rule("INSTANCE", [RuleRef("PRONOUN")],
@@ -60,12 +93,12 @@ grammar = name.grammar | noun.grammar | pronoun.grammar | {
 
     # Plural
     Rule("INSTANCES", [RuleRef("PRONOUNS")],
-        lambda state, data: Instance(pronoun=data[0], plural=True)),
+        InstanceGroup.from_pronoun_rule),
 
     Rule("INSTANCES", [RuleRef("NAMES")],
-        lambda state, data: Instance(name=data[0], plural=True)), # note that data[0] is a list
+        InstanceGroup.from_names_rule),
 
     Rule("INSTANCES", [Literal("the"), RuleRef("NOUNS")],
-        lambda state, data: Instance(noun=data[1], plural=True))
+        InstanceGroup.from_noun_rule),
 }
 

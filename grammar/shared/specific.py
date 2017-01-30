@@ -10,7 +10,9 @@ class SpecificClaim(Claim):
     a 'they'.
     """
     def __init__(self, subject, verb, object):
-        assert isinstance(subject, instance.Instance), "Subject of a specific claim is not an instance?"
+        assert isinstance(subject, instance.Instance) \
+            or isinstance(subject, instance.InstanceGroup), \
+            "Subject of a specific claim is not an instance?"
         super().__init__(subject, verb, object)
 
 
