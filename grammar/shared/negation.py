@@ -19,7 +19,7 @@ class Negation(object):
 
 grammar = category.grammar | prototype.grammar | verb.grammar | {
     Rule('CATEGORY', [Literal('not'), RuleRef('CATEGORY')],
-        Negation.from_rule)
+        Negation.from_rule),
 
     Rule('PROTOTYPE', [Literal('not'), RuleRef('PROTOTYPE')],
         Negation.from_rule),

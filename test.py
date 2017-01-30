@@ -1,9 +1,10 @@
 from parser import Parser, Rule, RuleRef, passthru
+from grammar.shared import negation
 from grammar import claim, general, specific
 import traceback
 import sys
 
-grammar = claim.grammar | general.grammar | specific.grammar | {
+grammar = claim.grammar | general.grammar | specific.grammar | negation.grammar | {
     Rule('CLAIM', [RuleRef('GENERAL_CLAIM')], passthru),
     Rule('CLAIM', [RuleRef('SPECIFIC_CLAIM')], passthru),
 }
@@ -17,11 +18,17 @@ sentences = [
 
 parser = Parser(grammar, 'CLAIM')
 
+print("Grammar:")
+for rule in grammar:
+    print("  " + str(rule))
+print()
+
+print("Tests:")
 for sentence in sentences:
     try:
-        print("> Input: {}".format(" ".join(sentence)))
+        print("  > Input: {}".format(" ".join(sentence)))
         parses = parser.parse(sentence)
         for n, parse in enumerate(parses):
-            print("{0: 2d}: {1!s}\n    {1!r}".format(n, parse))
+            print("  {0: 2d}: {1!s}\n    {1!r}".format(n, parse))
     except Exception:
         traceback.print_exc(file=sys.stderr)
