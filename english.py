@@ -682,3 +682,10 @@ def attributive(adjective):
 
 def predicative(adjective):
     return adjective
+
+def join(elements):
+    strings = list(map(str, elements))
+    if len(elements) > 1:
+        return "{} and {}".format(", ".join(strings[:-1]), strings[-1])
+    else:
+        return strings[0]
