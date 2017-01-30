@@ -24,6 +24,10 @@ def indent(text: str, indent: str = "\t"):
     return "\n".join((indent + line for line in text.split("\n"))) if text else ""
 
 
+def passthru(state, data):
+    return data[0]
+
+
 class ParseError(Exception):
     def __init__(self, position: int, token: str, sentence: List[str] = None, expected: List[str] = None):
         self.position = position
@@ -83,7 +87,7 @@ class Rule:
         if callback is not None:
             self.callback = callback
         else:
-            self.callback = lambda data, n: RuleInstance(self, data)  # flatten(data)
+            self.callback = lambda state, data: RuleInstance(self, data)  # flatten(data)
 
     def __repr__(self, with_cursor_at: int = None) -> str:
         if with_cursor_at is not None:
@@ -399,12 +403,12 @@ if __name__ == '__main__':
     ], 'A')
     print(p.parse(list('A1234')))
 
-    # Test recursion and the empty rule
-    # p = Parser([
-    #     Rule('START', [RuleRef('AB')]),
-    #     Rule('AB', [Literal('A'), RuleRef('AB'), Literal('B')]),
-    #     Rule('AB', [])
-    # ], 'START')
-    # print(p.parse(list('AAABBB')))
+    print("Test recursion and the empty rule")
+    p = Parser([
+        Rule('START', [RuleRef('AB')]),
+        Rule('AB', [Literal('A'), RuleRef('AB'), Literal('B')]),
+        Rule('AB', [])
+    ], 'START')
+    print(p.parse(list('AAABBB')))
 
     print("Done.")
