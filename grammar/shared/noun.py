@@ -12,6 +12,8 @@ class NounParser(Symbol):
             return False
         if self.is_plural and literal[-1] != 's':
             return False
+        if not self.is_plural and literal[-1] == 's':
+            return False
         return True
 
     def finish(self, literal: str, state: 'State'):
