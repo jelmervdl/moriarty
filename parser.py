@@ -296,7 +296,7 @@ class Parser:
             if len(self.table[-1]) == 0:
                 # No states at all! This is not good
                 raise ParseError(self.current + token_pos, token, sentence=chunk,
-                    expected=[str(state.rule.symbols[state.expect]) for state in self.table[-2]])
+                    expected=[str(state.rule.symbols[state.expect] if len(state.rule.symbols) < state.expect else "(WHUT!?)")  for state in self.table[-2]])
 
         self.current += len(chunk)
 
@@ -378,12 +378,22 @@ if __name__ == '__main__':
     ], 'A')
     print(p.parse(list('AAAA')))
 
+
     print("Test right recursion")
     p = Parser([
         Rule('A', [Literal('A'), RuleRef('A')]),
         Rule('A', [Literal('A')]),
     ], 'A')
     print(p.parse(list('AAAA')))
+
+
+    print("Test nested right recursion")
+    p = Parser([
+        Rule('X', [Literal('0'), RuleRef('A'), Literal('1')]),
+        Rule('A', [Literal('A'), RuleRef('A')]),
+        Rule('A', [Literal('A')]),
+    ], 'A')
+    print(p.parse(list('0AAAA1')))
 
 
     class Digit(Symbol):
@@ -402,6 +412,7 @@ if __name__ == '__main__':
         Rule('A', [Literal('A')]),
     ], 'A')
     print(p.parse(list('A1234')))
+
 
     print("Test recursion and the empty rule")
     p = Parser([
