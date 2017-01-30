@@ -5,7 +5,6 @@ import operator
 from typing import List, Optional, Any, Callable, Union, cast
 from collections import OrderedDict
 import functools
-import sys
 import re
 
 
@@ -295,8 +294,11 @@ class Parser:
             # If needed, throw an error
             if len(self.table[-1]) == 0:
                 # No states at all! This is not good
+                print(self.table)
                 raise ParseError(self.current + token_pos, token, sentence=chunk,
-                    expected=[str(state.rule.symbols[state.expect] if len(state.rule.symbols) < state.expect else "(WHUT!?)")  for state in self.table[-2]])
+                    expected=[str(state.rule.symbols[state.expect] \
+                        if len(state.rule.symbols) < state.expect \
+                        else "(outside {})".format(state.rule))  for state in self.table[-2]])
 
         self.current += len(chunk)
 
@@ -367,34 +369,12 @@ def read_sentences(fh):
 
 
 if __name__ == '__main__':
+    import traceback
+    import sys
+
     # Test simple literals
     # p = Parser([Rule('START', [Literal('a'), Literal('b'), Literal('c')])], 'START')
     # assert len(p.parse(['a', 'b', 'c'])) == 1
-
-    print("Test left recursion")
-    p = Parser([
-        Rule('A', [RuleRef('A'), Literal('A')]),
-        Rule('A', [Literal('A')]),
-    ], 'A')
-    print(p.parse(list('AAAA')))
-
-
-    print("Test right recursion")
-    p = Parser([
-        Rule('A', [Literal('A'), RuleRef('A')]),
-        Rule('A', [Literal('A')]),
-    ], 'A')
-    print(p.parse(list('AAAA')))
-
-
-    print("Test nested right recursion")
-    p = Parser([
-        Rule('X', [Literal('0'), RuleRef('A'), Literal('1')]),
-        Rule('A', [Literal('A'), RuleRef('A')]),
-        Rule('A', [Literal('A')]),
-    ], 'A')
-    print(p.parse(list('0AAAA1')))
-
 
     class Digit(Symbol):
         def test(self, literal: str, position: int, state: 'State') -> bool:
@@ -406,20 +386,61 @@ if __name__ == '__main__':
             return literal.isalpha()
 
 
-    print("Test custom literal")
-    p = Parser([
-        Rule('A', [RuleRef('A'), Digit()]),
-        Rule('A', [Literal('A')]),
-    ], 'A')
-    print(p.parse(list('A1234')))
+    def test_left_recursion():
+        """Test left recursion"""
+        p = Parser([
+            Rule('A', [RuleRef('A'), Literal('A')]),
+            Rule('A', [Literal('A')]),
+        ], 'A')
+        print(p.parse(list('AAAA')))
+
+    def test_right_recursion():
+        """Test right recursion"""
+        p = Parser([
+            Rule('A', [Literal('A'), RuleRef('A')]),
+            Rule('A', [Literal('A')]),
+        ], 'A')
+        print(p.parse(list('AAAA')))
 
 
-    print("Test recursion and the empty rule")
-    p = Parser([
-        Rule('START', [RuleRef('AB')]),
-        Rule('AB', [Literal('A'), RuleRef('AB'), Literal('B')]),
-        Rule('AB', [])
-    ], 'START')
-    print(p.parse(list('AAABBB')))
+    def test_nested_left_recursion():
+        """Test nested left recursion"""
+        p = Parser([
+            Rule('X', [Literal('0'), RuleRef('A'), Literal('1')]),
+            Rule('A', [Literal('A'), RuleRef('A')]),
+            Rule('A', [Literal('A')]),
+        ], 'X')
+        print(p.parse(list('0AAAA1')))
+
+
+    def test_custom_literal():
+        """Test custom literal"""
+        p = Parser([
+            Rule('A', [RuleRef('A'), Digit()]),
+            Rule('A', [Literal('A')]),
+        ], 'A')
+        print(p.parse(list('A1234')))
+
+    def test_empty_rule():
+        """Test recursion and the empty rule"""
+        p = Parser([
+            Rule('START', [RuleRef('AB')]),
+            Rule('AB', [Literal('A'), RuleRef('AB'), Literal('B')]),
+            Rule('AB', [])
+        ], 'START')
+        print(p.parse(list('AAABBB')))
+
+    if len(sys.argv) > 1:
+        tests = [globals()[arg] for arg in sys.argv[1:]]
+    else:
+        tests = [value for name, value in dict(globals()).items() if name.startswith('test_') and callable(value)]
+
+    for test in tests:
+        print("{}: {}".format(test.__name__, test.__doc__))
+        try:
+            test()
+        except:
+            traceback.print_exc(file=sys.stderr)
+        print("\n")
 
     print("Done.")
