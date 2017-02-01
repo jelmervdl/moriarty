@@ -1,0 +1,17 @@
+{
+	"folders":
+	[
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"translate_tabs_to_spaces": true	
+	},
+    "build_systems": [
+        {
+            "name": "Test grammar",
+            "cmd": ["python3", "-u", "test.py"]
+        }
+    ]
+}
