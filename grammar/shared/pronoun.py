@@ -1,4 +1,5 @@
-from parser import Rule, Literal, passthru
+from parser import Rule, passthru
+from interpretation import Literal
 
 grammar = {
     # Singular

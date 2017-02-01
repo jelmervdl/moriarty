@@ -1,5 +1,7 @@
 from grammar.shared import instance, prototype, category
-from parser import Rule, RuleRef, Literal, passthru
+from parser import Rule, RuleRef, passthru, Literal
+from argumentation import Argument
+from interpretation import Interpretation
 
 
 class Claim(object):
@@ -21,31 +23,32 @@ class Claim(object):
 
     @classmethod
     def from_rule(cls, state, data):
-        return cls(data[0], data[1], data[2])
+        claim = cls(data[0].local, data[1].local, data[2].local)
+        return data[0] + data[1] + data[2] + Interpretation(argument=Argument(claims={claim}), local=claim)
 
 
-grammar = instance.grammar | prototype.grammar | category.grammar | {
-    Rule('SUBJECT', [RuleRef('INSTANCE')], passthru),
-    Rule('SUBJECT', [RuleRef('PROTOTYPE')], passthru),
-    Rule('SUBJECTS', [RuleRef('INSTANCES')], passthru),
-    Rule('SUBJECTS', [RuleRef('PROTOTYPES')], passthru),
+# grammar = instance.grammar | prototype.grammar | category.grammar | {
+#     Rule('SUBJECT', [RuleRef('INSTANCE')], passthru),
+#     Rule('SUBJECT', [RuleRef('PROTOTYPE')], passthru),
+#     Rule('SUBJECTS', [RuleRef('INSTANCES')], passthru),
+#     Rule('SUBJECTS', [RuleRef('PROTOTYPES')], passthru),
 
-    Rule('CLAIM', [RuleRef('SUBJECT'), Literal('is'), RuleRef('CATEGORY')],
-        Claim.from_rule),
+#     Rule('CLAIM', [RuleRef('SUBJECT'), Literal('is'), RuleRef('CATEGORY')],
+#         Claim.from_rule),
 
-    Rule('CLAIM', [RuleRef('SUBJECT'), Literal('is'), RuleRef('PROTOTYPE')],
-        Claim.from_rule),
+#     Rule('CLAIM', [RuleRef('SUBJECT'), Literal('is'), RuleRef('PROTOTYPE')],
+#         Claim.from_rule),
 
-    Rule('CLAIM', [RuleRef('SUBJECTS'), Literal('are'), RuleRef('CATEGORY')],
-        Claim.from_rule),
+#     Rule('CLAIM', [RuleRef('SUBJECTS'), Literal('are'), RuleRef('CATEGORY')],
+#         Claim.from_rule),
 
-    Rule('CLAIM', [RuleRef('SUBJECTS'), Literal('are'), RuleRef('PROTOTYPES')],
-        Claim.from_rule),
+#     Rule('CLAIM', [RuleRef('SUBJECTS'), Literal('are'), RuleRef('PROTOTYPES')],
+#         Claim.from_rule),
 
-    # This allows the grammar to use GENERAL and SPECIFIC claims, but behave
-    # as if the distinction is not made, until the actual GENERAL and SPECIFIC
-    # rules are loaded. 
-    Rule('GENERAL_CLAIM', [RuleRef('CLAIM')], passthru),
+#     # This allows the grammar to use GENERAL and SPECIFIC claims, but behave
+#     # as if the distinction is not made, until the actual GENERAL and SPECIFIC
+#     # rules are loaded. 
+#     Rule('GENERAL_CLAIM', [RuleRef('CLAIM')], passthru),
 
-    Rule('SPECIFIC_CLAIM', [RuleRef('CLAIM')], passthru)
-}
+#     Rule('SPECIFIC_CLAIM', [RuleRef('CLAIM')], passthru)
+# }

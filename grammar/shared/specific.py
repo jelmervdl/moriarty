@@ -1,6 +1,7 @@
 from grammar.shared import instance, category, prototype, verb
 from grammar.shared.claim import Claim
-from parser import Rule, RuleRef, Literal
+from parser import Rule, RuleRef
+from interpretation import Literal
 
 
 class SpecificClaim(Claim):

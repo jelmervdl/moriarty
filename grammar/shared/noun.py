@@ -1,5 +1,6 @@
 import re
 from parser import Rule, Symbol, State, passthru
+from interpretation import Interpretation
 import english
 
 
@@ -17,7 +18,7 @@ class NounParser(Symbol):
         return True
 
     def finish(self, literal: str, state: 'State'):
-        return Noun(literal, self.is_plural)
+        return Interpretation(local=Noun(literal, self.is_plural))
 
 
 class Noun(object):

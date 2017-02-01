@@ -1,4 +1,5 @@
-from parser import Rule, Symbol, State, passthru
+from parser import Rule, State, passthru
+from interpretation import Symbol, Interpretation
 
 class AdjectiveParser(Symbol):
     """

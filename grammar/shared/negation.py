@@ -1,5 +1,6 @@
 from grammar.shared import category, prototype, verb
 from parser import Rule, RuleRef, Literal
+from interpretation import Interpretation
 
 
 class Negation(object):
@@ -14,7 +15,7 @@ class Negation(object):
 
     @classmethod
     def from_rule(cls, state, data):
-        return cls(data[1])
+        return data[1] + Interpretation(local=cls(data[1].local))
 
 
 grammar = category.grammar | prototype.grammar | verb.grammar | {

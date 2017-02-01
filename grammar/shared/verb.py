@@ -1,5 +1,6 @@
 from parser import Rule, Symbol, State, passthru
 from typing import Any
+from interpretation import Interpretation
 import re
 
 
@@ -19,7 +20,7 @@ class Verb(object):
 
 class VerbParser(Symbol):
     def finish(self, literal: str, state: State) -> Any:
-        return Verb(literal)
+        return Interpretation(local=Verb(literal))
 
 
 class InfVerbParser(VerbParser):

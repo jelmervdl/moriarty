@@ -1,7 +1,7 @@
 from parser import Rule, RuleRef, Literal, passthru
 from grammar.shared import noun
 from english import indefinite_article
-
+from interpretation import Interpretation
 
 class Prototype(object):
     def __init__(self, noun):
@@ -19,8 +19,8 @@ class Prototype(object):
 
 grammar = noun.grammar | {
     Rule("PROTOTYPE", [Literal("a"), RuleRef("NOUN")],
-        lambda state, data: Prototype(data[1])),
+        lambda state, data: data[1] + Interpretation(local=Prototype(data[1].local))),
 
     Rule("PROTOTYPES", [RuleRef("NOUNS")],
-        lambda state, data: Prototype(data[0]))
+        lambda state, data: data[0] + Interpretation(local=Prototype(data[0].local)))
 }
