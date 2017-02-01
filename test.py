@@ -1,11 +1,27 @@
-from parser import Parser, Rule, RuleRef, passthru
+from parser import Parser, Rule, RuleInstance, RuleRef, passthru
 from grammar.shared import negation, claim, general, specific
 import traceback
 import sys
 
-grammar = claim.grammar | general.grammar | specific.grammar | negation.grammar | {
-    Rule('CLAIM', [RuleRef('GENERAL_CLAIM')], passthru),
-    Rule('CLAIM', [RuleRef('SPECIFIC_CLAIM')], passthru),
+
+def override_callbacks(rules, callback = None):
+    """
+    Override the callback in all rules in a grammar.
+    
+    If no callback argument is provided, each rule will yield a RuleInstance
+    which can be used to see how a rule was parsed.
+    """
+    if callback is None:
+        def callback(rule):
+            return lambda state, data: RuleInstance(rule, data)
+
+    for rule in rules:
+        rule.callback = callback(rule)
+
+
+grammar = general.grammar | specific.grammar | negation.grammar | {
+    Rule('ARGUMENT', [RuleRef('GENERAL_CLAIM')], passthru),
+    Rule('ARGUMENT', [RuleRef('SPECIFIC_CLAIM')], passthru),
 }
 
 sentences = [
@@ -17,7 +33,10 @@ sentences = [
     ['Tweety', 'and', 'Birdy', 'are', 'pretty']
 ]
 
-parser = Parser(grammar, 'CLAIM')
+# Uncomment this call to see the parse trees.
+# override_callbacks(grammar)
+
+parser = Parser(grammar, 'ARGUMENT')
 
 print("Grammar:")
 for rule in sorted(grammar, key=lambda rule: rule.name):

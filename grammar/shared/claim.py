@@ -40,5 +40,12 @@ grammar = instance.grammar | prototype.grammar | category.grammar | {
         Claim.from_rule),
 
     Rule('CLAIM', [RuleRef('SUBJECTS'), Literal('are'), RuleRef('PROTOTYPES')],
-        Claim.from_rule)
+        Claim.from_rule),
+
+    # This allows the grammar to use GENERAL and SPECIFIC claims, but behave
+    # as if the distinction is not made, until the actual GENERAL and SPECIFIC
+    # rules are loaded. 
+    Rule('GENERAL_CLAIM', [RuleRef('CLAIM')], passthru),
+
+    Rule('SPECIFIC_CLAIM', [RuleRef('CLAIM')], passthru)
 }
