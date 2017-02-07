@@ -23,15 +23,26 @@ class Instance(object):
         self.noun = noun
         self.pronoun = pronoun
         self.origin = origin
+
+    def __hash__(self):
+        return hash(self.id)
+
+    def __eq__(self, other):
+        return self.id == other.id
         
     def __str__(self):
+        if Interpretation.current() is not None:
+            if Interpretation.current().find_instance(self) is not self:
+                return Interpretation.current().find_instance(self).__str__()
+
         if self.name is not None:
-            identifier = self.name
+            return self.name
         elif self.noun is not None:
-            identifier = "the {}".format(self.noun)
+            return "the {}".format(self.noun)
         elif self.pronoun is not None:
-            identifier = self.pronoun
-        return "{} (#{})".format(identifier, self.id)
+            return self.pronoun
+        else:
+            return "#{}".format(self.id)
 
     def __repr__(self):
         return "Instance(id={id!r} name={name!r} noun={noun!r} pronoun={pronoun!r})".format(**self.__dict__)
@@ -75,17 +86,17 @@ class Instance(object):
     @classmethod
     def from_pronoun_rule(cls, state, data):
         instance = cls(pronoun=data[0].local)
-        return data[0] + Interpretation(Argument(instances={instance}), instance)
+        return data[0] + Interpretation(local=instance, instances={instance: {instance}})
 
     @classmethod
     def from_name_rule(cls, state, data):
         instance = cls(name=data[0].local)
-        return data[0] + Interpretation(Argument(instances={instance}), instance)
+        return data[0] + Interpretation(local=instance, instances={instance: {instance}})
 
     @classmethod
     def from_noun_rule(cls, state, data):
         instance = cls(noun=data[1].local) # because 'the'
-        return data[1] + Interpretation(Argument(instances={instance}), instance)
+        return data[1] + Interpretation(local=instance, instances={instance: {instance}})
 
     
 
@@ -117,7 +128,7 @@ class InstanceGroup(object):
     @classmethod
     def from_names_rule(cls, state, data):
         instances = {Instance(name=name) for name in data[0].local}
-        return data[0] + Interpretation(Argument(instances=instances), cls(instances=instances))
+        return data[0] + Interpretation(local=cls(instances=instances))
 
     @classmethod
     def from_noun_rule(cls, state, data):

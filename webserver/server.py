@@ -72,19 +72,19 @@ def hello():
 def api_parse_sentence():
     tokens = parser.tokenize(request.args.get('sentence'))
     reply = dict(tokens=tokens)
-    status_code = 200
-
+    
     try:
         p = parser.Parser(grammar, 'ARGUMENT')
         parses = p.parse(tokens)
         reply['parses'] = parses
+        interpretation = parses[0] if len(parses) > 0 else Interpretation()
+        with interpretation:
+            return jsonify(reply)
     except parser.ParseError as error:
         reply['error'] = str(error)
-        status_code = 400
-
-    response = jsonify(reply)
-    response.status_code = status_code
-    return response
+        response = jsonify(reply)
+        response.status_code = 400
+        return response
 
 
 if __name__ == '__main__':

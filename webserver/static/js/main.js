@@ -22,8 +22,8 @@ jQuery(function($) {
     };
 
     function stringifyTokens(tokens) {
-        return $('<div>').addClass('tokenized').append($.map(tokens, function(token) {
-            return $('<span>').addClass('token').text(token);
+        return $('<div>').addClass('tokenized').append($.map(tokens, function(token, i) {
+            return $('<span>').addClass('token').attr('data-pos', i + 1).text(token);
         }));
     }
 
@@ -123,7 +123,7 @@ jQuery(function($) {
             .always(function(response, status) {
                 // No consistency :(
                 if (status == 'error')
-                    response = response.responseJSON;
+                    response = response.responseJSON || {};
 
                 var panel = parsePanel(sentence, response);
                 $('#parses').prepend(panel);
@@ -143,7 +143,10 @@ jQuery(function($) {
 
                     default:
                         try {
-                           panel.append($('<div class="panel-body">').alert(response.error));
+                            panel.append($('<div class="panel-body">').alert(response.error));
+                            var match = response.error.match(/\(at position (\d+)\)/);
+                            if (match)
+                                panel.find('[data-pos=' + match[1] + '].token').addClass('bg-danger');
                         } catch (e) {
                            panel.append($('<div class="panel-body">').alert("Something went wrong on the server."));
                         }

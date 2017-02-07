@@ -9,10 +9,9 @@ class Argument(object):
     An argument exists of claims and attack or support relations between those
     claims, and between the relations themselves.
     """
-    def __init__(self, claims: Set['Claim'] = set(), relations: Set['Relation'] = set(), instances: Set['Instance'] = set()):
+    def __init__(self, claims: Set['Claim'] = set(), relations: Set['Relation'] = set()):
         self.claims = claims
         self.relations = relations
-        self.instances = instances
 
         # Assert all the sources in a relation are claims, and all of them are in our claims set
         # assert all(claim in self.claims for relation in self.relations for claim in relation.sources)
@@ -23,23 +22,7 @@ class Argument(object):
     def __or__(self, other):
         """Combine two Arguments into one."""
         assert isinstance(other, self.__class__)
-        
-        instances = set(self.instances)
-
-        for other_instance in other.instances:
-            for existing_instance in instances:
-                if other_instance.is_same(existing_instance):
-                    print("Instance already in list")
-                    found = True
-                    break
-
-                if existing_instance.could_be(other_instance):
-                    instances.remove(existing_instance)
-                    instances.add(existing_instance.replace(other_instance))
-                    found = True
-                    break
-
-        return self.__class__(self.claims | other.claims, self.relations | other.relations, instances)
+        return self.__class__(self.claims | other.claims, self.relations | other.relations)
 
     def __str__(self):
         """Return the argument as (parsable?) English sentences."""
@@ -47,7 +30,7 @@ class Argument(object):
 
     def __repr__(self):
         """Return a string representation of the argument for inspection."""
-        return "Argument(claims={claims!r} relations={relations!r} instances={instances!r})".format(**self.__dict__)
+        return "Argument(claims={claims!r} relations={relations!r})".format(**self.__dict__)
 
 
 class Relation(object):
