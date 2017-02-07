@@ -62,15 +62,6 @@ for rule in sorted(grammar, key=lambda rule: rule.name):
     print("  " + str(rule))
 print()
 
-@app.errorhandler(parser.ParseError)
-def handle_parse_error(error: parser.ParseError):
-    reply = dict(error=str(error))
-    if 'sentence' in request.args:
-        reply['tokens'] = parser.tokenize(request.args['sentence'])
-    response = jsonify(reply)
-    response.status_code = 400
-    return response
-
 
 @app.route('/')
 def hello():
@@ -80,13 +71,20 @@ def hello():
 @app.route('/api/parse', methods=['GET'])
 def api_parse_sentence():
     tokens = parser.tokenize(request.args.get('sentence'))
+    reply = dict(tokens=tokens)
+    status_code = 200
 
-    p = parser.Parser(grammar, 'ARGUMENT')
-    parses = p.parse(tokens)
+    try:
+        p = parser.Parser(grammar, 'ARGUMENT')
+        parses = p.parse(tokens)
+        reply['parses'] = parses
+    except parser.ParseError as error:
+        reply['error'] = str(error)
+        status_code = 400
 
-    reply = dict(tokens=tokens, parses=parses)
-
-    return jsonify(reply)
+    response = jsonify(reply)
+    response.status_code = status_code
+    return response
 
 
 if __name__ == '__main__':

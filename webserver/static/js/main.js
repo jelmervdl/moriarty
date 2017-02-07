@@ -18,7 +18,7 @@ jQuery(function($) {
             .addClass('alert alert-danger alert-dismissible dismissible')
             .append(closeButton())
             .append($('<p>').css('white-space', 'pre-wrap').text(' ' + message).prepend($('<strong>Error!</strong>')));
-        $(this).prepend($alert);
+        return $(this).prepend($alert);
     };
 
     function stringifyTokens(tokens) {
@@ -107,20 +107,30 @@ jQuery(function($) {
         return $el;
     }
 
+    function parsePanel(sentence, response)
+    {
+        return $('<div>')
+            .addClass('parse panel panel-default dismissible')
+            .append($('<div class="panel-heading">')
+                .append(closeButton())
+                .append(editButton(sentence))
+                .append(repeatButton(sentence))
+                .append(stringifyTokens(response.tokens || [])));
+    }
+
     function parseSentence(sentence) {
         $.get($('#parse-sentence-form').attr('action'), {sentence: sentence}, 'json')
-            .success(function(response) {
-                console.log(response);
-                $('#parses').prepend(
-                    $('<div>')
-                        .addClass('parse panel panel-default dismissible')
-                        .append($('<div class="panel-heading">')
-                            .append(closeButton())
-                            .append(editButton(sentence))
-                            .append(repeatButton(sentence))
-                            .append(stringifyTokens(response.tokens))
-                        )
-                        .append($('<div class="list-group">')
+            .always(function(response, status) {
+                // No consistency :(
+                if (status == 'error')
+                    response = response.responseJSON;
+
+                var panel = parsePanel(sentence, response);
+                $('#parses').prepend(panel);
+                
+                switch (status) {
+                    case 'success':
+                        panel.append($('<div class="list-group">')
                             .append($.map(response.parses, function(parse) {
                                 return $('<div>')
                                     .addClass('list-group-item')
@@ -128,14 +138,16 @@ jQuery(function($) {
                                     // .append($('<ul>')
                                     //     .append(stringifyParse(parse)));
                             }))
-                        )
-                );
-            })
-            .error(function(response) {
-                try {
-                    $('body > .container').alert(response.responseJSON.error);
-                } catch (e) {
-                    $('body > .container').alert("Something went wrong on the server.");
+                        );
+                        break;
+
+                    default:
+                        try {
+                           panel.append($('<div class="panel-body">').alert(response.error));
+                        } catch (e) {
+                           panel.append($('<div class="panel-body">').alert("Something went wrong on the server."));
+                        }
+                        break;
                 }
             });
     }
