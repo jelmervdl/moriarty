@@ -53,32 +53,46 @@ jQuery(function($) {
         
         var graph = new Graph($el.get(0));
 
-        function extractClaim(adu)
-        {
-            var claim = graph.addClaim(adu.text);
+        var claims = {}, relations = {};
 
-            adu.args.forEach(function(arg) {
-                switch (arg.type) {
-                    case 'support':
-                    case 'attack':
-                    case 'undefarrow':
-                        // [support] >> --> << [claim]
-                        var relation = graph.addRelation(arg.sources.map(extractClaim), claim, arg.type);
-                        
-                        // [support] --> [claim]
-                        //       >>   |    <<
-                        //       >> [rule] <<
-                        arg.args.map(extractClaim).forEach(function(relatedClaim) {
-                            graph.addRelation(relatedClaim, relation, arg.type);
-                        });
+        parse.claims.forEach(function(claim) {
+            claims[claim.id] = graph.addClaim(claim.text);
+        });
+
+        // Make sure we first do all relations targeting claims, and only then
+        // the ones targeting relations, so that the targets of the last group
+        // already exists.
+        parse.relations
+            .sort(function(a, b) {
+                var as = a.target.cls == 'claim' ? 0 : 1;
+                var bs = b.target.cls == 'claim' ? 0 : 1;
+                return as - bs;
+            })
+            .forEach(function(relation) {
+                var sources = relation.sources.map(function(source) {
+                    switch (source.cls) {
+                        case 'claim':
+                            return claims[source.id];
+                        default:
+                            throw new Error("Unknown type '" + source.cls + "'");
+                    }
+                });
+
+                var target;
+
+                switch (relation.target.cls) {
+                    case 'claim':
+                        target = claims[relation.target.id];
                         break;
+                    case 'relation':
+                        target = relations[relation.target.id];
+                        break;
+                    default:
+                        throw new Error("Unknown type '" + relation.target.cls + "'");
                 }
+
+                relations[relation.id] = graph.addRelation(sources, target, relation.type);
             });
-
-            return claim;
-        };
-
-        extractClaim(parse);
 
         graph.layout().apply();
 
@@ -96,6 +110,7 @@ jQuery(function($) {
     function parseSentence(sentence) {
         $.get($('#parse-sentence-form').attr('action'), {sentence: sentence}, 'json')
             .success(function(response) {
+                console.log(response);
                 $('#parses').prepend(
                     $('<div>')
                         .addClass('parse panel panel-default dismissible')
