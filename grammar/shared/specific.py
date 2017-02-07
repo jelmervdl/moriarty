@@ -23,9 +23,19 @@ grammar = instance.grammar | category.grammar | prototype.grammar | verb.grammar
     Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), Literal('is'), RuleRef('PROTOTYPE')],
         SpecificClaim.from_rule),
 
+    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), Literal('has'), RuleRef('CATEGORY')],
+        SpecificClaim.from_rule),
+    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), Literal('has'), RuleRef('PROTOTYPE')],
+        SpecificClaim.from_rule),
+
     Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCES'), Literal('are'), RuleRef('CATEGORY')],
         SpecificClaim.from_rule),
     Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCES'), Literal('are'), RuleRef('PROTOTYPE')],
+        SpecificClaim.from_rule),
+
+    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCES'), Literal('have'), RuleRef('CATEGORY')],
+        SpecificClaim.from_rule),
+    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCES'), Literal('have'), RuleRef('PROTOTYPE')],
         SpecificClaim.from_rule),
 
     Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), Literal('can'), RuleRef('VERB_INF')],
