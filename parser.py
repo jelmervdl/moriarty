@@ -32,8 +32,8 @@ class ParseError(Exception):
         self.position = position
         self.token = token
         self.sentence = sentence
-        super().__init__("No possible parse for '{}' (at position {}{})".format(token, position + 1,
-            ", expected " + " | ".join(expected) if expected is not None else ""))
+        super().__init__("No possible parse for '{}' (at position {}){}".format(token, position + 1,
+            ", expected:\n  " + "\n  | ".join(expected) if expected is not None else ""))
 
     def __repr__(self) -> str:
         return "{}\n{}\n{}{}{}{}".format(
@@ -296,7 +296,7 @@ class Parser:
                 raise ParseError(self.current + token_pos, token, sentence=chunk,
                     expected=[str(state.rule.symbols[state.expect] \
                         if len(state.rule.symbols) < state.expect \
-                        else "(outside {})".format(state.rule))  for state in self.table[-2]])
+                        else "{}".format(state.rule)) for state in self.table[-2]])
 
         self.current += len(chunk)
 

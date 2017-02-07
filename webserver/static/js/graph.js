@@ -98,6 +98,17 @@ Relation.prototype = {
 	}
 }
 
+
+function typerepr(obj)
+{
+	if (obj === undefined)
+		return 'undefined';
+	if (obj === null)
+		return 'null';
+	return typeof obj;
+}
+
+
 function Graph(container)
 {
 	this.container = container;
@@ -184,6 +195,12 @@ Graph.prototype = {
 				claim = claim[0];
 			}
 		}
+
+		if (!(claim instanceof Claim))
+			throw new TypeError('Claim should be instance of Claim, is ' + typerepr(target));
+
+		if (!(target instanceof Claim) && !(target instanceof Relation))
+			throw new TypeError('Target should be instance of Claim or Relation, is ' + typerepr(target));
 
 		var relation = new Relation(this, claim, target, type);
 		this.relations.push(relation);

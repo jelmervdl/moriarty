@@ -17,7 +17,7 @@ jQuery(function($) {
         var $alert = $('<div>')
             .addClass('alert alert-danger alert-dismissible dismissible')
             .append(closeButton())
-            .append($('<p>').text(' ' + message).prepend($('<strong>Error!</strong>')));
+            .append($('<p>').css('white-space', 'pre-wrap').text(' ' + message).prepend($('<strong>Error!</strong>')));
         $(this).prepend($alert);
     };
 
