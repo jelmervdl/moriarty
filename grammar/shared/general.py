@@ -26,6 +26,9 @@ grammar = category.grammar | prototype.grammar | verb.grammar | {
     Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPE'), Literal('has'), RuleRef('PROTOTYPE')],
         GeneralClaim.from_rule),
 
+    Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPE'), Literal('can'), RuleRef('VERB_INF')],
+        GeneralClaim.from_rule),
+
     # Plural
     Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPES'), Literal('are'), RuleRef('CATEGORY')],
         GeneralClaim.from_rule),
