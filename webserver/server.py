@@ -20,19 +20,28 @@ class TokenizeError(Exception):
 
 
 class JSONEncoder(flask.json.JSONEncoder):
+    def _simplify(self, o, interpretation):
+        if isinstance(o, Argument):
+            return dict(
+                claims=[self._simplify(claim, interpretation) for claim in o.claims],
+                relations=[self._simplify(relation, interpretation) for relation in o.relations])
+        elif isinstance(o, claim.Claim):
+            return dict(cls='claim', id=o.id, text=o.text(interpretation))
+        elif isinstance(o, Relation):
+            return dict(cls='relation', id=hash(o),
+                sources=[dict(cls='claim', id=interpretation.find_claim(claim).id) for claim in o.sources],
+                target=self._simplify(o.target, interpretation),
+                type=o.type)
+        else:
+            raise TypeError('Cannot _simplify ' + type().__name__)
+        
     def default(self, o):
         if isinstance(o, Interpretation):
-            return o.argument
-        elif isinstance(o, Argument):
-            return o.__dict__
-        elif isinstance(o, claim.Claim):
-            return dict(cls='claim', id=hash(o), text=str(o))
-        elif isinstance(o, Relation):
-            return dict(cls='relation', id=hash(o), sources=o.sources, target=o.target, type=o.type)
-        elif '__dict__' in dir(o):
-            return o.__dict__
-        elif isinstance(o, set):
-            return list(o)
+            return self._simplify(o.argument, o)
+        # elif '__dict__' in dir(o):
+        #     return o.__dict__
+        # elif isinstance(o, set):
+        #     return list(o)
         else:
             return super().default(o)
 
@@ -77,9 +86,7 @@ def api_parse_sentence():
         p = parser.Parser(grammar, 'ARGUMENT')
         parses = p.parse(tokens)
         reply['parses'] = parses
-        interpretation = parses[0] if len(parses) > 0 else Interpretation()
-        with interpretation:
-            return jsonify(reply)
+        return jsonify(reply)
     except parser.ParseError as error:
         reply['error'] = str(error)
         response = jsonify(reply)

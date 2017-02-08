@@ -3,15 +3,7 @@ from grammar.shared import name, pronoun, noun
 from argumentation import Argument
 from interpretation import Interpretation
 import english
-
-
-class Sequence(object):
-    def __init__(self):
-        self.value = 0
-
-    def next(self):
-        self.value += 1
-        return self.value
+from grammar.utilities import Sequence
 
 
 class Instance(object):
@@ -31,10 +23,6 @@ class Instance(object):
         return self.id == other.id
         
     def __str__(self):
-        if Interpretation.current() is not None:
-            if Interpretation.current().find_instance(self) is not self:
-                return Interpretation.current().find_instance(self).__str__()
-
         if self.name is not None:
             return self.name
         elif self.noun is not None:
@@ -46,6 +34,9 @@ class Instance(object):
 
     def __repr__(self):
         return "Instance(id={id!r} name={name!r} noun={noun!r} pronoun={pronoun!r})".format(**self.__dict__)
+
+    def text(self, interpretation: Interpretation):
+        return interpretation.find_instance(self).__str__()
 
     def is_same(self, other: 'Instance') -> bool:
         return self.replaces(other) or other.replaces(self)

@@ -2,6 +2,7 @@ from grammar.shared import instance, prototype, category
 from parser import Rule, RuleRef, passthru, Literal
 from argumentation import Argument
 from interpretation import Interpretation
+from grammar.utilities import Sequence
 
 
 class Claim(object):
@@ -9,7 +10,11 @@ class Claim(object):
     Represents claims such as 'Cats are cool' or 'Tweety can fly'. The verb
     is often (always?) a modal verb.
     """
+
+    counter = Sequence()
+
     def __init__(self, subject, verb, object):
+        self.id = self.counter.next()
         self.subject = subject
         self.verb = verb
         self.object = object
@@ -20,6 +25,12 @@ class Claim(object):
 
     def __str__(self):
         return "{subject!s} {verb!s} {object!s}".format(**self.__dict__)
+
+    def text(self, interpretation: Interpretation):
+        return "{subject!s} {verb!s} {object!s}".format(
+            subject=self.subject.text(interpretation) if 'text' in dir(self.subject) else str(self.subject),
+            verb=self.verb,
+            object=self.object.text(interpretation) if 'text' in dir(self.object) else str(self.object))
 
     @classmethod
     def from_rule(cls, state, data):
