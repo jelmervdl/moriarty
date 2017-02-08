@@ -3,6 +3,7 @@ Tweety can fly.
 Tweety can fly because he is a bird.
 Tweety can fly because birds can fly and he is a bird.
 Tweety can fly because he is a bird and because he has wings.
+Tweety can fly because he has wings. Tweety can fly but he is not a bird.
 Tweety can fly because he has wings but he is not a bird.
 Tweety can fly because he is a bird and he has wings.
 
