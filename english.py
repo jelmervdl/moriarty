@@ -29,7 +29,7 @@ is_vowel = lambda ch: ch in VOWELS
 # Based on the Ruby Linguistics module by Michael Granger:
 # http://www.deveiate.org/projects/Linguistics/wiki/English
 
-RE_ARTICLE = map(lambda x: (re.compile(x[0]), x[1]), (
+RE_ARTICLE = list(map(lambda x: (re.compile(x[0]), x[1]), (
     ("euler|hour(?!i)|heir|honest|hono", "an"),       # exceptions: an hour, an honor
     # Abbreviations:
     # strings of capitals starting with a vowel-sound consonant followed by another consonant,
@@ -45,7 +45,7 @@ RE_ARTICLE = map(lambda x: (re.compile(x[0]), x[1]), (
     (r"^[aeiou]"             , "an"), # vowels: an owl
     (r"y(b[lor]|cl[ea]|fere|gg|p[ios]|rou|tt)", "an"), # y like "i": an yclept, a year
     (r""                     , "a" )  # guess "a"
-))
+)))
 
 def definite_article(word):
     return "the"
@@ -54,7 +54,6 @@ def indefinite_article(word):
     """ Returns the indefinite article for a given word.
         For example: indefinite_article("university") => "a" university.
     """
-    word = word.split(" ")[0]
     for rule, article in RE_ARTICLE:
         if rule.search(word) is not None:
             return article
