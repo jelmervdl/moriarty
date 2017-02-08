@@ -44,3 +44,4 @@ Tweety can not fly because Tweety is a penguin, and although birds can fly and a
 
 # Repeating claims
 Tweety can fly because she is a bird. Ducky can quack because Tweety is a bird.
+Tweety can fly because she is a bird. Ducky can quack because he can fly and she is a bird.
