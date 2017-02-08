@@ -15,7 +15,7 @@ def macro_and(name, singleton):
             lambda state, data: data[0] + data[2] + Interpretation(local=data[0].local | {data[2].local})),
 
         # A, B # (allows for 'A, B and C')
-        Rule(helper, [RuleRef(helper), Literal(','), RuleRef(name)],
+        Rule(helper, [RuleRef(helper), Literal(','), RuleRef(singleton)],
             lambda state, data: data[0] + data[2] + Interpretation(local=data[0].local | {data[2].local})),
 
         # A (allows for 'A and B')
