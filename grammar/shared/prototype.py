@@ -6,6 +6,12 @@ from interpretation import Interpretation
 class Prototype(object):
     def __init__(self, noun):
         self.noun = noun
+
+    def __hash__(self):
+        return hash(self.noun)
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.noun == other.noun
         
     def __str__(self):
         if self.noun.is_singular:

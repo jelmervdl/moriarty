@@ -20,24 +20,25 @@ class TokenizeError(Exception):
 
 
 class JSONEncoder(flask.json.JSONEncoder):
-    def _simplify(self, o, interpretation):
+    def _simplify(self, o, context):
         if isinstance(o, Argument):
             return dict(
-                claims=[self._simplify(claim, interpretation) for claim in o.claims],
-                relations=[self._simplify(relation, interpretation) for relation in o.relations])
+                claims=[self._simplify(claim, context) for claim in o.claims],
+                relations=[self._simplify(relation, context) for relation in o.relations])
         elif isinstance(o, claim.Claim):
-            return dict(cls='claim', id=o.id, text=o.text(interpretation))
+            op = context.find_claim(o)
+            return dict(cls='claim', id=op.id, text=op.text(context))
         elif isinstance(o, Relation):
             return dict(cls='relation', id=hash(o),
-                sources=[dict(cls='claim', id=interpretation.find_claim(claim).id) for claim in o.sources],
-                target=self._simplify(o.target, interpretation),
+                sources=[dict(cls='claim', id=context.find_claim(claim).id) for claim in o.sources],
+                target=self._simplify(o.target, context),
                 type=o.type)
         else:
             raise TypeError('Cannot _simplify ' + type().__name__)
         
     def default(self, o):
         if isinstance(o, Interpretation):
-            return self._simplify(o.argument, o)
+            return self._simplify(o.argument, o.argument)
         # elif '__dict__' in dir(o):
         #     return o.__dict__
         # elif isinstance(o, set):

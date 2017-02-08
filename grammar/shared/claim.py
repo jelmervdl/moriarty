@@ -26,16 +26,37 @@ class Claim(object):
     def __str__(self):
         return "{subject!s} {verb!s} {object!s}".format(**self.__dict__)
 
-    def text(self, interpretation: Interpretation):
+    def is_same(self, other: 'Claim', argument: Argument) -> bool:
+        if self.verb != other.verb:
+            return False
+        
+        print("comparing {!r} and {!r}".format(self, other))
+
+        if isinstance(self.subject, instance.Instance) and isinstance(other.subject, instance.Instance):
+            if not self.subject.is_same(other.subject, argument):
+                return False
+        elif self.subject != other.subject:
+            return False
+
+        if isinstance(self.object, instance.Instance) and isinstance(other.object, instance.Instance):
+            if not self.object.is_same(other.object, argument):
+                return False
+        elif self.object != other.object:
+            print("comparing object {!r} and {!r}".format(self.object, other.object))
+            return False
+
+        return True
+
+    def text(self, argument: Argument) -> str:
         return "{subject!s} {verb!s} {object!s}".format(
-            subject=self.subject.text(interpretation) if 'text' in dir(self.subject) else str(self.subject),
+            subject=self.subject.text(argument) if 'text' in dir(self.subject) else str(self.subject),
             verb=self.verb,
-            object=self.object.text(interpretation) if 'text' in dir(self.object) else str(self.object))
+            object=self.object.text(argument) if 'text' in dir(self.object) else str(self.object))
 
     @classmethod
     def from_rule(cls, state, data):
         claim = cls(data[0].local, data[1].local, data[2].local)
-        return data[0] + data[1] + data[2] + Interpretation(argument=Argument(claims={claim}), local=claim)
+        return data[0] + data[1] + data[2] + Interpretation(argument=Argument(claims={claim: {claim}}), local=claim)
 
 
 # grammar = instance.grammar | prototype.grammar | category.grammar | {

@@ -41,3 +41,6 @@ Jan is a prisoner because thieves are prisoners but Jan is not a thief.
 
 # "although"
 Tweety can not fly because Tweety is a penguin, and although birds can fly and a penguin is a bird, a penguin can not fly.
+
+# Repeating claims
+Tweety can fly because she is a bird. Ducky can quack because Tweety is a bird.

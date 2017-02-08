@@ -26,6 +26,14 @@ class Noun(object):
         self.literal = literal
         self.is_plural = is_plural
 
+    def __hash__(self):
+        return hash(self.literal) * 1 if self.is_plural else -1
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) \
+            and self.literal == other.literal \
+            and self.is_plural == other.is_plural
+
     @property
     def singular(self) -> str:
         word = self.literal

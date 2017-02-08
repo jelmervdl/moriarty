@@ -35,11 +35,12 @@ class Instance(object):
     def __repr__(self):
         return "Instance(id={id!r} name={name!r} noun={noun!r} pronoun={pronoun!r})".format(**self.__dict__)
 
-    def text(self, interpretation: Interpretation):
-        return interpretation.find_instance(self).__str__()
+    def text(self, argument: Argument):
+        return argument.find_instance(self).__str__()
 
-    def is_same(self, other: 'Instance') -> bool:
-        return self.replaces(other) or other.replaces(self)
+    def is_same(self, other: 'Instance', argument: Argument) -> bool:
+        print("Instance: comparing {!r} and {!r}: {!r}".format(argument.find_instance(self), argument.find_instance(other), argument.find_instance(self) == argument.find_instance(other)))
+        return argument.find_instance(self) == argument.find_instance(other)
 
     def could_be(self, other: 'Instance') -> bool:
         if self.name is not None and other.name is not None:
@@ -77,17 +78,17 @@ class Instance(object):
     @classmethod
     def from_pronoun_rule(cls, state, data):
         instance = cls(pronoun=data[0].local)
-        return data[0] + Interpretation(local=instance, instances={instance: {instance}})
+        return data[0] + Interpretation(argument=Argument(instances={instance: {instance}}), local=instance)
 
     @classmethod
     def from_name_rule(cls, state, data):
         instance = cls(name=data[0].local)
-        return data[0] + Interpretation(local=instance, instances={instance: {instance}})
+        return data[0] + Interpretation(argument=Argument(instances={instance: {instance}}), local=instance)
 
     @classmethod
     def from_noun_rule(cls, state, data):
         instance = cls(noun=data[1].local) # because 'the'
-        return data[1] + Interpretation(local=instance, instances={instance: {instance}})
+        return data[1] + Interpretation(argument=Argument(instances={instance: {instance}}), local=instance)
 
     
 
