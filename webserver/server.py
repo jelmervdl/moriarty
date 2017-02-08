@@ -15,6 +15,7 @@ import os
 from interpretation import Interpretation
 from argumentation import Argument, Relation
 
+
 class TokenizeError(Exception):
     pass
 
@@ -82,7 +83,7 @@ def hello():
 def api_parse_sentence():
     tokens = parser.tokenize(request.args.get('sentence'))
     reply = dict(tokens=tokens)
-    
+
     try:
         p = parser.Parser(grammar, 'ARGUMENT')
         parses = p.parse(tokens)

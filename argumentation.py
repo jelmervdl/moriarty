@@ -1,6 +1,5 @@
 from typing import Set, Any, Union, Dict
-# from grammar.shared.claim import Claim
-# from grammar.shared.instance import Instance
+from collections import OrderedDict
 import english
 import parser
 
@@ -50,7 +49,7 @@ class Argument(object):
 
     def __merge_instances(self, other: 'Argument') -> Dict['Instance', Set['Instance']]:
         # Merge the instances of this and the other Interpretation
-        instances = dict(self.instances)
+        instances = OrderedDict(self.instances)
         for other_instance, other_occurrences in other.instances.items():
             merged = False
 
@@ -72,7 +71,7 @@ class Argument(object):
         return instances
 
     def __merge_claims(self, other: 'Argument', context: 'Argument') -> Dict['Claim', Set['Claim']]:
-        claims = dict(self.claims)
+        claims = OrderedDict(self.claims)
 
         for other_claim, other_occurrences in other.claims.items():
             merged = False

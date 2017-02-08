@@ -2,7 +2,7 @@ from grammar.shared import instance, prototype, category
 from parser import Rule, RuleRef, passthru, Literal
 from argumentation import Argument
 from interpretation import Interpretation
-from grammar.utilities import Sequence
+from datastructures import Sequence
 
 
 class Claim(object):

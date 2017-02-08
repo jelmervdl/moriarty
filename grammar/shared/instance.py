@@ -2,8 +2,8 @@ from parser import Rule, RuleRef, Literal, Symbol, State, passthru
 from grammar.shared import name, pronoun, noun
 from argumentation import Argument
 from interpretation import Interpretation
+from datastructures import Sequence
 import english
-from grammar.utilities import Sequence
 
 
 class Instance(object):

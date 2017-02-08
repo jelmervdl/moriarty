@@ -1,7 +1,7 @@
 from parser import Rule, RuleRef, Literal
 from argumentation import Argument, Relation
 from interpretation import Interpretation
-from grammar.utilities import macro_and
+from grammar.macros import and_rules
 
 
 def support(claim, specifics, general=None):
@@ -12,7 +12,7 @@ def support(claim, specifics, general=None):
     return argument
 
 
-grammar = macro_and('SPECIFIC_CLAIMS', 'SPECIFIC_CLAIM') \
+grammar = and_rules('SPECIFIC_CLAIMS', 'SPECIFIC_CLAIM') \
     | {
         Rule('ARGUMENT', [RuleRef('SENTENCE')],
             lambda state, data: data[0]),
