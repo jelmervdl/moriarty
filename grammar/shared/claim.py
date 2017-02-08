@@ -30,8 +30,6 @@ class Claim(object):
         if self.verb != other.verb:
             return False
         
-        print("comparing {!r} and {!r}".format(self, other))
-
         if isinstance(self.subject, instance.Instance) and isinstance(other.subject, instance.Instance):
             if not self.subject.is_same(other.subject, argument):
                 return False
@@ -42,7 +40,6 @@ class Claim(object):
             if not self.object.is_same(other.object, argument):
                 return False
         elif self.object != other.object:
-            print("comparing object {!r} and {!r}".format(self.object, other.object))
             return False
 
         return True

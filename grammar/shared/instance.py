@@ -39,7 +39,6 @@ class Instance(object):
         return argument.find_instance(self).__str__()
 
     def is_same(self, other: 'Instance', argument: Argument) -> bool:
-        print("Instance: comparing {!r} and {!r}: {!r}".format(argument.find_instance(self), argument.find_instance(other), argument.find_instance(self) == argument.find_instance(other)))
         return argument.find_instance(self) == argument.find_instance(other)
 
     def could_be(self, other: 'Instance') -> bool:
