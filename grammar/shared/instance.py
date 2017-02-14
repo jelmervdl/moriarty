@@ -20,7 +20,7 @@ class Instance(object):
         return hash(self.id)
 
     def __eq__(self, other):
-        return self.id == other.id
+        return isinstance(other, self.__class__) and self.id == other.id
         
     def __str__(self):
         if self.name is not None:
