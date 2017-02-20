@@ -27,11 +27,22 @@
                     <li><a href="https://github.com/jelmervdl/moriarty">Github</a></li>
                 </ul>
                 <form method="GET" action="{{ url_for('api_parse_sentence') }}" id="parse-sentence-form" class="navbar-form navbar-left">
-                <div class="form-group">
-                    <input type="text" name="sentence" class="form-control" placeholder="Jan is punishable because Jan is a thief." size="90">
-                </div>
-                <button type="submit" class="btn btn-default">Parse</button>
-            </form>
+                    <div class="input-group">
+                        <input type="text" name="sentence" class="form-control" placeholder="Jan is punishable because Jan is a thief." size="90">
+                        <div class="input-group-btn">
+                            <button type="submit" class="btn btn-default">Parse</button>
+                            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <span class="current-grammar">simple</span>
+                                <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><label><input type="radio" name="grammar" value="simple" checked> Simple</label></li>
+                                <li><label><input type="radio" name="grammar" value="recursive"> Recursive</label></li>
+                                <li><label><input type="radio" name="grammar" value="restrictive"> Restrictive</label></li>
+                            </ul>
+                        </div>
+                    </div>
+                </form>
             </div><!--/.nav-collapse -->
         </div>
     </nav>

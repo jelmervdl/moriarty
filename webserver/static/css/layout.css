@@ -51,3 +51,45 @@ button.edit-sentence,
 button.repeat-sentence {
 	margin-left: 6px;
 }
+
+.dropdown-menu > li > label {
+	display: block;
+	padding: 3px 20px;
+	clear: both;
+	font-weight: 400;
+	line-height: 1.42857143;
+	color: #333;
+	white-space: nowrap
+}
+
+.dropdown-menu > li > label:focus,
+.dropdown-menu > li > label:hover {
+	color: #262626;
+	text-decoration: none;
+	background-color: #f5f5f5
+}
+
+.dropdown-menu > li > label > input[type=radio] {
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+}
+
+.dropdown-menu > li > label > input[type=radio]::before {
+	content: '';
+	display: inline-block;
+	width: 1em;
+	padding-right: 14px;
+	font-family: 'Glyphicons Halflings';
+	font-style: normal;
+	font-weight: 400;
+	line-height: 1;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	font-size: 0.75em;
+	margin-left: -10px;
+}
+
+.dropdown-menu > li > label > input[type=radio]:checked::before {
+	content: '\e013';
+}

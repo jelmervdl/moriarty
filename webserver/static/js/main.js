@@ -9,8 +9,9 @@ jQuery(function($) {
         return $('<button type="button" class="edit-sentence" aria-label="Edit sentence" title="Edit sentence"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span></button>').data('sentence', sentence);
     }
 
-    function repeatButton(sentence) {
-        return $('<button type="button" class="repeat-sentence" aria-label="Repeat sentence" title="Repeat sentence"><span class="glyphicon glyphicon-repeat" aria-hidden="true"></span></button>').data('sentence', sentence);
+    function repeatButton(sentence, grammar) {
+        var label = 'Parse again' + (grammar ? ' with ' + grammar + ' grammar' : '');
+        return $('<button type="button" class="repeat-sentence" aria-label="' + label + '" title="' + label + '"><span class="glyphicon glyphicon-repeat" aria-hidden="true"></span></button>').data({'sentence': sentence, 'grammar': grammar});
     }
 
     $.fn.alert = function(message) {
@@ -114,12 +115,12 @@ jQuery(function($) {
             .append($('<div class="panel-heading">')
                 .append(closeButton())
                 .append(editButton(sentence))
-                .append(repeatButton(sentence))
+                .append(repeatButton(sentence, response.grammar || null))
                 .append(stringifyTokens(response.tokens || [])));
     }
 
-    function parseSentence(sentence) {
-        $.get($('#parse-sentence-form').attr('action'), {sentence: sentence}, 'json')
+    function parseSentence(sentence, grammar) {
+        $.get($('#parse-sentence-form').attr('action'), {sentence: sentence, grammar: grammar}, 'json')
             .always(function(response, status) {
                 // No consistency :(
                 if (status == 'error')
@@ -165,19 +166,25 @@ jQuery(function($) {
     });
 
     $('body').on('click', '.repeat-sentence',function(e) {
-        parseSentence($(this).data('sentence'))
-    })
+        parseSentence($(this).data('sentence'), $(this).data('grammar'));
+    });
+
+    $('#parse-sentence-form').on('change', 'input[name=grammar]', function(e) {
+        $('#parse-sentence-form .current-grammar').text($(this).val());
+    });
 
     $('#parse-sentence-form').submit(function(e) {
         e.preventDefault();
         var sentence = $(this).find('input[name=sentence]').val();
-        parseSentence(sentence);
+        var grammar = $(this).find('input[name=grammar]:checked').val();
+        parseSentence(sentence, grammar);
     });
 
     $('body').on('click', '.example-sentence', function(e) {
         e.preventDefault();
         var sentence = $(e.target).text();
-        parseSentence(sentence);
+        var grammar = $('#parse-sentence-form input[name=grammar]:checked').val();
+        parseSentence(sentence, grammar);
     });
 
     var stream = new EventSource('/api/stream');

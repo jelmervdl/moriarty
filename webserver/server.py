@@ -1,4 +1,5 @@
 import re
+import traceback
 from typing import List
 
 import flask
@@ -8,7 +9,7 @@ sys.path.insert(0, '../')
 
 import parser
 from grammar.shared import general, specific, negation, claim
-from grammar import simple
+from grammar import simple, recursive
 from flask import Flask, render_template, request, jsonify
 from collections import OrderedDict
 import os
@@ -62,16 +63,21 @@ for sentence_file in sentence_files:
         sentences.update(parser.read_sentences(fh))
 
 
-grammar = general.grammar \
-    | specific.grammar \
-    | negation.grammar \
-    | simple.grammar
+# grammar = general.grammar \
+#     | specific.grammar \
+#     | negation.grammar \
+#     | simple.grammar
 
-# Print grammar to terminal for assurance that we're not mad
-print("Grammar:")
-for rule in sorted(grammar, key=lambda rule: rule.name):
-    print("  " + str(rule))
-print()
+# # Print grammar to terminal for assurance that we're not mad
+# print("Grammar:")
+# for rule in sorted(grammar, key=lambda rule: rule.name):
+#     print("  " + str(rule))
+# print()
+
+grammars = {
+    'simple': general.grammar | specific.grammar | negation.grammar | simple.grammar,
+    'recursive': general.grammar | specific.grammar | negation.grammar | recursive.grammar
+}
 
 
 @app.route('/')
@@ -81,15 +87,22 @@ def hello():
 
 @app.route('/api/parse', methods=['GET'])
 def api_parse_sentence():
+    grammar_name = request.args.get('grammar', 'simple')
     tokens = parser.tokenize(request.args.get('sentence'))
-    reply = dict(tokens=tokens)
+    reply = dict(tokens=tokens, grammar=grammar_name)
 
     try:
+        try:
+            grammar = grammars[grammar_name]
+        except:
+            raise Exception('Grammar {} not available'.format(grammar_name));
+
         p = parser.Parser(grammar, 'ARGUMENT')
         parses = p.parse(tokens)
         reply['parses'] = parses
         return jsonify(reply)
-    except parser.ParseError as error:
+    except Exception as error:
+        traceback.print_exc()
         reply['error'] = str(error)
         response = jsonify(reply)
         response.status_code = 400
