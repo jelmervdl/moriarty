@@ -3,6 +3,9 @@ from collections import OrderedDict
 import english
 import parser
 
+class ArgumentError(Exception):
+    pass
+
 class Argument(object):
     """
     An argument exists of claims and attack or support relations between those
