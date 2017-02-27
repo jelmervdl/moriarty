@@ -34,10 +34,10 @@ grammar = and_rules('EXPANDED_CLAIMS', 'EXPANDED_CLAIM') \
             lambda state, data: data[0]),
 
         Rule('EXPANDED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('because'), RuleRef('EXPANDED_CLAIM')],
-            lambda state, data: data[0] + data[2] + Interpretation(argument=support(data[0].local, specifics={data[2].local}))),
+            lambda state, data: data[0] + data[2] + Interpretation(argument=support(data[0].local, specifics={data[2].local}), local=data[0].local)),
 
         Rule('EXPANDED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('because'), RuleRef('EXPANDED_CLAIMS')],
-            lambda state, data: data[0] + data[2] + Interpretation(argument=support(data[0].local, specifics=data[2].local))),
+            lambda state, data: data[0] + data[2] + Interpretation(argument=support(data[0].local, specifics=data[2].local), local=data[0].local)),
 
 
 
