@@ -93,3 +93,17 @@ button.repeat-sentence {
 .dropdown-menu > li > label > input[type=radio]:checked::before {
 	content: '\e013';
 }
+
+.popover-content > .list-group {
+	margin: -10px -15px;
+}
+
+.popover-content > .list-group > .list-group-item {
+	border: 0;
+	margin-bottom: 0;
+	border-bottom: 1px solid #ddd;
+}
+
+.popover-content > .list-group > .list-group-item:last-child {
+	border-bottom: 0;
+}

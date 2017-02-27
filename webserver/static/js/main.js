@@ -1,6 +1,13 @@
 jQuery(function($) {
     "use strict"
 
+    var grammars = $('#parse-sentence-form .grammar-dropdown input[name=grammar]').map(function() {
+        return {
+            name: $(this).val(),
+            label: $.trim($(this).parent().text())
+        };
+    });
+
     function closeButton() {
         return $('<button type="button" class="close" aria-label="Close results" title="Close results"><span>&times;</span></button>');
     }
@@ -10,8 +17,7 @@ jQuery(function($) {
     }
 
     function repeatButton(sentence, grammar) {
-        var label = 'Parse again' + (grammar ? ' with ' + grammar + ' grammar' : '');
-        return $('<button type="button" class="repeat-sentence" aria-label="' + label + '" title="' + label + '"><span class="glyphicon glyphicon-repeat" aria-hidden="true"></span></button>').data({'sentence': sentence, 'grammar': grammar});
+        return $('<button type="button" class="repeat-sentence" aria-label="Parse again" title="Parse again"><span class="glyphicon glyphicon-repeat" aria-hidden="true"></span></button>').data({'sentence': sentence, 'grammar': grammar});
     }
 
     $.fn.alert = function(message) {
@@ -165,8 +171,28 @@ jQuery(function($) {
         $('#parse-sentence-form input[name=sentence]').val($(this).data('sentence')).get(0).focus();
     });
 
-    $('body').on('click', '.repeat-sentence',function(e) {
+    $('body').on('click', '.repeat-sentence-action', function(e) {
+        $(this).closest('.popover').popover('hide');
         parseSentence($(this).data('sentence'), $(this).data('grammar'));
+    });
+
+    $('body').popover({
+        selector: '.repeat-sentence',
+        placement: 'bottom',
+        html: true,
+        template: '<div class="popover" role="tooltip"><div class="arrow"></div><div class="popover-content"></div></div>',
+        content: function() {
+            var sentence = $(this).data('sentence');
+            var group = $('<div class="list-group">');
+            grammars.each(function() {
+                $('<button type="button" class="list-group-item repeat-sentence-action">')
+                    .data({sentence: sentence, grammar: this.name})
+                    .prop('title', 'Parse again with ' + this.label.toLowerCase() + ' grammar')
+                    .text(this.label)
+                    .appendTo(group);
+            });
+            return group;
+        }
     });
 
     $('#parse-sentence-form').on('change', 'input[name=grammar]', function(e) {
