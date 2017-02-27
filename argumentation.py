@@ -15,6 +15,7 @@ class Argument(object):
         claims: Dict['Claim', Set['Claim']] = {},
         relations: Set['Relation'] = set(),
         instances: Dict['Instance', Set['Instance']] = {}):
+        
         assert isinstance(claims, dict)
         assert isinstance(relations, set)
         assert isinstance(instances, dict)
@@ -88,6 +89,7 @@ class Argument(object):
         return claims
 
     def __find_occurrence(self, instances, instance):
+        assert instance is not None
         for full_instance, occurrences in instances.items():
             if instance in occurrences:
                 return full_instance
@@ -101,7 +103,13 @@ class Relation(object):
     ATTACK = 'attack'
     SUPPORT = 'support'
 
-    def __init__(self, sources: Set['Claim'], target: Set[Union['Claim', 'Relation']], type: str):
+    def __init__(self, sources: Set['Claim'], target: Union['Claim', 'Relation'], type: str):
+        from grammar.shared.claim import Claim
+        
+        assert all(isinstance(o, Claim) for o in sources)
+        assert isinstance(target, Claim) or isinstance(target, Relation)
+        assert type in (self.ATTACK, self.SUPPORT)
+
         self.sources = sources
         self.target = target
         self.type = type
