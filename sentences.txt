@@ -49,3 +49,4 @@ Tweety can fly because she is a bird. Ducky can quack because he can fly and she
 
 # Recursion
 Tweety can fly because he has wings because he is a bird.
+Tweety can fly because he has wings but he is a penguin.

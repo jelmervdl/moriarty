@@ -3,14 +3,14 @@ from interpretation import Interpretation
 from datastructures import OrderedSet
 
 
-def and_rules(name, singleton):
+def and_rules(name, singleton, accept_singular=False):
     """
     Creates a mini-grammar of rules that are needed to parse 'A and B',
     'A, B and C', 'A, B, C and D', etc. where A, B, C and D all are parseable
     using the rule name passed using the singleton argument.
     """
     helper = name + "_"
-    return {
+    rules = {
         # _ and C
         Rule(name, [RuleRef(helper), Literal('and'), RuleRef(singleton)],
             lambda state, data: data[0] + data[2] + Interpretation(local=data[0].local | OrderedSet([data[2].local]))),
@@ -23,3 +23,11 @@ def and_rules(name, singleton):
         Rule(helper, [RuleRef(singleton)],
             lambda state, data: data[0] + Interpretation(local=OrderedSet([data[0].local])))
     }
+
+    if accept_singular:
+        rules |= {
+            Rule(name, [RuleRef(singleton)],
+                lambda state, data: data[0] + Interpretation(local=OrderedSet([data[0].local])))
+        }
+
+    return rules
