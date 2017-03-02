@@ -57,8 +57,10 @@ class OrderedSet(MutableSet):
             indices = range(*key.indices(len(self)))
             return [val for idx, val in enumerate(self) if idx in indices]
         elif isinstance(key, int):
-            for idx, val in enumerate(self.__iter__() if key >= 0 else self.__reversed__()):
-                if idx == key or key < 0 and idx == -key:
+            if key < 0:
+                key = len(self) + key
+            for idx, val in enumerate(self.__iter__()):
+                if idx == key:
                     return val
             raise KeyError('index out of range')
         else:
