@@ -1,7 +1,8 @@
-function Claim(graph, text)
+function Claim(graph, text, data)
 {
 	this.graph = graph;
 	this.text = text.split(/\n/);
+	this.data = data || {};
 	this.ax = 0;
 	this.ay = 0;
 	this.dx = 0;
@@ -147,9 +148,18 @@ function Graph(container)
 			padding: 5,
 			fontSize: 13,
 			lineHeight: 16,
-			fontColor: 'black',
-			background: 'white',
-			border: 'black'
+			background: function(claim) {
+				return 'white';
+			},
+			fontColor: function(claim) {
+				return claim.data.assumption ? '#ccc' : 'black';
+			},
+			fontStyle: function(claim) {
+				return claim.data.assumption ? 'italic' : '';
+			},
+			border: function(claim) {
+				return claim.data.assumption ? '#ccc' : 'black';
+			}
 		},
 		relation: {
 			size: 5
@@ -168,8 +178,8 @@ function Graph(container)
 }
 
 Graph.prototype = {
-	addClaim: function(text) {
-		var claim = new Claim(this, text);
+	addClaim: function(text, data) {
+		var claim = new Claim(this, text, data);
 		this.claims.push(claim);
 		this.update();
 		return claim;
@@ -515,11 +525,7 @@ Graph.prototype = {
 
 	draw: function() {
 		var ctx = this.context,
-			padding = this.style.claim.padding,
-			scale = this.style.scale,
-			claimColor = this.style.claim.background,
-			claimBorder = this.style.claim.border,
-			arrowRadius = this.style.relation.size;
+			scale = this.style.scale;
 
 		// Clear the canvas
 		ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -549,6 +555,7 @@ Graph.prototype = {
 			claimBorder = this.style.claim.border,
 			fontColor = this.style.claim.fontColor,
 			fontSize = this.style.claim.fontSize,
+			fontStyle = this.style.claim.fontStyle,
 			lineHeight = this.style.claim.lineHeight;
 
 		// Sort claims with last selected drawn last (on top)
@@ -556,13 +563,10 @@ Graph.prototype = {
 			return this.selectedClaims.indexOf(a) - this.selectedClaims.indexOf(b); 
 		}.bind(this));
 
-		// Set the font
-		ctx.font = (scale * fontSize) + 'px sans-serif';
-
 		// Draw all claims
 		this.claims.forEach(function(claim) {
 			// Draw the background
-			ctx.fillStyle = claimColor;
+			ctx.fillStyle = claimColor(claim);
 			ctx.fillRect(
 				scale * claim.x,
 				scale * claim.y,
@@ -570,7 +574,7 @@ Graph.prototype = {
 				scale * claim.height);
 
 			// Draw the border
-			ctx.strokeStyle = claimBorder;
+			ctx.strokeStyle = claimBorder(claim);
 			ctx.lineWidth = scale * 1;
 			ctx.strokeRect(
 				scale * claim.x,
@@ -578,8 +582,11 @@ Graph.prototype = {
 				scale * claim.width,
 				scale * claim.height);
 
+			// Set the font
+			ctx.font = [fontStyle(claim), (scale * fontSize) + 'px','sans-serif'].join(' ');
+
 			// Draw the inner text
-			ctx.fillStyle = fontColor;
+			ctx.fillStyle = fontColor(claim);
 			claim.text.forEach(function(line, i) {
 				ctx.fillText(line,
 					scale * (claim.x + padding),

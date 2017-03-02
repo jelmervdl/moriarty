@@ -63,7 +63,7 @@ jQuery(function($) {
         var claims = {}, relations = {};
 
         parse.claims.forEach(function(claim) {
-            claims[claim.id] = graph.addClaim(claim.text);
+            claims[claim.id] = graph.addClaim(claim.text, {assumption: claim.assumption});
         });
 
         // Make sure we first do all relations targeting claims, and only then

@@ -29,7 +29,7 @@ class JSONEncoder(flask.json.JSONEncoder):
                 relations=[self._simplify(relation, context) for relation in o.relations])
         elif isinstance(o, claim.Claim):
             op = context.find_claim(o)
-            return dict(cls='claim', id=op.id, text=op.text(context))
+            return dict(cls='claim', id=op.id, text=op.text(context), assumption=op.assumption)
         elif isinstance(o, Relation):
             return dict(cls='relation', id=hash(o),
                 sources=[dict(cls='claim', id=context.find_claim(claim).id) for claim in o.sources],

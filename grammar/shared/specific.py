@@ -10,11 +10,11 @@ class SpecificClaim(Claim):
     it is always about 'the' something instead of 'a' something, or a name, or
     a 'they'.
     """
-    def __init__(self, subject, verb, object):
+    def __init__(self, subject, verb, object, **kwargs):
         assert isinstance(subject, instance.Instance) \
             or isinstance(subject, instance.InstanceGroup), \
             "Subject of a specific claim is not an instance?"
-        super().__init__(subject, verb, object)
+        super().__init__(subject, verb, object, **kwargs)
 
 
 grammar = instance.grammar | category.grammar | prototype.grammar | verb.grammar | {

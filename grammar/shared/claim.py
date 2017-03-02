@@ -13,11 +13,12 @@ class Claim(object):
 
     counter = Sequence()
 
-    def __init__(self, subject, verb, object):
+    def __init__(self, subject, verb, object, assumption=False):
         self.id = self.counter.next()
         self.subject = subject
         self.verb = verb
         self.object = object
+        self.assumption = assumption
 
     def __repr__(self):
         return "{type}(subject={subject!r}, verb={verb!r}, object={object!r})".format(

@@ -23,7 +23,7 @@ class NounParser(Symbol):
 
 class Noun(object):
     def __init__(self, literal: str, is_plural: bool):
-        self.literal = literal
+        self.literal = literal if not is_plural else english.singularize(literal)
         self.is_plural = is_plural
 
     def __hash__(self):
@@ -35,28 +35,23 @@ class Noun(object):
             and self.is_plural == other.is_plural
 
     @property
-    def singular(self) -> str:
-        word = self.literal
-        if self.is_plural:
-            word = english.singularize(word)
-        return word
+    def singular(self) -> 'Noun':
+        return self if self.is_singular else self.__class__(self.literal, is_plural=False)
 
     @property
-    def plural(self) -> str:
-        word = self.literal
-        if not self.is_plural:
-            word = english.pluralize(word)
-        return word
+    def plural(self) -> 'Noun':
+        return self if self.is_plural else self.__class__(self.literal, is_plural=True)
 
     @property
     def is_singular(self) -> bool:
         return not self.is_plural
 
     def is_same(self, other):
-        return self.singular == other.singular
+        return self.literal == other.literal \
+            and self.is_plural == other.is_plural
 
     def __str__(self):
-        return self.literal
+        return english.pluralize(self.literal) if self.is_plural else self.literal
 
     def __repr__(self):
         return "Noun({}{})".format(self.literal, ", plural" if self.is_plural else "")
