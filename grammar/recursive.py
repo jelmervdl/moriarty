@@ -37,8 +37,8 @@ def expanded_claim(state, data):
 
 
 grammar = and_rules('EXPANDED_CLAIMS', 'EXPANDED_CLAIM', accept_singular=True) \
-    | and_rules('EXPANDED_CLAIMS_GF', 'EXPANDED_CLAIM', first_singleton='GENERAL_CLAIM') \
-    | and_rules('EXPANDED_CLAIMS_GL', 'EXPANDED_CLAIM', last_singleton='GENERAL_CLAIM') \
+    | and_rules('EXPANDED_CLAIMS_GENERAL_FIRST', 'EXPANDED_CLAIM', first_singleton='GENERAL_CLAIM') \
+    | and_rules('EXPANDED_CLAIMS_GENERAL_LAST', 'EXPANDED_CLAIM', last_singleton='GENERAL_CLAIM') \
     | {
         Rule('ARGUMENT', [RuleRef('SENTENCE')],
             lambda state, data: data[0]),
@@ -55,6 +55,12 @@ grammar = and_rules('EXPANDED_CLAIMS', 'EXPANDED_CLAIM', accept_singular=True) \
 
         Rule('SUPPORT', [Literal('because'), RuleRef('EXPANDED_CLAIMS')],
             lambda state, data: data[1] + Interpretation(local=PartialRelation(Relation.SUPPORT, specifics=data[1].local))),
+
+        Rule('SUPPORT', [Literal('because'), RuleRef('EXPANDED_CLAIMS_GENERAL_FIRST')],
+            lambda state, data: data[1] + Interpretation(local=PartialRelation(Relation.SUPPORT, general=data[1].local[0], specifics=data[1].local[1:]))),
+
+        Rule('SUPPORT', [Literal('because'), RuleRef('EXPANDED_CLAIMS_GENERAL_LAST')],
+            lambda state, data: data[1] + Interpretation(local=PartialRelation(Relation.SUPPORT, general=data[1].local[-1], specifics=data[1].local[0:-1]))),
 
         Rule('SUPPORT', [],
             lambda state, data: Interpretation()),
