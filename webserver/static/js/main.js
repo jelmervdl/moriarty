@@ -13,11 +13,22 @@ jQuery(function($) {
     }
 
     function editButton(sentence) {
-        return $('<button type="button" class="edit-sentence" aria-label="Edit sentence" title="Edit sentence"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span></button>').data('sentence', sentence);
+        return $('<button type="button" class="btn btn-hidden btn-xs edit-sentence" aria-label="Edit sentence" title="Edit sentence"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span></button>').data('sentence', sentence);
     }
 
     function repeatButton(sentence, grammar) {
-        return $('<button type="button" class="repeat-sentence" aria-label="Parse again" title="Parse again"><span class="glyphicon glyphicon-repeat" aria-hidden="true"></span></button>').data({'sentence': sentence, 'grammar': grammar});
+        return $('<div class="btn-group repeat-sentence">')
+            .data('sentence', sentence)
+            .append(
+                $('<button type="button" class="btn btn-xs btn-hidden repeat-sentence-action" aria-label="Parse again" title="Parse again"><span class="glyphicon glyphicon-repeat" aria-hidden="true"></span></button>').data({'grammar': grammar}),
+                $('<button type="button" class="btn btn-xs btn-hidden dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span class="caret"></span><span class="sr-only">Toggle Dropdown</span></button>'),
+                $('<ul class="dropdown-menu">').append(grammars.map(function() {
+                    return $('<li>')
+                        .append($('<a href="#" class="repeat-sentence-action">')
+                            .text(this.label)
+                            .data({'grammar': this.name}));
+                }).toArray())
+            );
     }
 
     $.fn.alert = function(message) {
@@ -171,28 +182,9 @@ jQuery(function($) {
         $('#parse-sentence-form input[name=sentence]').val($(this).data('sentence')).get(0).focus();
     });
 
-    $('body').on('click', '.repeat-sentence-action', function(e) {
-        $(this).closest('.popover').popover('hide');
-        parseSentence($(this).data('sentence'), $(this).data('grammar'));
-    });
-
-    $('body').popover({
-        selector: '.repeat-sentence',
-        placement: 'bottom',
-        html: true,
-        template: '<div class="popover" role="tooltip"><div class="arrow"></div><div class="popover-content"></div></div>',
-        content: function() {
-            var sentence = $(this).data('sentence');
-            var group = $('<div class="list-group">');
-            grammars.each(function() {
-                $('<button type="button" class="list-group-item repeat-sentence-action">')
-                    .data({sentence: sentence, grammar: this.name})
-                    .prop('title', 'Parse again with ' + this.label.toLowerCase() + ' grammar')
-                    .text(this.label)
-                    .appendTo(group);
-            });
-            return group;
-        }
+    $('body').on('click', '.repeat-sentence .repeat-sentence-action', function(e) {
+        parseSentence($(this).closest('.repeat-sentence').data('sentence'), $(this).data('grammar'));
+        e.preventDefault();
     });
 
     $('#parse-sentence-form').on('change', 'input[name=grammar]', function(e) {

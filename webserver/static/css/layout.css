@@ -19,8 +19,34 @@ body {
     border: 1px solid #ccc;
 }
 
+.panel-heading > .btn,
+.panel-heading > .btn-group {
+	float: right;
+	opacity: 1.0;
+	margin-top: 3px;
+}
+
+.btn-hidden {
+	border: 0;
+	background: transparent;
+	color: #bebebe;
+}
+
+.btn-hidden:hover {
+	color: #777;
+}
+
+.btn-group.open .btn-hidden.dropdown-toggle {
+	box-shadow: none;
+}
+
+.btn-group .btn-hidden {
+	padding-right: 0;
+}
+
+/*
 button.edit-sentence,
-button.repeat-sentence {
+.btn-group.repeat-sentence {
 	-webkit-appearance: none;
 	padding: 0;
 	cursor: pointer;
@@ -35,22 +61,8 @@ button.repeat-sentence {
 	filter: alpha(opacity=20);
 	opacity: .2;
 }
+*/
 
-button.edit-sentence > span.glyphicon,
-button.repeat-sentence > span.glyphicon {
-	font-size: 12px;
-}
-
-button.edit-sentence:hover,
-button.repeat-sentence:hover {
-	opacity: .5;
-}
-
-button.close,
-button.edit-sentence,
-button.repeat-sentence {
-	margin-left: 6px;
-}
 
 .dropdown-menu > li > label {
 	display: block;
