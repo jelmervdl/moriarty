@@ -52,6 +52,18 @@ class OrderedSet(MutableSet):
             yield curr[0]
             curr = curr[1]
 
+    def __getitem__(self, key):
+        if isinstance(key, slice):
+            indices = range(*key.indices(len(self)))
+            return [val for idx, val in enumerate(self) if idx in indices]
+        elif isinstance(key, int):
+            for idx, val in enumerate(self.__iter__() if key >= 0 else self.__reversed__()):
+                if idx == key or key < 0 and idx == -key:
+                    return val
+            raise KeyError('index out of range')
+        else:
+            raise TypeError('Can only get item for slices and indices')
+
     def pop(self, last=True):
         if not self:
             raise KeyError('set is empty')
