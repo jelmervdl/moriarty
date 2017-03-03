@@ -75,17 +75,28 @@ class Argument(object):
         return instances
 
     def __merge_claims(self, other: 'Argument', context: 'Argument') -> Dict['Claim', Set['Claim']]:
-        claims = OrderedDict(self.claims)
+        claims = OrderedDict()
+        matched = set()
 
-        for other_claim, other_occurrences in other.claims.items():
+        for other_claim in other.claims.keys():
             merged = False
-            for claim in claims.keys():
+            for claim in self.claims.keys():
                 if claim.is_same(other_claim, context):
-                    claims[claim] |= other_occurrences
+                    if claim.assumption and not other_claim.assumption:
+                        key = other_claim
+                    else:
+                        key = claim
+                    claims[key] = self.claims[claim] | other.claims[other_claim]
+                    matched.add(claim)
                     merged = True
                     break
             if not merged:
-                claims[other_claim] = other_occurrences
+                claims[other_claim] = other.claims[other_claim]
+
+        for claim in self.claims.keys():
+            if claim not in matched:
+                claims[claim] = self.claims[claim]
+
         return claims
 
     def __find_occurrence(self, instances, instance):
