@@ -533,13 +533,13 @@ Graph.prototype = {
 		// Update the size of all the claim boxes
 		this.updateClaimSizes();
 
-		this.drawClaims();
-
 		ctx.strokeStyle = '#000';
 		ctx.fillStyle = 'black';
 		ctx.lineWidth = scale * 1;
 
 		this.drawRelations();
+
+		this.drawClaims();
 
 		this.drawSelection();
 
