@@ -12,22 +12,25 @@ jQuery(function($) {
         return $('<button type="button" class="close" aria-label="Close results" title="Close results"><span>&times;</span></button>');
     }
 
-    function editButton(sentence) {
-        return $('<button type="button" class="btn btn-hidden btn-xs edit-sentence" aria-label="Edit sentence" title="Edit sentence"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span></button>').data('sentence', sentence);
+    function editButton(sentence, grammar) {
+        return $('<button type="button" class="btn btn-hidden btn-xs edit-sentence" aria-label="Edit sentence" title="Edit sentence"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span></button>').data({'sentence': sentence, 'grammar': grammar});
     }
 
     function repeatButton(sentence, grammar) {
         return $('<div class="btn-group repeat-sentence">')
             .data('sentence', sentence)
             .append(
-                $('<button type="button" class="btn btn-xs btn-hidden repeat-sentence-action" aria-label="Parse again" title="Parse again"><span class="glyphicon glyphicon-repeat" aria-hidden="true"></span></button>').data({'grammar': grammar}),
+                $('<button type="button" class="btn btn-xs btn-hidden repeat-sentence-action" aria-label="Parse again" title="Parse again"><span class="glyphicon glyphicon-repeat" aria-hidden="true"></span></button>'),
                 $('<button type="button" class="btn btn-xs btn-hidden dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span class="caret"></span><span class="sr-only">Toggle Dropdown</span></button>'),
-                $('<ul class="dropdown-menu">').append(grammars.map(function() {
-                    return $('<li>')
-                        .append($('<a href="#" class="repeat-sentence-action">')
-                            .text(this.label)
-                            .data({'grammar': this.name}));
-                }).toArray())
+                $('<ul class="dropdown-menu dropdown-menu-right">')
+                    .append(grammars.map(function() {
+                        return $('<li>')
+                            .append($('<label>')
+                                .append($('<input type="radio" name="grammar">')
+                                    .val(this.name)
+                                    .prop({'checked': this.name == grammar}))
+                                .append(document.createTextNode(' ' + this.label)));
+                    }).toArray())
             );
     }
 
@@ -131,24 +134,28 @@ jQuery(function($) {
             .addClass('parse panel panel-default dismissible')
             .append($('<div class="panel-heading">')
                 .append(closeButton())
-                .append(editButton(sentence))
+                .append(editButton(sentence, response.grammar || null))
                 .append(repeatButton(sentence, response.grammar || null))
                 .append(stringifyTokens(response.tokens || [])));
     }
 
-    function parseSentence(sentence, grammar) {
+    function parseSentence(sentence, grammar, panel) {
         $.get($('#parse-sentence-form').attr('action'), {sentence: sentence, grammar: grammar}, 'json')
             .always(function(response, status) {
                 // No consistency :(
                 if (status == 'error')
                     response = response.responseJSON || {};
 
-                var panel = parsePanel(sentence, response);
-                $('#parses').prepend(panel);
+                if (panel) {
+                    panel.children('.panel-body').remove();
+                } else {
+                    panel = parsePanel(sentence, response);
+                    $('#parses').prepend(panel);
+                }
                 
                 switch (status) {
                     case 'success':
-                        panel.append($('<div class="list-group">')
+                        panel.append($('<div class="panel-body list-group">')
                             .append($.map(response.parses, function(parse) {
                                 return $('<div>')
                                     .addClass('list-group-item')
@@ -173,25 +180,40 @@ jQuery(function($) {
             });
     }
 
+    function setDefaultGrammar(name) {
+        $("#parse-sentence-form input[name=grammar][value='" + name + "']").prop('checked', true);
+        $('#parse-sentence-form .current-grammar').text(name);
+    }
+
+    $('#parse-sentence-form').on('change', 'input[name=grammar]', function(e) {
+        window.localStorage.defaultGrammar = $(this).val();
+        setDefaultGrammar($(this).val());
+    });
+
+    if ('defaultGrammar' in window.localStorage)
+        setDefaultGrammar(window.localStorage.defaultGrammar);
+
     $('body').on('click', '.dismissible button.close', function(e) {
         e.preventDefault();
         $(this).closest('.dismissible').remove();
     });
 
     $('body').on('click', '.edit-sentence', function(e) {
+        setDefaultGrammar($(this).data('grammar'));
         $('#parse-sentence-form input[name=sentence]').val($(this).data('sentence')).get(0).focus();
     });
 
     $('body').on('click', '.repeat-sentence .repeat-sentence-action', function(e) {
-        parseSentence($(this).closest('.repeat-sentence').data('sentence'), $(this).data('grammar'));
-        e.preventDefault();
+        var sentence = $(this).closest('.repeat-sentence').data('sentence');
+        var grammar = $(this).closest('.repeat-sentence').find('input[name=grammar]:checked').val();
+        parseSentence(sentence, grammar, $(this).closest('.parse.panel'));
     });
 
-    $('#parse-sentence-form').on('change', 'input[name=grammar]', function(e) {
-        $('#parse-sentence-form .current-grammar').text($(this).val());
+    $('body').on('change', '.repeat-sentence input[name=grammar]', function(e) {
+        parseSentence($(this).closest('.repeat-sentence').data('sentence'), $(this).val(), $(this).closest('.parse.panel'));
     });
 
-    $('#parse-sentence-form').submit(function(e) {
+   $('#parse-sentence-form').submit(function(e) {
         e.preventDefault();
         var sentence = $(this).find('input[name=sentence]').val();
         var grammar = $(this).find('input[name=grammar]:checked').val();

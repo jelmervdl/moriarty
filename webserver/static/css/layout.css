@@ -24,6 +24,15 @@ body {
 	float: right;
 	opacity: 1.0;
 	margin-top: 3px;
+	padding: 0 5px;
+}
+
+.panel-heading button.close {
+	padding: 0 0 0 5px;
+}
+
+.panel-heading > .btn-group {
+	padding: 0;
 }
 
 .btn-hidden {
@@ -34,6 +43,10 @@ body {
 
 .btn-hidden:hover {
 	color: #777;
+}
+
+.btn-group .btn-hidden.dropdown-toggle {
+	padding: 0 5px;
 }
 
 .btn-group.open .btn-hidden.dropdown-toggle {
