@@ -139,17 +139,18 @@ jQuery(function($) {
                 .append(stringifyTokens(response.tokens || [])));
     }
 
-    function parseSentence(sentence, grammar, panel) {
+    function parseSentence(sentence, grammar, location) {
         $.get($('#parse-sentence-form').attr('action'), {sentence: sentence, grammar: grammar}, 'json')
             .always(function(response, status) {
                 // No consistency :(
                 if (status == 'error')
                     response = response.responseJSON || {};
 
-                if (panel) {
-                    panel.children('.panel-body').remove();
+                var panel = parsePanel(sentence, response);
+
+                if (location) {
+                    location.replaceWith(panel);
                 } else {
-                    panel = parsePanel(sentence, response);
                     $('#parses').prepend(panel);
                 }
                 
