@@ -8,7 +8,10 @@ class Verb(object):
     def __init__(self, literal: str):
         self.literal = literal
 
-    def is_same(self, other):
+    def __hash__(self):
+        return hash(self.literal)
+
+    def __eq__(self, other):
         return self.literal == other.literal
 
     def __str__(self):

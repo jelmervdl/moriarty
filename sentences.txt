@@ -12,7 +12,10 @@ Tweety can fly because he has wings, he has feathers and he is capable.
 
 # Rules
 Tweety can fly because he is a bird and birds can fly.
+Tweety can fly but he is a penguin and penguins can not fly.
+
 Tweety can fly because he is a bird and thieves are punishable.
+
 Tweety can fly because birds can fly, he is a bird, he has wings and he has feathers.
 
 Jack is a thief because he is a liar and liars are thieves.
@@ -57,3 +60,6 @@ Tweety can fly because he is a bird and birds can fly but he is a penguin and pe
 Tweety can fly because birds can fly.
 Tweety can fly because birds can fly but he is a penguin.
 Tweety can fly because he is a bird but he is a penguin.
+
+# Broken
+the queen can fly because Tweety is a bird, he has wings and she is a queen. Tweety is a queen because she is pretty.
