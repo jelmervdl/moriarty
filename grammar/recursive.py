@@ -17,7 +17,7 @@ class PartialRelation(object):
         relation = Relation(sources=self.specifics, target=claim, type=self.type)
         argument = Argument(relations={relation})
         if self.general is not None:
-            argument = argument | Argument(relations={Relation([self.general], relation, self.type)})
+            argument = argument | Argument(relations={Relation([self.general], relation, Relation.SUPPORT)})
         return Interpretation(argument=argument, local=claim)
         
 
@@ -67,6 +67,12 @@ grammar = and_rules('EXPANDED_CLAIMS', 'EXPANDED_CLAIM', accept_singular=True) \
 
         Rule('ATTACK', [Literal('but'), RuleRef('EXPANDED_CLAIMS')],
             lambda state, data: data[1] + Interpretation(local=PartialRelation(Relation.ATTACK, specifics=data[1].local))),
+
+        Rule('ATTACK', [Literal('but'), RuleRef('EXPANDED_CLAIMS_GENERAL_FIRST')],
+            lambda state, data: data[1] + Interpretation(local=PartialRelation(Relation.ATTACK, general=data[1].local[0], specifics=data[1].local[1:]))),
+
+        Rule('ATTACK', [Literal('but'), RuleRef('EXPANDED_CLAIMS_GENERAL_LAST')],
+            lambda state, data: data[1] + Interpretation(local=PartialRelation(Relation.ATTACK, general=data[1].local[-1], specifics=data[1].local[0:-1]))),
 
         Rule('ATTACK', [],
             lambda state, data: Interpretation()),
