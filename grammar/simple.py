@@ -5,24 +5,18 @@ from grammar.macros import and_rules
 from grammar.shared.specific import SpecificClaim
 
 
-def support(claim, specifics, general=None):
-    relation = Relation(specifics, claim, Relation.SUPPORT)
+def relation(type, claim, specifics, general=None):
+    relation = Relation(specifics, claim, type)
     argument = Argument(relations={relation})
     if general is not None:
         argument = argument | Argument(relations={Relation([general], relation, Relation.SUPPORT)})
     return argument
 
 
-def attack(claim, specifics):
-    relation = Relation(specifics, claim, Relation.ATTACK)
-    argument = Argument(relations={relation})
-    return argument
-
-
 def assume(claim, general):
     assumption = SpecificClaim(claim.subject, 'is', general.subject.singular, assumption=True)
     argument = Argument(claims={assumption: {assumption}})
-    argument |= support(claim, general=general, specifics={assumption})
+    argument |= relation(Relation.SUPPORT, claim, general=general, specifics={assumption})
     return Interpretation(argument=argument, local=claim)
 
 
@@ -45,18 +39,23 @@ grammar = and_rules('SPECIFIC_CLAIMS', 'SPECIFIC_CLAIM', accept_singular=True) \
 
 
         Rule('SUPPORTED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('because'), RuleRef('SPECIFIC_CLAIMS')],
-            lambda state, data: data[0] + data[2] + Interpretation(argument=support(data[0].local, specifics=data[2].local))),
-
-
-        Rule('ATTACKED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('but'), RuleRef('SPECIFIC_CLAIMS')],
-            lambda state, data: data[0] + data[2] + Interpretation(argument=attack(data[0].local, specifics=data[2].local))),
-
+            lambda state, data: data[0] + data[2] + Interpretation(argument=relation(Relation.SUPPORT, data[0].local, specifics=data[2].local))),
 
         Rule('SUPPORTED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('because'), RuleRef('SPECIFIC_CLAIMS_GENERAL_FIRST')],
-            lambda state, data: data[0] + data[2] + Interpretation(argument=support(data[0].local, general=data[2].local[0], specifics=data[2].local[1:]))),
+            lambda state, data: data[0] + data[2] + Interpretation(argument=relation(Relation.SUPPORT, data[0].local, general=data[2].local[0], specifics=data[2].local[1:]))),
         
         Rule('SUPPORTED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('because'), RuleRef('SPECIFIC_CLAIMS_GENERAL_LAST')],
-            lambda state, data: data[0] + data[2] + Interpretation(argument=support(data[0].local, general=data[2].local[-1], specifics=data[2].local[:-1]))),
+            lambda state, data: data[0] + data[2] + Interpretation(argument=relation(Relation.SUPPORT, data[0].local, general=data[2].local[-1], specifics=data[2].local[:-1]))),
+        
+        
+        Rule('ATTACKED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('but'), RuleRef('SPECIFIC_CLAIMS')],
+            lambda state, data: data[0] + data[2] + Interpretation(argument=relation(Relation.ATTACK, data[0].local, specifics=data[2].local))),
+
+        Rule('ATTACKED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('but'), RuleRef('SPECIFIC_CLAIMS_GENERAL_FIRST')],
+            lambda state, data: data[0] + data[2] + Interpretation(argument=relation(Relation.ATTACK, data[0].local, general=data[2].local[0], specifics=data[2].local[1:]))),
+        
+        Rule('ATTACKED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('but'), RuleRef('SPECIFIC_CLAIMS_GENERAL_LAST')],
+            lambda state, data: data[0] + data[2] + Interpretation(argument=relation(Relation.ATTACK, data[0].local, general=data[2].local[-1], specifics=data[2].local[:-1]))),
         
         # Experimental, don't know if I want this
         Rule('SUPPORTED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('because'), RuleRef('GENERAL_CLAIM')],
