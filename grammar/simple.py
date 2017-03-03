@@ -26,7 +26,9 @@ def assume(claim, general):
     return Interpretation(argument=argument, local=claim)
 
 
-grammar = and_rules('SPECIFIC_CLAIMS', 'SPECIFIC_CLAIM') \
+grammar = and_rules('SPECIFIC_CLAIMS', 'SPECIFIC_CLAIM', accept_singular=True) \
+    | and_rules('SPECIFIC_CLAIMS_GENERAL_FIRST', 'SPECIFIC_CLAIM', first_singleton='GENERAL_CLAIM') \
+    | and_rules('SPECIFIC_CLAIMS_GENERAL_LAST', 'SPECIFIC_CLAIM', last_singleton='GENERAL_CLAIM') \
     | {
         Rule('ARGUMENT', [RuleRef('SENTENCE')],
             lambda state, data: data[0]),
@@ -34,7 +36,7 @@ grammar = and_rules('SPECIFIC_CLAIMS', 'SPECIFIC_CLAIM') \
         Rule('ARGUMENT', [RuleRef('ARGUMENT'), RuleRef('SENTENCE')],
             lambda state, data: data[0] + data[1]),
 
-        
+
         Rule('SENTENCE', [RuleRef('SUPPORTED_CLAIM'), Literal('.')],
             lambda state, data: data[0]),
 
@@ -42,26 +44,20 @@ grammar = and_rules('SPECIFIC_CLAIMS', 'SPECIFIC_CLAIM') \
             lambda state, data: data[0]),
 
 
-        Rule('SUPPORTED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('because'), RuleRef('SPECIFIC_CLAIM')],
-            lambda state, data: data[0] + data[2] + Interpretation(argument=support(data[0].local, specifics={data[2].local}))),
-
         Rule('SUPPORTED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('because'), RuleRef('SPECIFIC_CLAIMS')],
             lambda state, data: data[0] + data[2] + Interpretation(argument=support(data[0].local, specifics=data[2].local))),
 
-
-        Rule('ATTACKED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('but'), RuleRef('SPECIFIC_CLAIM')],
-            lambda state, data: data[0] + data[2] + Interpretation(argument=attack(data[0].local, specifics={data[2].local}))),
 
         Rule('ATTACKED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('but'), RuleRef('SPECIFIC_CLAIMS')],
             lambda state, data: data[0] + data[2] + Interpretation(argument=attack(data[0].local, specifics=data[2].local))),
 
 
-        Rule('SUPPORTED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('because'), RuleRef('GENERAL_CLAIM'), Literal('and'), RuleRef('SPECIFIC_CLAIM')],
-            lambda state, data: data[0] + data[2] + data[4] + Interpretation(argument=support(data[0].local, general=data[2].local, specifics={data[4].local}))),
+        Rule('SUPPORTED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('because'), RuleRef('SPECIFIC_CLAIMS_GENERAL_FIRST')],
+            lambda state, data: data[0] + data[2] + Interpretation(argument=support(data[0].local, general=data[2].local[0], specifics=data[2].local[1:]))),
         
-        Rule('SUPPORTED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('because'), RuleRef('GENERAL_CLAIM'), Literal(','), RuleRef('SPECIFIC_CLAIMS')],
-            lambda state, data: data[0] + data[2] + data[4] + Interpretation(argument=support(data[0].local, general=data[2].local, specifics=data[4].local))),
-
+        Rule('SUPPORTED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('because'), RuleRef('SPECIFIC_CLAIMS_GENERAL_LAST')],
+            lambda state, data: data[0] + data[2] + Interpretation(argument=support(data[0].local, general=data[2].local[-1], specifics=data[2].local[:-1]))),
+        
         # Experimental, don't know if I want this
         Rule('SUPPORTED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('because'), RuleRef('GENERAL_CLAIM')],
             lambda state, data: data[0] + data[2] + assume(data[0].local, data[2].local))
