@@ -42,6 +42,19 @@ jQuery(function($) {
         return $(this).prepend($alert);
     };
 
+    $.fn.scrollIntoView = function() {
+        var offsetTop = parseInt($('body').css('padding-top'));
+        var position = $(this).position();
+        var scrollTop = $('body').scrollTop();
+        var winHeight = $('body').height();
+
+        if (position.top - offsetTop < scrollTop
+            || position.top - offsetTop > scrollTop + winHeight)
+            $('body').scrollTop(position.top - offsetTop);
+
+        return $(this);
+    };
+
     function stringifyTokens(tokens) {
         return $('<div>').addClass('tokenized').append($.map(tokens, function(token, i) {
             return $('<span>').addClass('token').attr('data-pos', i + 1).text(token);
@@ -153,7 +166,7 @@ jQuery(function($) {
                 } else {
                     $('#parses').prepend(panel);
                 }
-                
+
                 switch (status) {
                     case 'success':
                         panel.append($('<div class="panel-body list-group">')
@@ -178,6 +191,8 @@ jQuery(function($) {
                         }
                         break;
                 }
+
+                panel.scrollIntoView();
             });
     }
 
