@@ -37,7 +37,7 @@ jQuery(function($) {
     $.fn.alert = function(message) {
         var $alert = $('<div>')
             .addClass('alert alert-danger alert-dismissible dismissible')
-            .append($('<p>').css({'white-space': 'pre', 'overflow': 'auto'}).text(' ' + message).prepend($('<strong>Error!</strong>')));
+            .append($('<p>').css({'white-space': 'pre', 'overflow': 'auto'}).text(message));
         return $(this).prepend($alert);
     };
 
