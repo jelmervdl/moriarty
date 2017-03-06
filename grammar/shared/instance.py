@@ -49,7 +49,7 @@ class Instance(object):
         elif self.pronoun is not None and other.pronoun is not None:
             return self.pronoun == other.pronoun
         else:
-            return True
+            return self.pronoun is not None or other.pronoun is not None
 
     def replaces(self, instance: 'Instance') -> bool:
         """
