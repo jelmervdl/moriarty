@@ -1,7 +1,7 @@
-from parser import Rule, RuleRef, Literal, Symbol, State, passthru
+from parser import Rule, RuleRef, State, passthru
 from grammar.shared import name, pronoun, noun
 from argumentation import Argument
-from interpretation import Interpretation
+from interpretation import Interpretation, Literal, Expression
 from datastructures import Sequence
 import english
 
@@ -138,6 +138,9 @@ grammar = name.grammar | noun.grammar | pronoun.grammar | {
     Rule("INSTANCE", [Literal("the"), RuleRef("NOUN")],
         Instance.from_noun_rule),
 
+    Rule("INSTANCE", [Expression(r"his|her|their"), RuleRef("NOUN")],
+        Instance.from_noun_rule),
+
     # Plural
     Rule("INSTANCES", [RuleRef("PRONOUNS")],
         InstanceGroup.from_pronoun_rule),
@@ -146,6 +149,9 @@ grammar = name.grammar | noun.grammar | pronoun.grammar | {
         InstanceGroup.from_names_rule),
 
     Rule("INSTANCES", [Literal("the"), RuleRef("NOUNS")],
+        InstanceGroup.from_noun_rule),
+
+    Rule("INSTANCES", [Expression(r"his|her|their"), RuleRef("NOUNS")],
         InstanceGroup.from_noun_rule),
 }
 
