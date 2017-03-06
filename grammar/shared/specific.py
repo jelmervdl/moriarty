@@ -1,7 +1,7 @@
 from grammar.shared import instance, category, prototype, verb
 from grammar.shared.claim import Claim
 from parser import Rule, RuleRef
-from interpretation import Literal
+from interpretation import Literal, Expression
 
 
 class SpecificClaim(Claim):
@@ -18,14 +18,9 @@ class SpecificClaim(Claim):
 
 
 grammar = instance.grammar | category.grammar | prototype.grammar | verb.grammar | {
-    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), Literal('is'), RuleRef('CATEGORY')],
+    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), Expression(r'is|has|was'), RuleRef('CATEGORY')],
         SpecificClaim.from_rule),
-    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), Literal('is'), RuleRef('PROTOTYPE')],
-        SpecificClaim.from_rule),
-
-    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), Literal('has'), RuleRef('CATEGORY')],
-        SpecificClaim.from_rule),
-    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), Literal('has'), RuleRef('PROTOTYPE')],
+    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), Expression(r'is|has|was'), RuleRef('PROTOTYPE')],
         SpecificClaim.from_rule),
 
     Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCES'), Literal('are'), RuleRef('CATEGORY')],

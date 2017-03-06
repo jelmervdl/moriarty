@@ -1,6 +1,7 @@
 from typing import Any, Dict, Set
 from argumentation import Argument
 import parser
+import re
 
 
 class Interpretation(object):
@@ -27,5 +28,19 @@ class Symbol(parser.Symbol):
 
 
 class Literal(parser.Literal):
+    def finish(self, literal: str, state: parser.State):
+        return Interpretation(local=literal)
+
+
+class Expression(parser.Literal):
+    def __init__(self, expression: str) -> None:
+        self.expression = re.compile(expression)
+
+    def test(self, literal: str, position: int, state: 'State') -> bool:
+        return self.expression.match(literal) is not None
+
+    def __repr__(self) -> str:
+        return "\"{}\"".format(self.expression)
+
     def finish(self, literal: str, state: parser.State):
         return Interpretation(local=literal)
