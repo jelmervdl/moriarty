@@ -20,6 +20,8 @@ Tweety can fly because birds can fly, he is a bird, he has wings and he has feat
 
 Jack is a thief because he is a liar and liars are thieves.
 
+Tweety can fly because she is a bird and birds can fly because they have wings.
+
 # Rules: Order
 Tweety can fly because he is a bird and birds can fly.
 Tweety can fly because birds can fly and he is a bird.
