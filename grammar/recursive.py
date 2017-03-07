@@ -27,11 +27,15 @@ def expanded_claim(state, data):
 
     # Add the supporting relations (if there is a 'because' clause)
     if data[1].local:
-        interpretation += data[1] + data[1].local.instantiate(data[0].local)
+        interpretation += data[1]
+        for support in data[1].local:
+            interpretation += support.instantiate(data[0].local)
 
     # Add the attacking relations (if there is a 'but' clause)
     if data[2].local:
-        interpretation += data[2] + data[2].local.instantiate(data[0].local)
+        interpretation += data[2]
+        for attack in data[2].local:
+            interpretation += attack.instantiate(data[0].local)
 
     return interpretation
 
@@ -39,6 +43,8 @@ def expanded_claim(state, data):
 grammar = and_rules('EXPANDED_CLAIMS', 'EXPANDED_CLAIM', accept_singular=True) \
     | and_rules('EXPANDED_CLAIMS_GENERAL_FIRST', 'EXPANDED_CLAIM', first_singleton='GENERAL_CLAIM') \
     | and_rules('EXPANDED_CLAIMS_GENERAL_LAST', 'EXPANDED_CLAIM', last_singleton='GENERAL_CLAIM') \
+    | and_rules('SUPPORTS', 'SUPPORT', accept_singular=True) \
+    | and_rules('ATTACKS', 'ATTACK', accept_singular=True) \
     | {
         Rule('ARGUMENT', [RuleRef('SENTENCE')],
             lambda state, data: data[0]),
@@ -50,7 +56,7 @@ grammar = and_rules('EXPANDED_CLAIMS', 'EXPANDED_CLAIM', accept_singular=True) \
         Rule('SENTENCE', [RuleRef('EXPANDED_CLAIM'), Literal('.')],
             lambda state, data: data[0]),
 
-        Rule('EXPANDED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), RuleRef('SUPPORT'), RuleRef('ATTACK')],
+        Rule('EXPANDED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), RuleRef('SUPPORTS'), RuleRef('ATTACKS')],
             expanded_claim),
 
         Rule('SUPPORT', [Literal('because'), RuleRef('EXPANDED_CLAIMS')],
@@ -62,7 +68,7 @@ grammar = and_rules('EXPANDED_CLAIMS', 'EXPANDED_CLAIM', accept_singular=True) \
         Rule('SUPPORT', [Literal('because'), RuleRef('EXPANDED_CLAIMS_GENERAL_LAST')],
             lambda state, data: data[1] + Interpretation(local=PartialRelation(Relation.SUPPORT, general=data[1].local[-1], specifics=data[1].local[0:-1]))),
 
-        Rule('SUPPORT', [],
+        Rule('SUPPORTS', [],
             lambda state, data: Interpretation()),
 
         Rule('ATTACK', [Literal('but'), RuleRef('EXPANDED_CLAIMS')],
@@ -74,6 +80,6 @@ grammar = and_rules('EXPANDED_CLAIMS', 'EXPANDED_CLAIM', accept_singular=True) \
         Rule('ATTACK', [Literal('but'), RuleRef('EXPANDED_CLAIMS_GENERAL_LAST')],
             lambda state, data: data[1] + Interpretation(local=PartialRelation(Relation.ATTACK, general=data[1].local[-1], specifics=data[1].local[0:-1]))),
 
-        Rule('ATTACK', [],
+        Rule('ATTACKS', [],
             lambda state, data: Interpretation()),
     }
