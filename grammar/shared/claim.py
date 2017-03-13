@@ -15,6 +15,7 @@ class Claim(object):
 
     def __init__(self, subject, verb, object, assumption=False):
         self.id = self.counter.next()
+        self.revision = 0
         self.subject = subject
         self.verb = verb
         self.object = object
@@ -28,6 +29,9 @@ class Claim(object):
         return "{subject!s} {verb!s} {object!s}".format(**self.__dict__)
 
     def is_same(self, other: 'Claim', argument: Argument) -> bool:
+        if self.id == other.id:
+            return True
+        
         if self.verb != other.verb:
             return False
         
@@ -44,6 +48,9 @@ class Claim(object):
             return False
 
         return True
+
+    def is_preferred_over(self, other: 'Claim', argument: Argument):
+        return other.assumption and not self.assumption
 
     def text(self, argument: Argument) -> str:
         return "{subject!s} {verb!s} {object!s}".format(

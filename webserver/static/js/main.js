@@ -140,6 +140,16 @@ jQuery(function($) {
         return $el;
     }
 
+    function listInstances(parse) {
+        return $('<ul>').append(parse.instances.map(function(instance) {
+            return  $(document.createDocumentFragment())
+                .append($('<li>').text(instance.repr))
+                .append($('<ul>').append(instance.occurrences.map(function(occurrence) {
+                    return $('<li>').text(occurrence.repr)
+                })));
+        }));
+    }
+
     function parsePanel(sentence, response)
     {
         return $('<div>')
@@ -173,6 +183,7 @@ jQuery(function($) {
                                 return $('<div>')
                                     .addClass('list-group-item')
                                     .append(networkifyParse(parse))
+                                    .append(listInstances(parse))
                                     // .append($('<ul>')
                                     //     .append(stringifyParse(parse)));
                             }))

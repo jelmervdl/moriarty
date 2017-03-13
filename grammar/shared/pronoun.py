@@ -8,5 +8,9 @@ grammar = {
     Rule("PRONOUN", [Literal('it')], passthru),
 
     # Plural
-    Rule("PRONOUNS", [Literal('they')], passthru)
+    Rule("PRONOUNS", [Literal('they')], passthru),
+
+    # Undetermined
+    Rule("PRONOUN", [Literal('someone')], passthru),
+    Rule("PRONOUN", [Literal('something')], passthru),
 }

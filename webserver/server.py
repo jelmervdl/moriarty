@@ -8,7 +8,7 @@ import sys
 sys.path.insert(0, '../')
 
 import parser
-from grammar.shared import general, specific, negation, claim
+from grammar.shared import general, specific, negation, claim, conditional, instance
 from grammar import simple, recursive
 from flask import Flask, render_template, request, jsonify
 from collections import OrderedDict
@@ -24,9 +24,31 @@ class TokenizeError(Exception):
 class JSONEncoder(flask.json.JSONEncoder):
     def _simplify(self, o, context):
         if isinstance(o, Argument):
+            print(repr(o.instances))
             return dict(
                 claims=[self._simplify(claim, context) for claim in o.claims],
-                relations=[self._simplify(relation, context) for relation in o.relations])
+                relations=[self._simplify(relation, context) for relation in o.relations],
+                instances=[
+                    dict(
+                        cls='instance',
+                        id=instance.id,
+                        name=instance.name,
+                        noun=instance.noun,
+                        pronoun=instance.pronoun,
+                        repr=repr(instance),
+                        occurrences=[
+                            dict(
+                                cls='instance',
+                                id=other_occurrence.id,
+                                name=other_occurrence.name,
+                                noun=other_occurrence.noun,
+                                pronoun=other_occurrence.pronoun,
+                                repr=repr(other_occurrence)
+                            ) for other_occurrence in other_occurrences
+                        ]
+                    ) for instance, other_occurrences in o.instances.items()
+                ]
+            )
         elif isinstance(o, claim.Claim):
             op = context.find_claim(o)
             return dict(cls='claim', id=op.id, text=op.text(context), assumption=op.assumption)
@@ -75,8 +97,8 @@ for sentence_file in sentence_files:
 # print()
 
 grammars = {
-    'simple': general.grammar | specific.grammar | negation.grammar | simple.grammar,
-    'recursive': general.grammar | specific.grammar | negation.grammar | recursive.grammar
+    'simple': general.grammar | specific.grammar | conditional.grammar | negation.grammar | simple.grammar,
+    'recursive': general.grammar | specific.grammar | conditional.grammar | negation.grammar | recursive.grammar
 }
 
 

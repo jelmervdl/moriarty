@@ -82,10 +82,7 @@ class Argument(object):
             merged = False
             for claim in self.claims.keys():
                 if claim.is_same(other_claim, context):
-                    if claim.assumption and not other_claim.assumption:
-                        key = other_claim
-                    else:
-                        key = claim
+                    key = claim if claim.is_preferred_over(other_claim, context) else other_claim
                     claims[key] = self.claims[claim] | other.claims[other_claim]
                     matched.add(claim)
                     merged = True
@@ -113,13 +110,14 @@ class Relation(object):
     """
     ATTACK = 'attack'
     SUPPORT = 'support'
+    CONDITION = 'condition'
 
     def __init__(self, sources: Set['Claim'], target: Union['Claim', 'Relation'], type: str):
         from grammar.shared.claim import Claim
         
         assert all(isinstance(o, Claim) for o in sources)
         assert isinstance(target, Claim) or isinstance(target, Relation)
-        assert type in (self.ATTACK, self.SUPPORT)
+        assert type in (self.ATTACK, self.SUPPORT, self.CONDITION)
 
         self.sources = sources
         self.target = target

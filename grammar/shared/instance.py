@@ -24,11 +24,11 @@ class Instance(object):
         
     def __str__(self):
         if self.name is not None:
-            return self.name
+            return "{} (#{})".format(self.name, self.id)
         elif self.noun is not None:
-            return "the {}".format(self.noun)
+            return "the {} (#{})".format(self.noun, self.id)
         elif self.pronoun is not None:
-            return self.pronoun
+            return "{} (#{})".format(self.pronoun, self.id)
         else:
             return "#{}".format(self.id)
 
@@ -42,14 +42,23 @@ class Instance(object):
         return argument.find_instance(self) == argument.find_instance(other)
 
     def could_be(self, other: 'Instance') -> bool:
-        if self.name is not None and other.name is not None:
-            return self.name == other.name
-        elif self.noun is not None and other.noun is not None:
-            return self.noun == other.noun
-        elif self.pronoun is not None and other.pronoun is not None:
+        if self.pronoun == 'something':
+            return other.pronoun == 'it'
+        elif self.pronoun == 'someone':
+            return other.pronoun in ('he', 'she')
+        elif self.name is not None:
+            return self.name == other.name \
+                or other.name is None and other.pronoun in ('he', 'she')
+        elif self.noun is not None:
+            return self.noun == other.noun \
+                or other.noun is None and other.pronoun == 'it' \
+                or other.noun is None and other.pronoun in ('he', 'she')
+        elif self.pronoun == 'it':
+            return other.pronoun == 'it'
+        elif self.pronoun in ('he', 'she'):
             return self.pronoun == other.pronoun
         else:
-            return self.pronoun is not None or other.pronoun is not None
+            assert False, "this instance is weird: {!r}".format(self)
 
     def replaces(self, instance: 'Instance') -> bool:
         """

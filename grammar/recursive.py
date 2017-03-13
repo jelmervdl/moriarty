@@ -2,12 +2,13 @@ from parser import Rule, RuleRef, Literal
 from argumentation import Argument, Relation
 from interpretation import Interpretation
 from grammar.macros import and_rules
+from grammar.shared.general import GeneralClaim
 
 
 class PartialRelation(object):
     def __init__(self, relation_type, specifics, general=None):
         # assert all(o.__class__.__name__ == 'SpecificClaim' for o in specifics)
-        assert general is None or general.__class__.__name__ == 'GeneralClaim'
+        assert general is None or isinstance(general, GeneralClaim)
         self.type = relation_type
         self.specifics = specifics
         self.general = general

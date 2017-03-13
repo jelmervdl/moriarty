@@ -34,6 +34,11 @@ Jack is a thief because he is a liar and a liar is a thief.
 Tweety can fly because he is a sparrow and birds can fly and sparrows are birds.
 Tweety can fly because he is a sparrow, sparrows are birds, and birds can fly.
 
+# Rules: The Human Programming Language
+Tweety can fly because something can fly if it is a bird and Tweety is a bird.
+Tweety can fly because something can fly if it is a plane or it is a bird and Tweety is a bird.
+Tweety can fly because something can fly if it has wings and it is light and Tweety has wings and Tweety is light.
+
 # Anaphora
 Tweety can fly because he has wings and because Ducky is a bird and he has wings.
 the queen can fly because Tweety is a bird and he has wings and because she is a queen.
