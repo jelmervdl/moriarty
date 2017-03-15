@@ -8,7 +8,7 @@ import sys
 sys.path.insert(0, '../')
 
 import parser
-from grammar.shared import general, specific, negation, claim, conditional, instance
+from grammar.shared import specific, negation, claim, conditional, instance
 from grammar import simple, recursive
 from flask import Flask, render_template, request, jsonify
 from collections import OrderedDict
@@ -97,8 +97,8 @@ for sentence_file in sentence_files:
 # print()
 
 grammars = {
-    'simple': general.grammar | specific.grammar | conditional.grammar | negation.grammar | simple.grammar,
-    'recursive': general.grammar | specific.grammar | conditional.grammar | negation.grammar | recursive.grammar
+    'simple':specific.grammar | conditional.grammar | negation.grammar | simple.grammar,
+    'recursive':specific.grammar | conditional.grammar | negation.grammar | recursive.grammar
 }
 
 

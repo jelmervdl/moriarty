@@ -2,13 +2,13 @@ from parser import Rule, RuleRef, Literal
 from argumentation import Argument, Relation
 from interpretation import Interpretation
 from grammar.macros import and_rules
-from grammar.shared.general import GeneralClaim
+from grammar.shared.conditional import ConditionalClaim
 
 
 class PartialRelation(object):
     def __init__(self, relation_type, specifics, general=None):
         # assert all(o.__class__.__name__ == 'SpecificClaim' for o in specifics)
-        assert general is None or isinstance(general, GeneralClaim)
+        assert general is None or isinstance(general, ConditionalClaim)
         self.type = relation_type
         self.specifics = specifics
         self.general = general
@@ -42,8 +42,8 @@ def expanded_claim(state, data):
 
 
 grammar = and_rules('EXPANDED_SPECIFIC_CLAIMS', 'EXPANDED_SPECIFIC_CLAIM', accept_singular=True) \
-    | and_rules('EXPANDED_SPECIFIC_CLAIMS_GENERAL_FIRST', 'EXPANDED_SPECIFIC_CLAIM', first_singleton='EXPANDED_GENERAL_CLAIM') \
-    | and_rules('EXPANDED_SPECIFIC_CLAIMS_GENERAL_LAST', 'EXPANDED_SPECIFIC_CLAIM', last_singleton='EXPANDED_GENERAL_CLAIM') \
+    | and_rules('EXPANDED_SPECIFIC_CLAIMS_GENERAL_FIRST', 'EXPANDED_SPECIFIC_CLAIM', first_singleton='EXPANDED_CONDITIONAL_CLAIM') \
+    | and_rules('EXPANDED_SPECIFIC_CLAIMS_GENERAL_LAST', 'EXPANDED_SPECIFIC_CLAIM', last_singleton='EXPANDED_CONDITIONAL_CLAIM') \
     | and_rules('SUPPORTS', 'SUPPORT', accept_singular=True) \
     | and_rules('ATTACKS', 'ATTACK', accept_singular=True) \
     | {
@@ -60,7 +60,7 @@ grammar = and_rules('EXPANDED_SPECIFIC_CLAIMS', 'EXPANDED_SPECIFIC_CLAIM', accep
         Rule('EXPANDED_SPECIFIC_CLAIM', [RuleRef('SPECIFIC_CLAIM'), RuleRef('SUPPORTS'), RuleRef('ATTACKS')],
             expanded_claim),
 
-        Rule('EXPANDED_GENERAL_CLAIM', [RuleRef('GENERAL_CLAIM'), RuleRef('SUPPORTS'), RuleRef('ATTACKS')],
+        Rule('EXPANDED_CONDITIONAL_CLAIM', [RuleRef('CONDITIONAL_CLAIM'), RuleRef('SUPPORTS'), RuleRef('ATTACKS')],
             expanded_claim),
 
         Rule('SUPPORT', [Literal('because'), RuleRef('EXPANDED_SPECIFIC_CLAIMS')],

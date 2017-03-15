@@ -21,8 +21,8 @@ def assume(claim, general):
 
 
 grammar = and_rules('SPECIFIC_CLAIMS', 'SPECIFIC_CLAIM', accept_singular=True) \
-    | and_rules('SPECIFIC_CLAIMS_GENERAL_FIRST', 'SPECIFIC_CLAIM', first_singleton='GENERAL_CLAIM') \
-    | and_rules('SPECIFIC_CLAIMS_GENERAL_LAST', 'SPECIFIC_CLAIM', last_singleton='GENERAL_CLAIM') \
+    | and_rules('SPECIFIC_CLAIMS_CONDITIONAL_FIRST', 'SPECIFIC_CLAIM', first_singleton='CONDITIONAL_CLAIM') \
+    | and_rules('SPECIFIC_CLAIMS_CONDITIONAL_LAST', 'SPECIFIC_CLAIM', last_singleton='CONDITIONAL_CLAIM') \
     | {
         Rule('ARGUMENT', [RuleRef('SENTENCE')],
             lambda state, data: data[0]),
@@ -41,23 +41,23 @@ grammar = and_rules('SPECIFIC_CLAIMS', 'SPECIFIC_CLAIM', accept_singular=True) \
         Rule('SUPPORTED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('because'), RuleRef('SPECIFIC_CLAIMS')],
             lambda state, data: data[0] + data[2] + Interpretation(argument=relation(Relation.SUPPORT, data[0].local, specifics=data[2].local))),
 
-        Rule('SUPPORTED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('because'), RuleRef('SPECIFIC_CLAIMS_GENERAL_FIRST')],
+        Rule('SUPPORTED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('because'), RuleRef('SPECIFIC_CLAIMS_CONDITIONAL_FIRST')],
             lambda state, data: data[0] + data[2] + Interpretation(argument=relation(Relation.SUPPORT, data[0].local, general=data[2].local[0], specifics=data[2].local[1:]))),
         
-        Rule('SUPPORTED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('because'), RuleRef('SPECIFIC_CLAIMS_GENERAL_LAST')],
+        Rule('SUPPORTED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('because'), RuleRef('SPECIFIC_CLAIMS_CONDITIONAL_LAST')],
             lambda state, data: data[0] + data[2] + Interpretation(argument=relation(Relation.SUPPORT, data[0].local, general=data[2].local[-1], specifics=data[2].local[:-1]))),
         
         
         Rule('ATTACKED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('but'), RuleRef('SPECIFIC_CLAIMS')],
             lambda state, data: data[0] + data[2] + Interpretation(argument=relation(Relation.ATTACK, data[0].local, specifics=data[2].local))),
 
-        Rule('ATTACKED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('but'), RuleRef('SPECIFIC_CLAIMS_GENERAL_FIRST')],
+        Rule('ATTACKED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('but'), RuleRef('SPECIFIC_CLAIMS_CONDITIONAL_FIRST')],
             lambda state, data: data[0] + data[2] + Interpretation(argument=relation(Relation.ATTACK, data[0].local, general=data[2].local[0], specifics=data[2].local[1:]))),
         
-        Rule('ATTACKED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('but'), RuleRef('SPECIFIC_CLAIMS_GENERAL_LAST')],
+        Rule('ATTACKED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('but'), RuleRef('SPECIFIC_CLAIMS_CONDITIONAL_LAST')],
             lambda state, data: data[0] + data[2] + Interpretation(argument=relation(Relation.ATTACK, data[0].local, general=data[2].local[-1], specifics=data[2].local[:-1]))),
         
         # Experimental, don't know if I want this
-        Rule('SUPPORTED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('because'), RuleRef('GENERAL_CLAIM')],
+        Rule('SUPPORTED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Literal('because'), RuleRef('CONDITIONAL_CLAIM')],
             lambda state, data: data[0] + data[2] + assume(data[0].local, data[2].local))
     }
