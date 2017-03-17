@@ -56,7 +56,9 @@ class Instance(object):
             return other.pronoun in ('he', 'she')
         elif self.name is not None:
             return self.name == other.name \
-                or other.name is None and other.pronoun in ('he', 'she')
+                or other.name is None \
+                and (self.pronoun is None and other.pronoun in ('he', 'she') \
+                    or self.pronoun == other.pronoun)
         elif self.noun is not None:
             return self.noun == other.noun \
                 or other.noun is None and other.pronoun == 'it' \
