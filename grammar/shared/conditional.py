@@ -1,13 +1,13 @@
 from typing import Set
 from parser import Rule, RuleRef, Literal
-from grammar.shared.claim import Claim
+from grammar.shared.claim import Claim, Scope
 from grammar.shared.instance import Instance
 from grammar.shared.specific import SpecificClaim
+from grammar.shared.prototype import Prototype
 from grammar.shared import pronoun, category, prototype, verb, specific
 from grammar.macros import and_rules
 from argumentation import Argument, Relation
 from interpretation import Expression, Interpretation
-from copy import copy
 import english
 
 
@@ -17,8 +17,8 @@ class ConditionalClaim(Claim):
     except that the subject is undetermined. It functions as an unbound
     variable, often with the word "something" or "someone".
     """
-    def __init__(self, subject, verb, object, conditions = set()):
-        super().__init__(subject, verb, object)
+    def __init__(self, subject, verb, object, conditions = set(), **kwargs):
+        super().__init__(subject, verb, object, **kwargs)
         self.conditions = conditions
 
     def is_preferred_over(self, other: Claim, argument: Argument) -> bool:
@@ -26,28 +26,44 @@ class ConditionalClaim(Claim):
         return len(self.conditions) > len(other.conditions)
 
     def text(self, argument: Argument) -> str:
+        # Special condition: something can fly if it is a bird -> birds can fly
+        if len(self.conditions) == 1:
+            (condition,) = self.conditions
+            if self.subject == condition.subject \
+                and condition.verb == 'is' \
+                and isinstance(condition.object, Prototype):
+                return "{a!s} {verb!s} {b!s}".format(a=condition.object, verb=self.verb, b=self.object)
+
         return "{} if {}".format(
             super().text(argument),
             english.join([claim.text(argument) for claim in self.conditions]))
 
     @classmethod
-    def from_claim(cls, claim: 'SpecificClaim', conditions: Set['SpecificClaim']) -> 'ConditionalClaim':
-        expanded = copy(claim)
-        expanded.__class__ = cls #brr what an upcast!
-        expanded.conditions = conditions
-        return expanded
+    def from_claim(cls, claim: 'SpecificClaim', conditions: Set['SpecificClaim'], scope: 'Scope') -> 'ConditionalClaim':
+        return claim.clone(cls=cls, conditions=conditions, scope=scope)
 
 
 def undetermined_claim(state, data):
-    claim = ConditionalClaim.from_claim(data[0].local, conditions=data[2].local)
-    relation = Relation(data[2].local, claim, Relation.CONDITION)
-    return data[0] + data[2] + Interpretation(argument=Argument(claims={claim: {claim}}, relations={relation}), local=claim)
+    scope = Scope()
+    conditions = set(claim.clone(scope=scope) for claim in data[2].local)
+    claim = ConditionalClaim.from_claim(data[0].local, conditions=conditions, scope=scope)
+    relation = Relation(conditions, claim, Relation.CONDITION)
+    return data[0] + data[2] + Interpretation(
+        argument=Argument(
+            claims={
+                claim: {claim}, 
+                **{condition: {condition} for condition in conditions}
+            },
+            relations={relation}
+        ),
+        local=claim)
 
 
 def general_claim(state, data):
+    scope = Scope()
     something = Instance(pronoun='something')
-    condition = SpecificClaim(something, 'is', data[0].local.singular)
-    claim = ConditionalClaim(something, data[1].local, data[2].local, conditions={condition})
+    condition = SpecificClaim(something, 'is', data[0].local.singular, scope=scope)
+    claim = ConditionalClaim(something, data[1].local, data[2].local, conditions={condition}, scope=scope)
     relation = Relation({condition}, claim, Relation.CONDITION)
     return Interpretation(argument=Argument(claims={claim: {claim}, condition: {condition}}, relations={relation}, instances={something: {something}}), local=claim)
 

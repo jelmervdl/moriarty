@@ -142,6 +142,15 @@ function Graph(container)
 	this.canvas.addEventListener('focus', this.update.bind(this));
 	this.canvas.addEventListener('blur', this.update.bind(this));
 
+	var scopeStyles = {};
+
+	var colours = [
+		"#ff0000", "#ffee00", "#5395a6", "#40002b", "#f20000", "#7f7920",
+		"#6c98d9", "#d9a3bf", "#e58273", "#807d60", "#3d3df2", "#ff408c",
+		"#ff8c40", "#5ccc33", "#110080", "#8c2331", "#e6c3ac", "#004d29",
+		"#282633", "#593c00", "#00bf99", "#b32daa"
+	];
+
 	this.style = {
 		scale: window.devicePixelRatio || 1.0,
 		claim: {
@@ -158,6 +167,13 @@ function Graph(container)
 				return claim.data.assumption ? 'italic' : '';
 			},
 			border: function(claim) {
+				if (claim.data.scope) {
+					if (!(claim.data.scope in scopeStyles))
+						scopeStyles[claim.data.scope] = colours.pop();
+					
+					return scopeStyles[claim.data.scope];
+				}
+
 				return claim.data.assumption ? '#ccc' : 'black';
 			}
 		},
@@ -608,10 +624,10 @@ Graph.prototype = {
 		// Draw an extra outline for the selected claims
 		this.selectedClaims.forEach(function(claim) {
 			ctx.strokeRect(
-				scale * claim.x,
-				scale * claim.y,
-				scale * claim.width,
-				scale * claim.height);
+				scale * (claim.x - 2),
+				scale * (claim.y - 2),
+				scale * (claim.width + 4),
+				scale * (claim.height + 4));
 		});
 	},
 

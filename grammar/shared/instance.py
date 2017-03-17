@@ -35,6 +35,14 @@ class Instance(object):
     def __repr__(self):
         return "Instance(id={id!r} name={name!r} noun={noun!r} pronoun={pronoun!r})".format(**self.__dict__)
 
+    @property
+    def singular(self):
+        return self
+    
+    @property
+    def plural(self):
+        raise NotImplementedError()
+
     def text(self, argument: Argument):
         return argument.find_instance(self).__str__()
 

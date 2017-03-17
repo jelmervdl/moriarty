@@ -51,14 +51,18 @@ class JSONEncoder(flask.json.JSONEncoder):
             )
         elif isinstance(o, claim.Claim):
             op = context.find_claim(o)
-            return dict(cls='claim', id=op.id, text=op.text(context), assumption=op.assumption)
+            return dict(cls='claim', id=op.id, text=op.text(context), assumption=op.assumption, scope=self._simplify(op.scope, context))
         elif isinstance(o, Relation):
             return dict(cls='relation', id=hash(o),
                 sources=[dict(cls='claim', id=context.find_claim(claim).id) for claim in o.sources],
                 target=self._simplify(o.target, context),
                 type=o.type)
+        elif isinstance(o, claim.Scope):
+            return o.id
+        elif o is None:
+            return o
         else:
-            raise TypeError('Cannot _simplify ' + type().__name__)
+            raise TypeError('Cannot _simplify ' + type(o).__name__)
         
     def default(self, o):
         if isinstance(o, Interpretation):

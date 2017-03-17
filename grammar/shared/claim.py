@@ -5,6 +5,19 @@ from interpretation import Interpretation
 from datastructures import Sequence
 
 
+class Scope(object):
+    """
+    Identifies the scope of a claim. Mainly used inside conditional claims, and
+    all the claims that are conditions of that conditional claim. Prevents them
+    from being merged.
+    """
+    
+    counter = Sequence()
+
+    def __init__(self):
+        self.id = self.counter.next()
+
+
 class Claim(object):
     """
     Represents claims such as 'Cats are cool' or 'Tweety can fly'. The verb
@@ -13,13 +26,13 @@ class Claim(object):
 
     counter = Sequence()
 
-    def __init__(self, subject, verb, object, assumption=False):
-        self.id = self.counter.next()
-        self.revision = 0
+    def __init__(self, subject, verb, object, assumption=False, id=None, scope=None):
+        self.id = id if id is not None else self.counter.next()
         self.subject = subject
         self.verb = verb
         self.object = object
         self.assumption = assumption
+        self.scope = scope
 
     def __repr__(self):
         return "{type}(subject={subject!r}, verb={verb!r}, object={object!r})".format(
@@ -31,6 +44,9 @@ class Claim(object):
     def is_same(self, other: 'Claim', argument: Argument) -> bool:
         if self.id == other.id:
             return True
+
+        if self.scope != other.scope:
+            return False
         
         if self.verb != other.verb:
             return False
@@ -50,13 +66,26 @@ class Claim(object):
         return True
 
     def is_preferred_over(self, other: 'Claim', argument: Argument):
-        return other.assumption and not self.assumption
+        return self.scope and not other.scope \
+            or other.assumption and not self.assumption
 
     def text(self, argument: Argument) -> str:
         return "{subject!s} {verb!s} {object!s}".format(
             subject=self.subject.text(argument) if 'text' in dir(self.subject) else str(self.subject),
             verb=self.verb,
             object=self.object.text(argument) if 'text' in dir(self.object) else str(self.object))
+
+    def clone(self, cls=None, **kwargs):
+        if cls is None:
+            cls = self.__class__
+        defaults = {
+            'id': self.id,
+            'subject': self.subject,
+            'verb': self.verb,
+            'object': self.object,
+            'assumption': self.assumption
+        }
+        return cls(**{**defaults, **kwargs})
 
     @classmethod
     def from_rule(cls, state, data):

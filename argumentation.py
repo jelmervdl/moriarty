@@ -45,6 +45,13 @@ class Argument(object):
         """Return a string representation of the argument for inspection."""
         return "Argument(claims={claims!r} relations={relations!r})".format(**self.__dict__)
 
+    def with_scope(self, scope: 'Scope') -> 'Argument':
+        claims = OrderedDict()
+        for claim, occurrences in self.claims.items():
+            scoped_claim = claim.clone(scope=scope)
+            claims[scoped_claim] = {scoped_claim} | occurrences
+        return self.__class__(claims, self.relations, self.instances)
+
     def find_claim(self, claim: 'Claim') -> 'Claim':
         return self.__find_occurrence(self.claims, claim)
 
