@@ -29,10 +29,10 @@ Graph.prototype.layout = function()
 			vl.addAll(incoming.map(layoutRelation));
 
 			let hl = new Layout(Layout.HORIZONTAL);
-			hl.add(new Spacer(50, 20));
+			hl.add(new Spacer(200, 20));
 			hl.add(vl);
 
-			layout.add(vl);
+			layout.add(hl);
 		} else {
 			layout.add(new Spacer(20, 50));
 		}

@@ -35,8 +35,13 @@ class Claim(object):
         self.scope = scope
 
     def __repr__(self):
-        return "{type}(subject={subject!r}, verb={verb!r}, object={object!r})".format(
-            subject=self.subject, verb=self.verb, object=self.object, type=self.__class__.__name__)
+        return "{type}(subject={subject!r}, verb={verb!r}, object={object!r}{assumption}{scope})".format(
+            subject=self.subject,
+            verb=self.verb,
+            object=self.object,
+            type=self.__class__.__name__,
+            assumption=", assumption=True" if self.assumption else "",
+            scope=", scope={}".format(self.scope.id) if self.scope else "")
 
     def __str__(self):
         return "{subject!s} {verb!s} {object!s}".format(**self.__dict__)
@@ -86,6 +91,9 @@ class Claim(object):
             'assumption': self.assumption
         }
         return cls(**{**defaults, **kwargs})
+
+    def assume(self, cls=None, **kwargs):
+        return self.clone(cls=cls, id=self.counter.next(), assumption=True, **kwargs)
 
     @classmethod
     def from_rule(cls, state, data):

@@ -24,7 +24,6 @@ class TokenizeError(Exception):
 class JSONEncoder(flask.json.JSONEncoder):
     def _simplify(self, o, context):
         if isinstance(o, Argument):
-            print(repr(o.instances))
             return dict(
                 claims=[self._simplify(claim, context) for claim in o.claims],
                 relations=[self._simplify(relation, context) for relation in o.relations],
@@ -63,7 +62,7 @@ class JSONEncoder(flask.json.JSONEncoder):
             return o
         else:
             raise TypeError('Cannot _simplify ' + type(o).__name__)
-        
+    
     def default(self, o):
         if isinstance(o, Interpretation):
             return self._simplify(o.argument, o.argument)

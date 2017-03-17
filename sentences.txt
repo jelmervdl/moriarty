@@ -31,8 +31,7 @@ Tweety can fly because a bird can fly and he is a bird.
 Jack is a thief because he is a liar and a liar is a thief.
 
 # Rules: Multi-stage inference
-Tweety can fly because he is a sparrow and birds can fly and sparrows are birds.
-Tweety can fly because he is a sparrow, sparrows are birds, and birds can fly.
+Tweety can fly because he is a sparrow, sparrows are birds and birds can fly.
 
 # Rules: The Human Programming Language
 Tweety can fly because something can fly if it is a bird and Tweety is a bird.

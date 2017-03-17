@@ -20,6 +20,8 @@ class Argument(object):
         assert isinstance(relations, set)
         assert isinstance(instances, dict)
 
+        assert all(instance.__class__.__name__ == 'Instance' for instance in instances)
+
         self.claims = claims
         self.relations = relations
         self.instances = instances
@@ -35,7 +37,28 @@ class Argument(object):
         assert isinstance(other, self.__class__)
         instances = self.__merge_instances(other)
         claims = self.__merge_claims(other, self.__class__(instances=instances))
-        return self.__class__(claims, self.relations | other.relations, instances)
+
+        for claim in self.claims.keys():
+            assert self.__find_occurrence(claims, claim)
+
+        for claim in other.claims.keys():
+            assert self.__find_occurrence(claims, claim)
+
+        argument = self.__class__(claims, self.relations | other.relations, instances)
+        
+        # for a in new_claims:
+        #     for b in claims.keys():
+        #         if a.scope == b.scope \
+        #             and a.object.__class__.__name__ == 'Negation' \
+        #             and a.subject.__class__.__name__ == 'Instance' \
+        #             and b.subject.__class__.__name__ == 'Instance' \
+        #             and argument.find_instance(a.subject) == argument.find_instance(b.subject) \
+        #             and a.verb == b.verb \
+        #             and a.object.object == b.object:
+        #             argument.relations.add(Relation(sources={a}, target=b, type=Relation.ATTACK))
+
+        return argument
+
 
     def __str__(self) -> str:
         """Return the argument as (parsable?) English sentences."""
@@ -108,7 +131,7 @@ class Argument(object):
         for full_instance, occurrences in instances.items():
             if instance in occurrences:
                 return full_instance
-        raise ArgumentError('instance not part of this argument')
+        raise RuntimeError('Instance {!r} not part of this argument'.format(instance))
 
 
 class Relation(object):
