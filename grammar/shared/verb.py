@@ -12,7 +12,8 @@ class Verb(object):
         return hash(self.literal)
 
     def __eq__(self, other):
-        return self.literal == other.literal
+        return isinstance(other, self.__class__) \
+            and self.literal == other.literal
 
     def __str__(self):
         return self.literal
