@@ -2,7 +2,7 @@ from parser import Rule, RuleRef, Literal
 from argumentation import Argument, Relation
 from interpretation import Interpretation
 from grammar.macros import and_rules
-from grammar.shared.conditional import ConditionalClaim
+from grammar.shared.conditional import ConditionalClaim, find_conditions
 
 
 class PartialRelation(object):
@@ -13,7 +13,7 @@ class PartialRelation(object):
         self.specifics = specifics
         self.conditional = conditional
 
-    def instantiate(self, claim):
+    def instantiate(self, claim, context):
         # assert claim.__class__.__name__ == 'SpecificClaim'
         relation = Relation(sources=[], target=claim, type=self.type)
         argument = Argument(relations={relation})
@@ -23,8 +23,10 @@ class PartialRelation(object):
 
         if self.conditional is not None:
             argument = argument | Argument(relations={Relation([self.conditional], relation, Relation.SUPPORT)})
-            if len(self.conditional.conditions) > 0:
-                assumptions = [condition.assume(subject=claim.subject) for condition in self.conditional.conditions]
+            print("Searching for {!r} in {!r}".format(self.conditional, context))
+            conditions = find_conditions(self.conditional, context)
+            if len(conditions) > 0:
+                assumptions = [condition.assume(subject=claim.subject) for condition in conditions]
                 argument = argument | Argument(claims=dict((assumption, {assumption}) for assumption in assumptions))
                 relation.sources.extend(assumptions)
         
@@ -41,13 +43,13 @@ def expanded_claim(state, data):
     if data[1].local:
         interpretation += data[1]
         for support in data[1].local:
-            interpretation += support.instantiate(data[0].local)
+            interpretation += support.instantiate(data[0].local, data[1].argument)
 
     # Add the attacking relations (if there is a 'but' clause)
     if data[2].local:
         interpretation += data[2]
         for attack in data[2].local:
-            interpretation += attack.instantiate(data[0].local)
+            interpretation += attack.instantiate(data[0].local, data[1].argument)
 
     return interpretation
 

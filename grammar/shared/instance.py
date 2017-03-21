@@ -9,12 +9,17 @@ import english
 class Instance(object):
     counter = Sequence()
 
-    def __init__(self, name: str = None, noun: str = None, pronoun: str = None, origin: 'Instance' = None):
+    SINGULAR = 1
+    PLURAL = 2
+
+    def __init__(self, name: str = None, noun: str = None, pronoun: str = None, origin: 'Instance' = None, count = None):
+        assert count is None or count in (self.SINGULAR, self.PLURAL)
         self.id = self.counter.next()
         self.name = name
         self.noun = noun
         self.pronoun = pronoun
         self.origin = origin
+        self.count = self.SINGULAR if count is None else count
 
     def __hash__(self):
         return hash(self.id)

@@ -2,6 +2,7 @@ from typing import Set, Any, Union, Dict
 from collections import OrderedDict
 import english
 import parser
+from copy import copy
 
 class ArgumentError(Exception):
     pass
@@ -37,6 +38,7 @@ class Argument(object):
         assert isinstance(other, self.__class__)
         instances = self.__merge_instances(other)
         claims = self.__merge_claims(other, self.__class__(instances=instances))
+        relations = self.__merge_relations(other)
 
         for claim in self.claims.keys():
             assert self.__find_occurrence(claims, claim)
@@ -44,7 +46,7 @@ class Argument(object):
         for claim in other.claims.keys():
             assert self.__find_occurrence(claims, claim)
 
-        argument = self.__class__(claims, self.relations | other.relations, instances)
+        argument = self.__class__(claims, relations, instances)
         
         # for a in new_claims:
         #     for b in claims.keys():
@@ -125,6 +127,26 @@ class Argument(object):
                 claims[claim] = self.claims[claim]
 
         return claims
+
+    def __merge_relations(self, other: 'Argument') -> Set['Relation']:
+        relations = set()
+        other_merged = set()
+
+        for relation in self.relations:
+            merged = False
+            for other_relation in other.relations:
+                if relation.target == other_relation.target \
+                    and relation.type == other_relation.type \
+                    and relation.sources <= other_relation.sources:
+                    relations.add(Relation(relation.sources | other_relation.sources, relation.target, relation.type))
+                    other_merged.add(other_relation)
+                    merged = True
+                    break
+            if not merged:
+                relations.add(relation)
+
+        relations.update(other.relations ^ other_merged)
+        return relations
 
     def __find_occurrence(self, instances, instance):
         assert instance is not None
