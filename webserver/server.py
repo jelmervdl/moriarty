@@ -1,6 +1,7 @@
 import re
 import traceback
 from typing import List
+from functools import reduce
 
 import flask
 
@@ -31,17 +32,17 @@ class JSONEncoder(flask.json.JSONEncoder):
                     dict(
                         cls='instance',
                         id=instance.id,
-                        name=instance.name,
-                        noun=instance.noun,
-                        pronoun=instance.pronoun,
+                        name=str(instance.name),
+                        noun=str(instance.noun),
+                        pronoun=str(instance.pronoun),
                         repr=repr(instance),
                         occurrences=[
                             dict(
                                 cls='instance',
                                 id=other_occurrence.id,
-                                name=other_occurrence.name,
-                                noun=other_occurrence.noun,
-                                pronoun=other_occurrence.pronoun,
+                                name=str(other_occurrence.name),
+                                noun=str(other_occurrence.noun),
+                                pronoun=str(other_occurrence.pronoun),
                                 repr=repr(other_occurrence)
                             ) for other_occurrence in other_occurrences
                         ]
@@ -52,8 +53,16 @@ class JSONEncoder(flask.json.JSONEncoder):
             op = context.find_claim(o)
             return dict(cls='claim', id=op.id, text=op.text(context), assumption=op.assumption, scope=self._simplify(op.scope, context))
         elif isinstance(o, Relation):
+            def unique_claims(simplified_claims, claim):
+                claim_id = context.find_claim(claim).id
+                for simplified_claim in simplified_claims:
+                    if simplified_claim['id'] == claim_id:
+                        return simplified_claims
+                simplified_claims.append(dict(cls='claim', id=claim_id))
+                return simplified_claims
+
             return dict(cls='relation', id=hash(o),
-                sources=[dict(cls='claim', id=context.find_claim(claim).id) for claim in o.sources],
+                sources=reduce(unique_claims, o.sources, []),
                 target=self._simplify(o.target, context),
                 type=o.type)
         elif isinstance(o, claim.Scope):

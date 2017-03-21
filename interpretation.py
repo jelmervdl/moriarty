@@ -40,7 +40,7 @@ class Expression(parser.Literal):
         return self.expression.match(literal) is not None
 
     def __repr__(self) -> str:
-        return "\"{}\"".format(self.expression)
+        return "/{}/".format(self.expression.pattern)
 
     def finish(self, literal: str, state: parser.State):
         return Interpretation(local=literal)

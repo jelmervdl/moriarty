@@ -25,7 +25,7 @@ class PartialRelation(object):
                 argument = argument | Argument(claims=dict((assumption, {assumption}) for assumption in assumptions))
                 for assumption in assumptions:
                     print("Assuming {!r}".format(assumption))
-                # relation.sources.extend(assumptions) ## TODO: This breaks everything
+                relation.sources.extend(assumptions) ## TODO: This breaks everything
                 
         return Interpretation(argument=argument, local=claim)
         
