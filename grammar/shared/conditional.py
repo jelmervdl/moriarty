@@ -46,7 +46,7 @@ class ConditionalClaim(Claim):
         return "{} {} {}".format(
             super().text(argument),
             self.conj if self.conj is not None else "if",
-            english.join([claim.text(argument) for claim in conditions]))
+            english.join([claim.text(argument) for claim in sorted(conditions, key=lambda condition: condition.id)]))
 
     @classmethod
     def from_claim(cls, claim: 'SpecificClaim', scope: 'Scope', conj: str = None) -> 'ConditionalClaim':

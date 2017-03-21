@@ -102,7 +102,7 @@ jQuery(function($) {
                 return as - bs;
             })
             .forEach(function(relation) {
-                var sources = relation.sources.map(function(source) {
+                var sources = relation.sources.sort((a, b) => a.id - b.id).map(function(source) {
                     switch (source.cls) {
                         case 'claim':
                             return claims[source.id];
