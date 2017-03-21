@@ -2,6 +2,8 @@ from parser import Rule, RuleRef, Literal
 from argumentation import Argument, Relation
 from interpretation import Interpretation
 from grammar.macros import and_rules
+from grammar.shared.claim import Scope
+from grammar.shared.instance import Instance
 from grammar.shared.conditional import ConditionalClaim, find_conditions
 
 
@@ -29,6 +31,28 @@ class PartialRelation(object):
                 assumptions = [condition.assume(subject=claim.subject) for condition in conditions]
                 argument = argument | Argument(claims=dict((assumption, {assumption}) for assumption in assumptions))
                 relation.sources.extend(assumptions)
+        
+        if self.conditional is None and self.specifics is not None:
+            """
+            Make a general assumption in the trend of when Tweety can fly
+            because she is a bird, anything that is a bird can fly.
+            """
+            subject = Instance(pronoun='something')
+            conditional = ConditionalClaim(subject, claim.verb, claim.object, scope=Scope(), assumption=True)
+            assumptions = []
+            
+            for specific in self.specifics:
+                if claim.subject.could_be(specific.subject):
+                    assumptions.append(specific.clone(id=None, subject=conditional.subject, scope=conditional.scope))
+
+            if len(assumptions) > 0:
+                argument = argument | Argument(
+                    instances={subject: {subject}},
+                    claims={conditional: {conditional}, **{assumption: {assumption} for assumption in assumptions}},
+                    relations={
+                        Relation([conditional], relation, Relation.SUPPORT),
+                        Relation(assumptions, conditional, Relation.CONDITION)
+                    })
         
         assert len(relation.sources) > 0, "Cannot instantiate relation without specific or assumed claims."
 
