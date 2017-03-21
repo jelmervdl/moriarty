@@ -4,6 +4,7 @@ from interpretation import Interpretation
 from grammar.macros import and_rules
 from grammar.shared.claim import Scope
 from grammar.shared.instance import Instance
+from grammar.shared.negation import Negation
 from grammar.shared.conditional import ConditionalClaim, find_conditions
 
 
@@ -38,7 +39,15 @@ class PartialRelation(object):
             because she is a bird, anything that is a bird can fly.
             """
             subject = Instance(pronoun='something')
-            conditional = ConditionalClaim(subject, claim.verb, claim.object, scope=Scope(), assumption=True)
+            
+            if self.type == Relation.SUPPORT:
+                object = claim.object
+            elif self.type == Relation.ATTACK:
+                object = Negation(claim.object) #is this ok? Or are we jumping to conclusions?
+            else:
+                assert False, "Can't deal with this kind of relation"
+
+            conditional = ConditionalClaim(subject, claim.verb, object, scope=Scope(), assumption=True)
             assumptions = []
             
             for specific in self.specifics:
