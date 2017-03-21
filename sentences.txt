@@ -72,5 +72,7 @@ Tweety can fly because he is a bird but he is a penguin.
 Tweety can fly because a bird can fly when it has wings.
 Tweety can fly because birds can fly when they have wings.
 
+Tweety can fly because a bird can fly when it has wings and it has feathers.
+
 # Broken
 the queen can fly because Tweety is a bird, he has wings and she is a queen. Tweety is a queen because she is pretty.
