@@ -141,7 +141,7 @@ jQuery(function($) {
     }
 
     function listInstances(parse) {
-        return $('<ul>').append(parse.instances.map(function(instance) {
+        return $('<ul>').addClass('instance-list').append(parse.instances.map(function(instance) {
             return  $(document.createDocumentFragment())
                 .append($('<li>').text(instance.repr))
                 .append($('<ul>').append(instance.occurrences.map(function(occurrence) {

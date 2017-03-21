@@ -31,3 +31,7 @@ ul.attacks li:before {
 .network canvas:focus {
     outline: 1px dashed #ccc;
 }
+
+.instance-list {
+    display: none;
+}
