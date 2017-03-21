@@ -6,7 +6,7 @@ from grammar.shared.conditional import ConditionalClaim
 
 
 class PartialRelation(object):
-    def __init__(self, relation_type, specifics, conditional=None):
+    def __init__(self, relation_type, specifics=None, conditional=None):
         # assert all(o.__class__.__name__ == 'SpecificClaim' for o in specifics)
         assert conditional is None or isinstance(conditional, ConditionalClaim)
         self.type = relation_type
@@ -15,18 +15,21 @@ class PartialRelation(object):
 
     def instantiate(self, claim):
         # assert claim.__class__.__name__ == 'SpecificClaim'
-        relation = Relation(sources=self.specifics, target=claim, type=self.type)
+        relation = Relation(sources=[], target=claim, type=self.type)
         argument = Argument(relations={relation})
+
+        if self.specifics is not None:
+            relation.sources.extend(self.specifics)
+
         if self.conditional is not None:
             argument = argument | Argument(relations={Relation([self.conditional], relation, Relation.SUPPORT)})
-            # Assume all the conditions for the claim are supported (assumed)
             if len(self.conditional.conditions) > 0:
                 assumptions = [condition.assume(subject=claim.subject) for condition in self.conditional.conditions]
                 argument = argument | Argument(claims=dict((assumption, {assumption}) for assumption in assumptions))
-                for assumption in assumptions:
-                    print("Assuming {!r}".format(assumption))
-                relation.sources.extend(assumptions) ## TODO: This breaks everything
-                
+                relation.sources.extend(assumptions)
+        
+        assert len(relation.sources) > 0, "Cannot instantiate relation without specific or assumed claims."
+
         return Interpretation(argument=argument, local=claim)
         
 
@@ -80,6 +83,9 @@ grammar = and_rules('EXPANDED_SPECIFIC_CLAIMS', 'EXPANDED_SPECIFIC_CLAIM', accep
         Rule('SUPPORT', [Literal('because'), RuleRef('EXPANDED_SPECIFIC_CLAIMS_CONDITIONAL_LAST')],
             lambda state, data: data[1] + Interpretation(local=PartialRelation(Relation.SUPPORT, conditional=data[1].local[-1], specifics=data[1].local[0:-1]))),
 
+        Rule('SUPPORT', [Literal('because'), RuleRef('EXPANDED_CONDITIONAL_CLAIM')],
+            lambda state, data: data[1] + Interpretation(local=PartialRelation(Relation.SUPPORT, conditional=data[1].local))),
+
         Rule('SUPPORTS', [],
             lambda state, data: Interpretation()),
 
@@ -91,6 +97,9 @@ grammar = and_rules('EXPANDED_SPECIFIC_CLAIMS', 'EXPANDED_SPECIFIC_CLAIM', accep
 
         Rule('ATTACK', [Literal('but'), RuleRef('EXPANDED_SPECIFIC_CLAIMS_CONDITIONAL_LAST')],
             lambda state, data: data[1] + Interpretation(local=PartialRelation(Relation.ATTACK, conditional=data[1].local[-1], specifics=data[1].local[0:-1]))),
+
+        Rule('ATTACK', [Literal('but'), RuleRef('EXPANDED_CONDITIONAL_CLAIM')],
+            lambda state, data: data[1] + Interpretation(local=PartialRelation(Relation.ATTACK, conditional=data[1].local))),
 
         Rule('ATTACKS', [],
             lambda state, data: Interpretation()),

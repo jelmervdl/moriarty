@@ -27,12 +27,12 @@ class ConditionalClaim(Claim):
 
     def text(self, argument: Argument) -> str:
         # Special condition: something can fly if it is a bird -> birds can fly
-        if len(self.conditions) == 1:
-            (condition,) = self.conditions
-            if self.subject == condition.subject \
-                and condition.verb == 'is' \
-                and isinstance(condition.object, Prototype):
-                return "{a!s} {verb!s} {b!s}".format(a=condition.object, verb=self.verb, b=self.object)
+        # if len(self.conditions) == 1:
+        #     (condition,) = self.conditions
+        #     if self.subject == condition.subject \
+        #         and condition.verb == 'is' \
+        #         and isinstance(condition.object, Prototype):
+        #         return "{a!s} {verb!s} {b!s}".format(a=condition.object, verb=self.verb, b=self.object)
 
         return "{} if {}".format(
             super().text(argument),
