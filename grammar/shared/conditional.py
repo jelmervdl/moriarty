@@ -17,8 +17,9 @@ class ConditionalClaim(Claim):
     except that the subject is undetermined. It functions as an unbound
     variable, often with the word "something" or "someone".
     """
-    def __init__(self, subject, verb, object, conditions = set(), **kwargs):
+    def __init__(self, subject, verb, object, conditions = set(), conj = None, **kwargs):
         super().__init__(subject, verb, object, **kwargs)
+        self.conj = conj
         self.conditions = conditions
 
     def is_preferred_over(self, other: Claim, argument: Argument) -> bool:
@@ -34,19 +35,20 @@ class ConditionalClaim(Claim):
         #         and isinstance(condition.object, Prototype):
         #         return "{a!s} {verb!s} {b!s}".format(a=condition.object, verb=self.verb, b=self.object)
 
-        return "{} if {}".format(
+        return "{} {} {}".format(
             super().text(argument),
+            self.conj if self.conj is not None else "if",
             english.join([claim.text(argument) for claim in self.conditions]))
 
     @classmethod
-    def from_claim(cls, claim: 'SpecificClaim', conditions: Set['SpecificClaim'], scope: 'Scope') -> 'ConditionalClaim':
-        return claim.clone(cls=cls, conditions=conditions, scope=scope)
+    def from_claim(cls, claim: 'SpecificClaim', conditions: Set['SpecificClaim'], scope: 'Scope', conj: str = None) -> 'ConditionalClaim':
+        return claim.clone(cls=cls, conditions=conditions, scope=scope, conj=conj)
 
 
 def undetermined_claim(state, data):
     scope = Scope()
     conditions = set(claim.clone(scope=scope) for claim in data[2].local)
-    claim = ConditionalClaim.from_claim(data[0].local, conditions=conditions, scope=scope)
+    claim = ConditionalClaim.from_claim(data[0].local, conditions=conditions, scope=scope, conj=data[1].local)
     relation = Relation(conditions, claim, Relation.CONDITION)
     return data[0] + data[2] + Interpretation(
         argument=Argument(
