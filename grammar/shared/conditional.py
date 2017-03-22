@@ -2,7 +2,7 @@ from typing import Set
 from itertools import chain
 from parser import Rule, RuleRef, Literal
 from grammar.shared.claim import Claim, Scope
-from grammar.shared.instance import Instance
+from grammar.shared.instance import Instance, InstanceGroup
 from grammar.shared.specific import SpecificClaim
 from grammar.shared.prototype import Prototype
 from grammar.shared import pronoun, category, prototype, verb, specific
@@ -36,12 +36,12 @@ class ConditionalClaim(Claim):
         conditions = find_conditions(self, argument)
         
         # Special condition: something can fly if it is a bird -> birds can fly
-        # if len(conditions) == 1:
-        #     (condition,) = conditions
-        #     if self.subject == condition.subject \
-        #         and condition.verb == 'is' \
-        #         and isinstance(condition.object, Prototype):
-        #         return "{a!s} {verb!s} {b!s}".format(a=condition.object, verb=self.verb, b=self.object)
+        if len(conditions) == 1:
+            (condition,) = conditions
+            if self.subject == condition.subject \
+                and condition.verb in ('is', 'are') \
+                and isinstance(condition.object, Prototype):
+                return "{a!s} {verb!s} {b!s}".format(a=condition.object, verb=self.verb, b=self.object)
 
         return "{} {} {}".format(
             super().text(argument),
@@ -95,13 +95,13 @@ def general_claim_singular(state, data):
 
 
 def general_claim_plural(state, data):
-    # scope = Scope()
-    # subj = Instance(pronoun='things', count=Instance.PLURAL)
-    # condition = SpecificClaim(subj, 'are', data[0].local.plural, scope=scope)
-    # claim = ConditionalClaim(subj, data[1].local, data[2].local, scope=scope)
-    # relation = Relation({condition}, claim, Relation.CONDITION)
-    # return Interpretation(argument=Argument(claims={claim: {claim}, condition: {condition}}, relations={relation}, instances={subj: {subj}}), local=claim)
-    return general_claim_singular(state, data)
+    scope = Scope()
+    subj = InstanceGroup(pronoun='things')
+    condition = SpecificClaim(subj, 'are', data[0].local.plural, scope=scope)
+    claim = ConditionalClaim(subj, data[1].local, data[2].local, scope=scope)
+    relation = Relation({condition}, claim, Relation.CONDITION)
+    return Interpretation(argument=Argument(claims={claim: {claim}, condition: {condition}}, relations={relation}, instances={subj: {subj}}), local=claim)
+    # return general_claim_singular(state, data)
 
 
 grammar = pronoun.grammar \

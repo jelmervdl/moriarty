@@ -5,21 +5,15 @@ from interpretation import Interpretation, Literal, Expression
 from datastructures import Sequence
 import english
 
+counter = Sequence()
 
 class Instance(object):
-    counter = Sequence()
-
-    SINGULAR = 1
-    PLURAL = 2
-
-    def __init__(self, name: str = None, noun: str = None, pronoun: str = None, origin: 'Instance' = None, count = None):
-        assert count is None or count in (self.SINGULAR, self.PLURAL)
-        self.id = self.counter.next()
+    def __init__(self, name: str = None, noun: str = None, pronoun: str = None, origin: 'Instance' = None):
+        self.id = counter.next()
         self.name = name
         self.noun = noun
         self.pronoun = pronoun
         self.origin = origin
-        self.count = self.SINGULAR if count is None else count
 
     def __hash__(self):
         return hash(self.id)
@@ -55,6 +49,8 @@ class Instance(object):
         return argument.find_instance(self) == argument.find_instance(other)
 
     def could_be(self, other: 'Instance') -> bool:
+        if isinstance(other, InstanceGroup):
+            return False
         if self.pronoun == 'something':
             return other.pronoun == 'it'
         elif self.pronoun == 'someone':
@@ -118,7 +114,8 @@ class Instance(object):
 
 class InstanceGroup(object):
     def __init__(self, instances = None, noun = None, pronoun = None):
-        self.instances = instances if instances is not None else {}
+        self.id = counter.next()
+        self.instances = instances
         self.noun = noun
         self.pronoun = pronoun
 
@@ -129,11 +126,19 @@ class InstanceGroup(object):
         if len(self.instances):
             return english.join(self.instances)
         elif self.noun:
-            return "the {}".format(self.noun)
+            return "the {}".format(self.noun.plural)
         elif self.pronoun:
             return self.pronoun
         else:
             return "(anonymous group of instances)"
+
+    def is_same(self, other: 'Instance', argument: Argument) -> bool:
+        return argument.find_instance(self) == argument.find_instance(other)
+
+    def could_be(self, other: 'Instance') -> bool:
+        if isinstance(other, Instance):
+            return False
+        raise NotImplementedError('Todo, sorry!')
 
     @classmethod
     def from_pronoun_rule(cls, state, data):

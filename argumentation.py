@@ -21,7 +21,7 @@ class Argument(object):
         assert isinstance(relations, set)
         assert isinstance(instances, dict)
 
-        assert all(instance.__class__.__name__ == 'Instance' for instance in instances)
+        assert all(instance.__class__.__name__ in ('Instance', 'InstanceGroup') for instance in instances)
 
         self.claims = claims
         self.relations = relations
