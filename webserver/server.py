@@ -61,7 +61,7 @@ class JSONEncoder(flask.json.JSONEncoder):
                 simplified_claims.append(dict(cls='claim', id=claim_id))
                 return simplified_claims
 
-            return dict(cls='relation', id=hash(o),
+            return dict(cls='relation', id=id(o),
                 sources=reduce(unique_claims, o.sources, []),
                 target=self._simplify(o.target, context),
                 type=o.type)

@@ -171,7 +171,7 @@ class Relation(object):
         assert isinstance(target, Claim) or isinstance(target, Relation)
         assert type in (self.ATTACK, self.SUPPORT, self.CONDITION)
 
-        self.sources = sources
+        self.sources = set(sources)
         self.target = target
         self.type = type
 

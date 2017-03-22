@@ -124,6 +124,8 @@ jQuery(function($) {
                         throw new Error("Unknown type '" + relation.target.cls + "'");
                 }
 
+                console.assert(!(relation.id in relations), 'relation id occurs multiple times');
+
                 relations[relation.id] = graph.addRelation(sources, target, relation.type);
             });
 

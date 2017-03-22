@@ -18,11 +18,11 @@ class PartialRelation(object):
 
     def instantiate(self, claim, context):
         # assert claim.__class__.__name__ == 'SpecificClaim'
-        relation = Relation(sources=[], target=claim, type=self.type)
+        relation = Relation(sources={}, target=claim, type=self.type)
         argument = Argument(relations={relation})
 
         if self.specifics is not None:
-            relation.sources.extend(self.specifics)
+            relation.sources.update(self.specifics)
 
         if self.conditional is not None:
             argument = argument | Argument(relations={Relation([self.conditional], relation, Relation.SUPPORT)})
@@ -35,8 +35,8 @@ class PartialRelation(object):
         
         if self.conditional is None and self.specifics is not None:
             """
-            Make a general assumption in the trend of when Tweety can fly
-            because she is a bird, anything that is a bird can fly.
+            Make a general assumption in the trend of 'When Tweety can fly
+            because she is a bird, anything that is a bird can fly.'
             """
             subject = Instance(pronoun='something')
             
@@ -55,6 +55,7 @@ class PartialRelation(object):
                     assumptions.append(specific.clone(id=None, subject=conditional.subject, scope=conditional.scope))
 
             if len(assumptions) > 0:
+                print("Adding support {!r} for {!r}".format(conditional, relation))
                 argument = argument | Argument(
                     instances={subject: {subject}},
                     claims={conditional: {conditional}, **{assumption: {assumption} for assumption in assumptions}},
