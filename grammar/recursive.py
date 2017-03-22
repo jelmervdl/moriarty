@@ -31,7 +31,7 @@ class PartialRelation(object):
             if len(conditions) > 0:
                 assumptions = [condition.assume(subject=claim.subject) for condition in conditions]
                 argument = argument | Argument(claims=dict((assumption, {assumption}) for assumption in assumptions))
-                relation.sources.extend(assumptions)
+                relation.sources.update(assumptions)
         
         if self.conditional is None and self.specifics is not None:
             """

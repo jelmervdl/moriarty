@@ -95,12 +95,13 @@ def general_claim_singular(state, data):
 
 
 def general_claim_plural(state, data):
-    scope = Scope()
-    subj = Instance(pronoun='things', count=Instance.PLURAL)
-    condition = SpecificClaim(subj, 'are', data[0].local.plural, scope=scope)
-    claim = ConditionalClaim(subj, data[1].local, data[2].local, scope=scope)
-    relation = Relation({condition}, claim, Relation.CONDITION)
-    return Interpretation(argument=Argument(claims={claim: {claim}, condition: {condition}}, relations={relation}, instances={subj: {subj}}), local=claim)
+    # scope = Scope()
+    # subj = Instance(pronoun='things', count=Instance.PLURAL)
+    # condition = SpecificClaim(subj, 'are', data[0].local.plural, scope=scope)
+    # claim = ConditionalClaim(subj, data[1].local, data[2].local, scope=scope)
+    # relation = Relation({condition}, claim, Relation.CONDITION)
+    # return Interpretation(argument=Argument(claims={claim: {claim}, condition: {condition}}, relations={relation}, instances={subj: {subj}}), local=claim)
+    return general_claim_singular(state, data)
 
 
 grammar = pronoun.grammar \
