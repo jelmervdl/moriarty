@@ -25,9 +25,19 @@ class TokenizeError(Exception):
 class JSONEncoder(flask.json.JSONEncoder):
     def _simplify(self, o, context):
         if isinstance(o, Argument):
+            condition_claims = set()
+            argument_claims = set()
+            for relation in o.relations:
+                if relation.type == Relation.CONDITION:
+                    condition_claims.update(relation.sources)
+                else:
+                    argument_claims.update(relation.sources)
+
+            excluded_claims = condition_claims - argument_claims
+
             return dict(
-                claims=[self._simplify(claim, context) for claim in o.claims],
-                relations=[self._simplify(relation, context) for relation in o.relations],
+                claims=[self._simplify(claim, context) for claim in o.claims if claim not in excluded_claims],
+                relations=[self._simplify(relation, context) for relation in o.relations if relation.type != Relation.CONDITION],
                 instances=[
                     dict(
                         cls='instance',
