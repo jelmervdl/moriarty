@@ -1,5 +1,6 @@
 from parser import Rule, RuleRef, State, passthru
 from interpretation import Literal, Symbol, Interpretation
+from grammar.macros import and_rules
 
 
 class NameParser(Symbol):
@@ -7,15 +8,5 @@ class NameParser(Symbol):
         return literal[0].isupper()
 
 
-grammar = {
-    Rule("NAME", [NameParser()], passthru),
-    
-    Rule("NAMES", [RuleRef("NAME_"), Literal("and"), RuleRef("NAME")],
-        lambda state, data: data[0] + data[2] + Interpretation(local=data[0] + [data[2]])),
-    
-    Rule("NAME_", [RuleRef("NAME")],
-        lambda state, data: data[0] + Interpretation(local=[data[0]])),
-
-    Rule("NAME_", [RuleRef("NAME"), Literal(","), RuleRef("NAME_")],
-        lambda state, data: data[0] + data[2] + Interpretation(local=[data[0]] + data[2]))
-}
+grammar = and_rules('NAMES', 'NAME', accept_singular=False) \
+    | { Rule("NAME", [NameParser()], passthru) }

@@ -14,7 +14,7 @@ class Prototype(object):
         return isinstance(other, self.__class__) and self.noun == other.noun
     
     def __str__(self):
-        if self.noun.is_singular:
+        if self.noun.grammatical_number is 'singular':
             return "{} {}".format(indefinite_article(self.noun.literal), self.noun.literal)
         else:
             return str(self.noun.plural)

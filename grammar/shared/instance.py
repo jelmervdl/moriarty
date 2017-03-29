@@ -35,12 +35,8 @@ class Instance(object):
         return "Instance(id={id!r} name={name!r} noun={noun!r} pronoun={pronoun!r})".format(**self.__dict__)
 
     @property
-    def singular(self):
-        return self
-    
-    @property
-    def plural(self):
-        raise NotImplementedError()
+    def grammatical_number(self):
+        return 'singular'
 
     def text(self, argument: Argument):
         return argument.find_instance(self).__str__()
@@ -114,23 +110,29 @@ class Instance(object):
 
 class InstanceGroup(object):
     def __init__(self, instances = None, noun = None, pronoun = None):
+        assert instances is None or len(instances) > 1, "A group of one"
         self.id = counter.next()
         self.instances = instances
         self.noun = noun
         self.pronoun = pronoun
+        print("Made an instance group {!r}".format(self))
 
     def __repr__(self):
         return "InstanceGroup({})".format(" ".join("{}={!r}".format(k, v) for k,v in self.__dict__.items() if v is not None))
 
     def __str__(self):
-        if len(self.instances):
-            return english.join(self.instances)
+        if self.instances:
+            return "{} (#{})".format(english.join(self.instances), self.id)
         elif self.noun:
-            return "the {}".format(self.noun.plural)
+            return "the {} (#{})".format(self.noun.plural, self.id)
         elif self.pronoun:
-            return self.pronoun
+            return "{} (#{})".format(self.pronoun, self.id)
         else:
-            return "(anonymous group of instances)"
+            return "(anonymous group of instances #{})".format(self.id)
+
+    @property
+    def grammatical_number(self):
+        return 'plural'
 
     def is_same(self, other: 'Instance', argument: Argument) -> bool:
         return argument.find_instance(self) == argument.find_instance(other)

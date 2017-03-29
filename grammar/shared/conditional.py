@@ -5,6 +5,7 @@ from grammar.shared.claim import Claim, Scope
 from grammar.shared.instance import Instance, InstanceGroup
 from grammar.shared.specific import SpecificClaim
 from grammar.shared.prototype import Prototype
+from grammar.shared.verb import VerbParser, Verb
 from grammar.shared import pronoun, category, prototype, verb, specific
 from grammar.macros import and_rules
 from argumentation import Argument, Relation
@@ -39,7 +40,7 @@ class ConditionalClaim(Claim):
         if len(conditions) == 1:
             (condition,) = conditions
             if self.subject == condition.subject \
-                and condition.verb in ('is', 'are') \
+                and condition.verb.literal in ('is', 'are') \
                 and isinstance(condition.object, Prototype):
                 return "{a!s} {verb!s} {b!s}".format(a=condition.object, verb=self.verb, b=self.object)
 
@@ -88,7 +89,7 @@ def expanded_general_claim(state, data):
 def general_claim_singular(state, data):
     scope = Scope()
     subj = Instance(pronoun='something')
-    condition = SpecificClaim(subj, 'is', data[0].local.singular, scope=scope)
+    condition = SpecificClaim(subj, Verb('is'), data[0].local.singular, scope=scope)
     claim = ConditionalClaim(subj, data[1].local, data[2].local, scope=scope)
     relation = Relation({condition}, claim, Relation.CONDITION)
     return Interpretation(argument=Argument(claims={claim: {claim}, condition: {condition}}, relations={relation}, instances={subj: {subj}}), local=claim)
@@ -97,7 +98,7 @@ def general_claim_singular(state, data):
 def general_claim_plural(state, data):
     scope = Scope()
     subj = InstanceGroup(pronoun='things')
-    condition = SpecificClaim(subj, 'are', data[0].local.plural, scope=scope)
+    condition = SpecificClaim(subj, Verb('are'), data[0].local.plural, scope=scope)
     claim = ConditionalClaim(subj, data[1].local, data[2].local, scope=scope)
     relation = Relation({condition}, claim, Relation.CONDITION)
     return Interpretation(argument=Argument(claims={claim: {claim}, condition: {condition}}, relations={relation}, instances={subj: {subj}}), local=claim)
@@ -122,20 +123,20 @@ grammar = pronoun.grammar \
             lambda state, data: data[0]),
 
         # an A is a B
-        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPE'), Expression('is|has'), RuleRef('CATEGORY')],
+        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPE'), VerbParser('is|has'), RuleRef('CATEGORY')],
             general_claim_singular),
-        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPE'), Expression('is|has'), RuleRef('PROTOTYPE')],
+        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPE'), VerbParser('is|has'), RuleRef('PROTOTYPE')],
             general_claim_singular),
 
-        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPE'), Expression('can|may|should'), RuleRef('VERB_INF')],
+        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPE'), VerbParser('can|may|should'), RuleRef('VERB_INF')],
             general_claim_singular),
 
         # A's are B's
-        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPES'), Expression('are|have'), RuleRef('CATEGORY')],
+        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPES'), VerbParser('are|have'), RuleRef('CATEGORY')],
             general_claim_plural),
-        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPES'), Expression('are|have'), RuleRef('PROTOTYPES')],
+        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPES'), VerbParser('are|have'), RuleRef('PROTOTYPES')],
             general_claim_plural),
 
-        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPES'), Expression('can|may|should'), RuleRef('VERB_INF')],
+        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPES'), VerbParser('can|may|should'), RuleRef('VERB_INF')],
             general_claim_plural),
     }

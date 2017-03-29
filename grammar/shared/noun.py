@@ -36,15 +36,15 @@ class Noun(object):
 
     @property
     def singular(self) -> 'Noun':
-        return self if self.is_singular else self.__class__(self.literal, is_plural=False)
+        return self if not self.is_plural else self.__class__(self.literal, is_plural=False)
 
     @property
     def plural(self) -> 'Noun':
         return self if self.is_plural else self.__class__(self.literal, is_plural=True)
 
     @property
-    def is_singular(self) -> bool:
-        return not self.is_plural
+    def grammatical_number(self) -> str:
+        return 'plural' if self.is_plural else 'singular'
 
     def is_same(self, other):
         return self.literal == other.literal \
@@ -54,7 +54,7 @@ class Noun(object):
         return english.pluralize(self.literal) if self.is_plural else self.literal
 
     def __repr__(self):
-        return "Noun({}{})".format(self.literal, ", plural" if self.is_plural else "")
+        return "Noun({}, {})".format(self.literal, self.grammatical_number)
 
 
 grammar = {

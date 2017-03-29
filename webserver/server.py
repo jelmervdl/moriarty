@@ -39,24 +39,24 @@ class JSONEncoder(flask.json.JSONEncoder):
                 claims=[self._simplify(claim, context) for claim in o.claims if claim not in excluded_claims],
                 relations=[self._simplify(relation, context) for relation in o.relations if relation.type != Relation.CONDITION],
                 instances=[
-                    dict(
-                        cls='instance',
-                        id=instance.id,
-                        name=str(instance.name),
-                        noun=str(instance.noun),
-                        pronoun=str(instance.pronoun),
-                        repr=repr(instance),
-                        occurrences=[
-                            dict(
-                                cls='instance',
-                                id=other_occurrence.id,
-                                name=str(other_occurrence.name),
-                                noun=str(other_occurrence.noun),
-                                pronoun=str(other_occurrence.pronoun),
-                                repr=repr(other_occurrence)
-                            ) for other_occurrence in other_occurrences
-                        ]
-                    ) for instance, other_occurrences in o.instances.items()
+                    # dict(
+                    #     cls='instance',
+                    #     id=instance.id,
+                    #     name=str(instance.name),
+                    #     noun=str(instance.noun),
+                    #     pronoun=str(instance.pronoun),
+                    #     repr=repr(instance),
+                    #     occurrences=[
+                    #         dict(
+                    #             cls='instance',
+                    #             id=other_occurrence.id,
+                    #             name=str(other_occurrence.name),
+                    #             noun=str(other_occurrence.noun),
+                    #             pronoun=str(other_occurrence.pronoun),
+                    #             repr=repr(other_occurrence)
+                    #         ) for other_occurrence in other_occurrences
+                    #     ]
+                    # ) for instance, other_occurrences in o.instances.items()
                 ]
             )
         elif isinstance(o, claim.Claim):
