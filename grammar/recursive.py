@@ -31,8 +31,7 @@ class PartialRelation(object):
             if len(conditions) > 0:
                 assumptions = [condition.assume(
                     subject=claim.subject,
-                    verb=condition.verb.for_subject(claim.subject),
-                    object=getattr(condition.object, claim.subject.grammatical_number)) for condition in conditions]
+                    verb=condition.verb.for_subject(claim.subject)) for condition in conditions]
                 argument = argument | Argument(claims=dict((assumption, {assumption}) for assumption in assumptions))
                 relation.sources.update(assumptions)
         
