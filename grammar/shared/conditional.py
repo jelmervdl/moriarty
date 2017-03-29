@@ -37,7 +37,7 @@ class ConditionalClaim(Claim):
         conditions = find_conditions(self, argument)
         
         # Special condition: something can fly if it is a bird -> birds can fly
-        if len(conditions) == 1 and False:
+        if len(conditions) == 1:
             (condition,) = conditions
             if self.subject == condition.subject \
                 and condition.verb.literal in ('is', 'are') \
