@@ -11,7 +11,7 @@ class Negation(object):
         return "Negation({!r})".format(self.object)
 
     def __str__(self):
-        return "not {!s}".format(self.object)
+        return "{} {!s}".format('no' if isinstance(self.object, category.Category) else 'not',  self.object)
 
     @classmethod
     def from_rule(cls, state, data):
@@ -19,7 +19,7 @@ class Negation(object):
 
 
 grammar = category.grammar | prototype.grammar | verb.grammar | {
-    Rule('CATEGORY', [Literal('not'), RuleRef('CATEGORY')],
+    Rule('CATEGORY', [Literal('no'), RuleRef('CATEGORY')],
         Negation.from_rule),
 
     Rule('PROTOTYPE', [Literal('not'), RuleRef('PROTOTYPE')],
