@@ -54,6 +54,7 @@ class PartialRelation(object):
             assumptions = []
             
             for specific in self.specifics:
+                print("Testing if {!r} could be {!r}".format(claim.subject, specific.subject))
                 if claim.subject.could_be(specific.subject):
                     assumptions.append(specific.clone(id=None, subject=conditional.subject, scope=conditional.scope))
 

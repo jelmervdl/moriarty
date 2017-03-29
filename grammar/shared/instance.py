@@ -140,7 +140,9 @@ class InstanceGroup(object):
     def could_be(self, other: 'Instance') -> bool:
         if not isinstance(other, self.__class__):
             return False
-        if self.instances:
+        elif self.pronoun == 'all':
+            return other.pronoun == 'they'
+        elif self.instances:
             if other.instances:
                 return all(any(instance.could_be(other_instance) for other_instance in other.instances) for instance in self.instances)
             else:

@@ -37,7 +37,7 @@ class ConditionalClaim(Claim):
         conditions = find_conditions(self, argument)
         
         # Special condition: something can fly if it is a bird -> birds can fly
-        if len(conditions) == 1:
+        if len(conditions) == 1 and False:
             (condition,) = conditions
             if self.subject == condition.subject \
                 and condition.verb.literal in ('is', 'are') \
@@ -97,7 +97,7 @@ def general_claim_singular(state, data):
 
 def general_claim_plural(state, data):
     scope = Scope()
-    subj = InstanceGroup(pronoun='things')
+    subj = InstanceGroup(pronoun='all')
     condition = SpecificClaim(subj, Verb('are'), data[0].local.plural, scope=scope)
     claim = ConditionalClaim(subj, data[1].local, data[2].local, scope=scope)
     relation = Relation({condition}, claim, Relation.CONDITION)

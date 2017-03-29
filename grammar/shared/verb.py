@@ -22,12 +22,12 @@ class Verb(object):
 
     def for_subject(self, subject):
         if self.literal in ('are', 'is'):
-            if subject.grammatical_number is 'plural':
+            if subject.grammatical_number == 'plural':
                 return Verb('are')
             else:
                 return Verb('is')
         elif self.literal in ('have', 'has'):
-            if subject.grammatical_number is 'plural':
+            if subject.grammatical_number == 'plural':
                 return Verb('have')
             else:
                 return Verb('has')
