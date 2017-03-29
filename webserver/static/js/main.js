@@ -255,6 +255,31 @@ jQuery(function($) {
         parseSentence(sentence, grammar);
     });
 
+    $('body').on('click', '.test-all-sentences', function(e) {
+        var list = $(this).parent().next('ul');
+        var sentences = list.find('.example-sentence');
+        var grammar = $('#parse-sentence-form input[name=grammar]:checked').val();
+        
+        sentences.each(function() {
+            $(this).removeClass('test-valid test-ambiguous test-error');
+        });
+
+        sentences.each(function() {
+            var li = $(this);
+            var sentence = $(this).text();
+            $.get($('#parse-sentence-form').attr('action'), {sentence: sentence, grammar: grammar}, 'json')
+                .always(function(response, status) {
+                    // No consistency :(
+                    if (status == 'error' || response.parses.length == 0)
+                        li.addClass('test-error');
+                    else if (response.parses.length == 1)
+                        li.addClass('test-valid');
+                    else if (response.parses.length > 1)
+                        li.addClass('test-ambiguous');
+                });
+        });
+    });
+
     var stream = new EventSource('/api/stream');
     stream.onmessage = function(e) {
         console.info('Python:', e.data);

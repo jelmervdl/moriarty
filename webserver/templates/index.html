@@ -9,10 +9,10 @@
     </div>
 
     <div class="row">
-        <h2>Example sentences</h2>
+        <h2>Example sentences <button class="btn btn-default btn-xs test-all-sentences">Test all</button></h2>
         <ul id="example-sentences">
             {% for section, sentences in sections.items() %}
-                <li>{{ section }}</li>
+                <li>{{ section }} <button class="btn btn-default btn-xs test-all-sentences">Test section</button></li>
                 <ul>
                     {% for sentence in sentences %}
                     <li class="example-sentence">{{ sentence }}</li>

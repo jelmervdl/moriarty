@@ -33,5 +33,33 @@ ul.attacks li:before {
 }
 
 .instance-list {
-    display: none;
+    /*display: none;*/
+}
+
+.example-sentence.test-error::before,
+.example-sentence.test-valid::before,
+.example-sentence.test-ambiguous::before {
+    content: '';
+    display: inline-block;
+    margin-right: 1ch;
+    padding: 0 4px;
+    font-size: 0.8em;
+    color: #333;
+    border-radius: 2px;
+    background: grey;
+}
+
+.example-sentence.test-error::before {
+    content: 'error';
+    background: #f2dede;
+}
+
+.example-sentence.test-valid::before {
+    content: 'ok';
+    background: #dff0d8;
+}
+
+.example-sentence.test-ambiguous::before {
+    content: 'ambiguous';
+    background: #fcf8e3;
 }
