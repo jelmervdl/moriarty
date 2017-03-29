@@ -138,9 +138,20 @@ class InstanceGroup(object):
         return argument.find_instance(self) == argument.find_instance(other)
 
     def could_be(self, other: 'Instance') -> bool:
-        if isinstance(other, Instance):
+        if not isinstance(other, self.__class__):
             return False
-        raise NotImplementedError('Todo, sorry!')
+        if self.instances:
+            if other.instances:
+                return all(any(instance.could_be(other_instance) for other_instance in other.instances) for instance in self.instances)
+            else:
+                return other.pronoun in ('they',)
+        elif self.noun:
+            return self.noun == other.noun \
+                or other.noun is None and other.pronoun in ('they',)
+        elif self.pronoun:
+            return self.pronoun == other.pronoun
+        else:
+            return False
 
     @classmethod
     def from_pronoun_rule(cls, state, data):
