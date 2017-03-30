@@ -13,6 +13,14 @@ class Negation(object):
     def __str__(self):
         return "{} {!s}".format('no' if isinstance(self.object, category.Category) else 'not',  self.object)
 
+    @property
+    def singular(self):
+        return Negation(self.object.singular)
+
+    @property
+    def plural(self):
+        return Negation(self.object.plural)
+
     @classmethod
     def from_rule(cls, state, data):
         return data[1] + Interpretation(local=cls(data[1].local))

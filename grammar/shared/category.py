@@ -1,6 +1,6 @@
 from parser import Rule, State, passthru
 from interpretation import Symbol, Interpretation
-
+import english
 
 class Category(object):
     def __init__(self, literal):
@@ -27,7 +27,7 @@ class AdjectiveParser(Symbol):
     anything today :)
     """
     def test(self, literal: str, position: int, state: State) -> bool:
-        return True
+        return literal not in ('no','not')
 
     def finish(self, literal: str, state: State):
         return Interpretation(local=Category(literal))

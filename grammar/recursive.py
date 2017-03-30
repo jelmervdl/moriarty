@@ -5,6 +5,7 @@ from grammar.macros import and_rules
 from grammar.shared.claim import Scope
 from grammar.shared.instance import Instance
 from grammar.shared.negation import Negation
+from grammar.shared.prototype import Prototype
 from grammar.shared.conditional import ConditionalClaim, find_conditions
 
 
@@ -37,6 +38,9 @@ class PartialRelation(object):
                     }
 
                     if condition.verb.literal in ('is', 'are'):
+                        assert isinstance(condition.object, Prototype) \
+                            or isinstance(condition.object, Negation) and isinstance(condition.object.object, Prototype), \
+                            'Condition object {!r} is not a prototype'.format(condition.object)
                         params['object'] = getattr(condition.object, claim.subject.grammatical_number)
                     
                     assumptions.append(condition.assume(**params))
