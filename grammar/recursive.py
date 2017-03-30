@@ -29,9 +29,18 @@ class PartialRelation(object):
             print("Searching for {!r} in {!r}".format(self.conditional, context))
             conditions = find_conditions(self.conditional, context)
             if len(conditions) > 0:
-                assumptions = [condition.assume(
-                    subject=claim.subject,
-                    verb=condition.verb.for_subject(claim.subject)) for condition in conditions]
+                assumptions = []
+                for condition in conditions:
+                    params = {
+                        'subject': claim.subject,
+                        'verb': condition.verb.for_subject(claim.subject),
+                    }
+
+                    if condition.verb.literal in ('is', 'are'):
+                        params['object'] = getattr(condition.object, claim.subject.grammatical_number)
+                    
+                    assumptions.append(condition.assume(**params))
+
                 argument = argument | Argument(claims=dict((assumption, {assumption}) for assumption in assumptions))
                 relation.sources.update(assumptions)
         
