@@ -36,6 +36,14 @@ ul.attacks li:before {
     /*display: none;*/
 }
 
+.example-sentence {
+    cursor: pointer;
+}
+
+.example-sentence:hover {
+    text-decoration: underline;
+}
+
 .example-sentence.test-error::before,
 .example-sentence.test-valid::before,
 .example-sentence.test-ambiguous::before {
