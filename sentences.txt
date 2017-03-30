@@ -24,6 +24,10 @@ Tweety can fly because she is a bird and birds can fly because they have wings.
 
 Tweety can fly because he is a bird and something can fly if it is a bird and it has wings.
 
+# Rules: Multiple
+Tweety can fly because a bird can fly if it has wings and because a object can fly if it is light.
+
+
 # Rules: Order
 Tweety can fly because he is a bird and birds can fly.
 Tweety can fly because birds can fly and he is a bird.
@@ -73,6 +77,7 @@ Tweety can fly because a bird can fly when it has wings.
 Tweety can fly because birds can fly when they have wings.
 
 Tweety can fly because a bird can fly when it has wings and it has feathers.
+Tweety can fly because a bird can fly when it has wings and it has feathers. Tweety has feathers because he is a bird.
 
 Tweety can fly because a bird can fly if it is not a penguin.
 Tweety can fly because a bird can fly if it is not a penguin because it has wings.

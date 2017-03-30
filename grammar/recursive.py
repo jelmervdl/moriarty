@@ -38,9 +38,6 @@ class PartialRelation(object):
                     }
 
                     if condition.verb.literal in ('is', 'are'):
-                        assert isinstance(condition.object, Prototype) \
-                            or isinstance(condition.object, Negation) and isinstance(condition.object.object, Prototype), \
-                            'Condition object {!r} is not a prototype'.format(condition.object)
                         params['object'] = getattr(condition.object, claim.subject.grammatical_number)
                     
                     assumptions.append(condition.assume(**params))

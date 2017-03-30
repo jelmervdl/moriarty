@@ -18,6 +18,14 @@ class Category(object):
     def __repr__(self):
         return "Category({!r})".format(self.literal)
 
+    @property
+    def singular(self):
+        return self
+
+    @property
+    def plural(self):
+        return self
+
 
 class AdjectiveParser(Symbol):
     """
