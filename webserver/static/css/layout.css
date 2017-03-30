@@ -56,6 +56,10 @@ body {
 	background: transparent;
 }
 
+.input-group-btn > input[type=text].form-control {
+	padding-right: 30px;
+}
+
 .input-group-btn > .btn-overlay:hover,
 .input-group-btn > .btn-overlay:focus {
 	z-index: 5;
