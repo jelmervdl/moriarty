@@ -215,8 +215,9 @@ jQuery(function($) {
 
     function addToHistory(sentence) {
         var history = JSON.parse(window.localStorage.history || '[]');
-        history.splice(9);
-        history.unshift(sentence);
+        history = history.filter((s) => s != sentence); // prevents double entries
+        history.splice(9); // make sure the history is not too long
+        history.unshift(sentence); // add the new sentence to the top
         window.localStorage.history = JSON.stringify(history);
     }
 
