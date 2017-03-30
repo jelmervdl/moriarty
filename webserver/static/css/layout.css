@@ -49,6 +49,22 @@ body {
 	padding-right: 0;
 }
 
+.input-group-btn > .btn-overlay {
+	position: absolute;
+	right: 0;
+	z-index: 5;
+	background: transparent;
+}
+
+.input-group-btn > .btn-overlay:hover,
+.input-group-btn > .btn-overlay:focus {
+	z-index: 5;
+}
+
+.history-dropdown {
+	width: 100%;
+}
+
 /*
 button.edit-sentence,
 .btn-group.repeat-sentence {

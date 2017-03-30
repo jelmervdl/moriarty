@@ -28,7 +28,13 @@
                 </ul>
                 <form method="GET" action="{{ url_for('api_parse_sentence') }}" id="parse-sentence-form" class="navbar-form navbar-left">
                     <div class="input-group">
-                        <input type="text" name="sentence" class="form-control" placeholder="Jan is punishable because Jan is a thief." size="90">
+                        <div class="input-group-btn">
+                            <input type="text" name="sentence" class="form-control" placeholder="Jan is punishable because Jan is a thief." size="90">
+                            <button type="button" class="btn btn-overlay dropdown-toggle history-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu history-dropdown"></ul>
+                        </div>
                         <div class="input-group-btn">
                             <button type="submit" class="btn btn-default">Parse <span class="current-grammar">simple</span></button>
                             <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">

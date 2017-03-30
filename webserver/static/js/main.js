@@ -213,6 +213,23 @@ jQuery(function($) {
         $('#parse-sentence-form .current-grammar').text(name);
     }
 
+    function addToHistory(sentence) {
+        var history = JSON.parse(window.localStorage.history || '[]');
+        history.splice(9);
+        history.unshift(sentence);
+        window.localStorage.history = JSON.stringify(history);
+    }
+
+    function updateHistory() {
+        var history = JSON.parse(window.localStorage.history || '[]');
+        var dropdown = $('.history-dropdown').empty();
+        dropdown.append(history.map(function(sentence) {
+            return $('<li>').append($('<a>').attr('href', '#').addClass('example-sentence').text(sentence));
+        }));
+    }
+
+    $('body').on('click', '.history-toggle', updateHistory);
+
     $('#parse-sentence-form').on('change', 'input[name=grammar]', function(e) {
         window.localStorage.defaultGrammar = $(this).val();
         setDefaultGrammar($(this).val());
@@ -245,6 +262,7 @@ jQuery(function($) {
         e.preventDefault();
         var sentence = $(this).find('input[name=sentence]').val();
         var grammar = $(this).find('input[name=grammar]:checked').val();
+        addToHistory(sentence);
         parseSentence(sentence, grammar);
     });
 
@@ -252,6 +270,7 @@ jQuery(function($) {
         e.preventDefault();
         var sentence = $(e.target).text();
         var grammar = $('#parse-sentence-form input[name=grammar]:checked').val();
+        $('#parse-sentence-form input[name=sentence]').val(sentence);
         parseSentence(sentence, grammar);
     });
 
@@ -280,8 +299,8 @@ jQuery(function($) {
         });
     });
 
-    var stream = new EventSource('/api/stream');
-    stream.onmessage = function(e) {
-        console.info('Python:', e.data);
-    };
+    // var stream = new EventSource('/api/stream');
+    // stream.onmessage = function(e) {
+    //     console.info('Python:', e.data);
+    // };
 });
