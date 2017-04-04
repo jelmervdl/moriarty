@@ -2,6 +2,8 @@ Graph.prototype.layout = function()
 {
 	var graph = this;
 
+	var visited = [];
+
 	function layoutClaim(claim) {
 		let incoming = graph.findRelations({target: claim});
 
@@ -37,7 +39,12 @@ Graph.prototype.layout = function()
 			layout.add(new Spacer(20, 50));
 		}
 
-		layout.add(layoutClaim(relation.claim));
+		if (!visited.includes(relation.claim)) {
+			visited.push(relation.claim);
+			layout.add(layoutClaim(relation.claim));
+		}
+
+		console.log(visited);
 
 		return layout;
 	}
@@ -51,6 +58,9 @@ Graph.prototype.layout = function()
 	// Make sure the claims themselves know how large they are. Could be done after these
 	// steps, layout is lazy and only needs to know the dimensions once Layout.apply is called.
 	this.updateClaimSizes();
+
+	// Reset visited claims list
+	visited = [];
 
 	roots.map(layoutClaim).forEach(layout.add, layout);
 
