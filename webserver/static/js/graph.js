@@ -285,13 +285,7 @@ Graph.prototype = {
 				&& e.offsetY < claim.y + claim.height;
 		});
 
-		if (!claim) {
-			if (this.selectedClaims.length != 0) {
-				this.selectedClaims = [];
-				this.update();
-			}
-		}
-		else if (!this.selectedClaims.includes(claim)) {
+		if (claim && !this.selectedClaims.includes(claim)) {
 			if (e.shiftKey)
 				this.selectedClaims.push(claim);
 			else
@@ -356,7 +350,22 @@ Graph.prototype = {
 
 		this.canvas.style.cursor = 'default';
 
-		if (this.selectedClaims.length > 0) {
+		if (!this.wasDragging) {
+			var claim = this.claims.find(function(claim) {
+				return e.offsetX > claim.x
+					&& e.offsetY > claim.y
+					&& e.offsetX < claim.x + claim.width
+					&& e.offsetY < claim.y + claim.height;
+			});
+
+			if (!claim) {
+				if (this.selectedClaims.length != 0) {
+					this.selectedClaims = [];
+					this.update();
+				}
+			}
+		}
+		else if (this.selectedClaims.length > 0) {
 			this.selectedClaims.forEach(function(claim) {
 				claim.ax += claim.dx;
 				claim.ay += claim.dy;
@@ -366,7 +375,7 @@ Graph.prototype = {
 
 			this.fire('drop');
 		}
-
+		
 		this.dragStartPosition = null;
 	},
 
