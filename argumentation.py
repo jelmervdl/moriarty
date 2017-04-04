@@ -48,16 +48,19 @@ class Argument(object):
 
         argument = self.__class__(claims, relations, instances)
         
-        # for a in new_claims:
-        #     for b in claims.keys():
-        #         if a.scope == b.scope \
-        #             and a.object.__class__.__name__ == 'Negation' \
-        #             and a.subject.__class__.__name__ == 'Instance' \
-        #             and b.subject.__class__.__name__ == 'Instance' \
-        #             and argument.find_instance(a.subject) == argument.find_instance(b.subject) \
-        #             and a.verb == b.verb \
-        #             and a.object.object == b.object:
-        #             argument.relations.add(Relation(sources={a}, target=b, type=Relation.ATTACK))
+        # If one of the incoming claims is the negation of one of our own claims
+        # we need to add an (assumed?) attack relation between the two!
+        for a in other.claims:
+            for b in claims.keys():
+                if a.scope == b.scope \
+                    and a.object.__class__.__name__ == 'Negation' \
+                    and a.subject.__class__.__name__ == 'Instance' \
+                    and b.subject.__class__.__name__ == 'Instance' \
+                    and argument.find_instance(a.subject) == argument.find_instance(b.subject) \
+                    and a.verb == b.verb \
+                    and a.object.object == b.object:
+                    argument.relations.add(Relation(sources={a}, target=b, type=Relation.ATTACK, assumption=True))
+                    argument.relations.add(Relation(sources={b}, target=a, type=Relation.ATTACK, assumption=True))
 
         return argument
 
@@ -164,7 +167,7 @@ class Relation(object):
     SUPPORT = 'support'
     CONDITION = 'condition'
 
-    def __init__(self, sources: Set['Claim'], target: Union['Claim', 'Relation'], type: str):
+    def __init__(self, sources: Set['Claim'], target: Union['Claim', 'Relation'], type: str, assumption: bool = False):
         from grammar.shared.claim import Claim
         
         assert all(isinstance(o, Claim) for o in sources)
@@ -174,6 +177,7 @@ class Relation(object):
         self.sources = set(sources)
         self.target = target
         self.type = type
+        self.assumption = assumption
 
     def __str__(self):
         return "{target!s} {conj} {sources}".format(
@@ -182,5 +186,5 @@ class Relation(object):
             sources=english.join(self.sources))
 
     def __repr__(self):
-        return "Relation(sources={sources!r} target={target!r} type={type!r})".format(**self.__dict__)
+        return "Relation(sources={sources!r} target={target!r} type={type!r}, assumption={assumption!r})".format(**self.__dict__)
 

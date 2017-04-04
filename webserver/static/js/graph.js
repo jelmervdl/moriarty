@@ -50,11 +50,12 @@ Claim.prototype = {
 	}
 }
 
-function Relation(graph, claim, target, type) {
+function Relation(graph, claim, target, type, data) {
 	this.graph = graph;
 	this.claim = claim;
 	this.target = target;
 	this.type = type;
+	this.data = data || {};
 }
 
 Relation.SUPPORT = 'support';
@@ -178,7 +179,10 @@ function Graph(container)
 			}
 		},
 		relation: {
-			size: 5
+			size: 5,
+			color: function(relation) {
+				return relation.data.assumption ? '#ccc' : 'black';
+			}
 		}
 	};
 
@@ -201,7 +205,7 @@ Graph.prototype = {
 		return claim;
 	},
 
-	addRelation: function(claim, target, type) {
+	addRelation: function(claim, target, type, data) {
 		if (Array.isArray(claim)) {
 			if (claim.length === 0) {
 				return null;
@@ -211,10 +215,10 @@ Graph.prototype = {
 				var compound = this.addClaim('&');
 
 				claim.forEach(function(claim) {
-					this.addRelation(claim, compound, null);
+					this.addRelation(claim, compound, null, data);
 				}, this);
 
-				return this.addRelation(compound, target, type);
+				return this.addRelation(compound, target, type, Object.assign({}, data, {merged: true}));
 			}
 			else {
 				// Treat it as a single argument
@@ -228,7 +232,7 @@ Graph.prototype = {
 		if (!(target instanceof Claim) && !(target instanceof Relation))
 			throw new TypeError('Target should be instance of Claim or Relation, is ' + typerepr(target));
 
-		var relation = new Relation(this, claim, target, type);
+		var relation = new Relation(this, claim, target, type, data);
 		this.relations.push(relation);
 		this.update();
 		return relation;
@@ -644,6 +648,7 @@ Graph.prototype = {
 	{
 		var ctx = this.context,
 			scale = this.style.scale,
+			relationColor = this.style.relation.color,
 			arrowRadius = this.style.relation.size;
 
 		// Draw all the relation arrows
@@ -661,6 +666,8 @@ Graph.prototype = {
 
 			ctx.beginPath();
 			ctx.moveTo(scale * s.x, scale * s.y);
+
+			ctx.strokeStyle = relationColor(relation);
 
 			// To almost the target (but a bit less)
 			var angle = Math.atan2(

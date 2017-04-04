@@ -61,7 +61,10 @@ class JSONEncoder(flask.json.JSONEncoder):
             )
         elif isinstance(o, claim.Claim):
             op = context.find_claim(o)
-            return dict(cls='claim', id=op.id, text=op.text(context), assumption=op.assumption, scope=self._simplify(op.scope, context))
+            return dict(cls='claim', id=op.id,
+                text=op.text(context),
+                assumption=op.assumption,
+                scope=self._simplify(op.scope, context))
         elif isinstance(o, Relation):
             def unique_claims(simplified_claims, claim):
                 claim_id = context.find_claim(claim).id
@@ -74,6 +77,7 @@ class JSONEncoder(flask.json.JSONEncoder):
             return dict(cls='relation', id=id(o),
                 sources=reduce(unique_claims, o.sources, []),
                 target=self._simplify(o.target, context),
+                assumption=o.assumption,
                 type=o.type)
         elif isinstance(o, claim.Scope):
             return o.id

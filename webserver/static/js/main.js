@@ -126,7 +126,7 @@ jQuery(function($) {
 
                 console.assert(!(relation.id in relations), 'relation id occurs multiple times');
 
-                relations[relation.id] = graph.addRelation(sources, target, relation.type);
+                relations[relation.id] = graph.addRelation(sources, target, relation.type, {assumption: relation.assumption});
             });
 
         graph.layout().apply();
