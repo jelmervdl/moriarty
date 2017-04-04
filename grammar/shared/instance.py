@@ -7,13 +7,15 @@ import english
 
 counter = Sequence()
 
+
 class Instance(object):
-    def __init__(self, name: str = None, noun: str = None, pronoun: str = None, origin: 'Instance' = None):
+    def __init__(self, name: str = None, noun: str = None, pronoun: str = None, origin: 'Instance' = None, scope: 'Scope' = None):
         self.id = counter.next()
         self.name = name
         self.noun = noun
         self.pronoun = pronoun
         self.origin = origin
+        self.scope = scope
 
     def __hash__(self):
         return hash(self.id)
@@ -32,7 +34,7 @@ class Instance(object):
             return "#{}".format(self.id)
 
     def __repr__(self):
-        return "Instance(id={id!r} name={name!r} noun={noun!r} pronoun={pronoun!r})".format(**self.__dict__)
+        return "Instance(id={id!r} name={name!r} noun={noun!r} pronoun={pronoun!r} scope={scope!r})".format(**self.__dict__)
 
     @property
     def grammatical_number(self):
@@ -47,7 +49,9 @@ class Instance(object):
     def could_be(self, other: 'Instance') -> bool:
         if isinstance(other, InstanceGroup):
             return False
-        if self.pronoun == 'something':
+        elif self.scope != other.scope:
+            return False
+        elif self.pronoun == 'something':
             return other.pronoun == 'it'
         elif self.pronoun == 'someone':
             return other.pronoun in ('he', 'she')
@@ -105,20 +109,18 @@ class Instance(object):
         instance = cls(noun=data[1].local) # because 'the'
         return data[1] + Interpretation(argument=Argument(instances={instance: {instance}}), local=instance)
 
-    
-
 
 class InstanceGroup(object):
-    def __init__(self, instances = None, noun = None, pronoun = None):
+    def __init__(self, instances = None, noun = None, pronoun = None, scope: 'Scope' = None):
         assert instances is None or len(instances) > 1, "A group of one"
         self.id = counter.next()
         self.instances = instances
         self.noun = noun
         self.pronoun = pronoun
-        print("Made an instance group {!r}".format(self))
+        self.scope = scope
 
     def __repr__(self):
-        return "InstanceGroup({})".format(" ".join("{}={!r}".format(k, v) for k,v in self.__dict__.items() if v is not None))
+        return "InstanceGroup(id={id!r} instances={instances!r} noun={noun!r} pronoun={pronoun!r} scope={scope!r})".format(**self.__dict__)
 
     def __str__(self):
         if self.instances:
@@ -139,6 +141,8 @@ class InstanceGroup(object):
 
     def could_be(self, other: 'Instance') -> bool:
         if not isinstance(other, self.__class__):
+            return False
+        elif self.scope != other.scope:
             return False
         elif self.pronoun == 'all':
             return other.pronoun == 'they'
@@ -167,8 +171,7 @@ class InstanceGroup(object):
 
     @classmethod
     def from_noun_rule(cls, state, data):
-        return data[1] + Interpretation(local=cls(noun=data[1].local)) # 1 because of the 'the' at pos 0.
-
+        return data[1] + Interpretation(local=cls(noun=data[1].local))  # 1 because of the 'the' at pos 0.
 
 
 grammar = name.grammar | noun.grammar | pronoun.grammar | {

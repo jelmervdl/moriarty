@@ -88,7 +88,7 @@ def expanded_general_claim(state, data):
 
 def general_claim_singular(state, data):
     scope = Scope()
-    subj = Instance(pronoun='something')
+    subj = Instance(pronoun='something', scope=scope)
     condition = SpecificClaim(subj, Verb('is'), data[0].local.singular, scope=scope)
     claim = ConditionalClaim(subj, data[1].local, data[2].local, scope=scope)
     relation = Relation({condition}, claim, Relation.CONDITION)
@@ -97,7 +97,7 @@ def general_claim_singular(state, data):
 
 def general_claim_plural(state, data):
     scope = Scope()
-    subj = InstanceGroup(pronoun='all')
+    subj = InstanceGroup(pronoun='all', scope=scope)
     condition = SpecificClaim(subj, Verb('are'), data[0].local.plural, scope=scope)
     claim = ConditionalClaim(subj, data[1].local, data[2].local, scope=scope)
     relation = Relation({condition}, claim, Relation.CONDITION)

@@ -17,6 +17,9 @@ class Scope(object):
     def __init__(self):
         self.id = self.counter.next()
 
+    def __repr__(self):
+        return "${}".format(self.id)
+
 
 class Claim(object):
     """
