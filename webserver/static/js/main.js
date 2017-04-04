@@ -225,7 +225,13 @@ jQuery(function($) {
         var history = JSON.parse(window.localStorage.history || '[]');
         var dropdown = $('.history-dropdown').empty();
         dropdown.append(history.map(function(sentence) {
-            return $('<li>').append($('<a>').attr('href', '#').addClass('example-sentence').text(sentence));
+            return $('<li>').append(
+                $('<a>')
+                    .addClass('example-sentence')
+                    .attr('href', '#')
+                    .attr('title', sentence)
+                    .text(sentence)
+            );
         }));
     }
 

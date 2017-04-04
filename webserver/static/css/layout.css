@@ -88,6 +88,10 @@ button.edit-sentence,
 }
 */
 
+.dropdown-menu > li > a {
+	overflow:hidden;
+	text-overflow: ellipsis;
+}
 
 .dropdown-menu > li > label {
 	display: block;
