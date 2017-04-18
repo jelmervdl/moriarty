@@ -44,8 +44,6 @@ Graph.prototype.layout = function()
 			layout.add(layoutClaim(relation.claim));
 		}
 
-		console.log(visited);
-
 		return layout;
 	}
 	
@@ -93,8 +91,8 @@ Layout.HORIZONTAL = 1;
 Layout.VERTICAL = 2;
 
 Layout.spacing = {
-	horizontal: 10,
-	vertical: 10
+	horizontal: 20,
+	vertical: 20
 };
 
 Layout.prototype = {

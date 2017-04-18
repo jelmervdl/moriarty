@@ -24,8 +24,17 @@ ul.attacks li:before {
 }
 
 .network {
-	width: 100%;
+	/*width: 100%;*/
 	height: 400px;
+    margin: 0 -28px;
+}
+
+.list-group-item:first-child .network {
+    margin-top: -23px;
+}
+
+.list-group-item:last-child .network {
+    margin-bottom: -23px;
 }
 
 .network canvas:focus {

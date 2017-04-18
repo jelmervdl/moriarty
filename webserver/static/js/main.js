@@ -185,7 +185,7 @@ jQuery(function($) {
                                 return $('<div>')
                                     .addClass('list-group-item')
                                     .append(networkifyParse(parse))
-                                    .append(listInstances(parse))
+                                    // .append(listInstances(parse))
                                     // .append($('<ul>')
                                     //     .append(stringifyParse(parse)));
                             }))
