@@ -41,10 +41,10 @@ class Instance(object):
         return 'singular'
 
     def text(self, argument: Argument):
-        return argument.find_instance(self).__str__()
+        return argument.get_instance(self).__str__()
 
     def is_same(self, other: 'Instance', argument: Argument) -> bool:
-        return argument.find_instance(self) == argument.find_instance(other)
+        return argument.get_instance(self) == argument.get_instance(other)
 
     def could_be(self, other: 'Instance') -> bool:
         if isinstance(other, InstanceGroup):
@@ -137,7 +137,7 @@ class InstanceGroup(object):
         return 'plural'
 
     def is_same(self, other: 'Instance', argument: Argument) -> bool:
-        return argument.find_instance(self) == argument.find_instance(other)
+        return argument.get_instance(self) == argument.get_instance(other)
 
     def could_be(self, other: 'Instance') -> bool:
         if not isinstance(other, self.__class__):
@@ -162,16 +162,18 @@ class InstanceGroup(object):
     @classmethod
     def from_pronoun_rule(cls, state, data):
         instance = cls(pronoun=data[0].local)
-        return data[0] + Interpretation(local=instance)
+        return data[0] + Interpretation(local=instance, argument=Argument(instances={instance: {instance}}))
 
     @classmethod
     def from_names_rule(cls, state, data):
         instances = {Instance(name=name) for name in data[0].local}
-        return data[0] + Interpretation(local=cls(instances=instances))
+        instance=cls(instances=instances)
+        return data[0] + Interpretation(local=instance, argument=Argument(instances={instance: {instance}}))
 
     @classmethod
     def from_noun_rule(cls, state, data):
-        return data[1] + Interpretation(local=cls(noun=data[1].local))  # 1 because of the 'the' at pos 0.
+        instance = cls(noun=data[1].local)  # 1 because of the 'the' at pos 0.
+        return data[1] + Interpretation(local=instance, argument=Argument(instances={instance: {instance}}))
 
 
 grammar = name.grammar | noun.grammar | pronoun.grammar | {

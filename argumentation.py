@@ -27,6 +27,12 @@ class Argument(object):
         self.relations = relations
         self.instances = instances
 
+        # Don't assert whether all instances are already are available, because in some cases this isn't yet true:
+        # e.g. when adding a new overall claim, this argument is part of an interpretation that still has to be 
+        # merged with other interpretations that carry the information about the instance!
+        # for claim in claims.keys():
+        #    assert self.__find_occurrence(instances, claim.subject)
+
         # Assert all the sources in a relation are claims, and all of them are in our claims set
         # assert all(claim in self.claims for relation in self.relations for claim in relation.sources)
 
@@ -36,32 +42,44 @@ class Argument(object):
     def __or__(self, other):
         """Combine two Arguments into one."""
         assert isinstance(other, self.__class__)
+        
         instances = self.__merge_instances(other)
+        assert len(instances) >= max(len(self.instances), len(other.instances))
+
         claims = self.__merge_claims(other, self.__class__(instances=instances))
+        assert len(claims) >= max(len(self.claims), len(other.claims))
+        
         relations = self.__merge_relations(other)
 
         for claim in self.claims.keys():
-            assert self.__find_occurrence(claims, claim)
+            assert self.__find_occurrence(claims, claim) is not None
 
         for claim in other.claims.keys():
-            assert self.__find_occurrence(claims, claim)
+            assert self.__find_occurrence(claims, claim) is not None
+
+        # This assertion does not hold: sometimes we only merge with this information
+        # later on
+        #for claim in claims.keys():
+        #    assert self.__find_occurrence(instances, claim.subject) is not None
 
         argument = self.__class__(claims, relations, instances)
         
         # If one of the incoming claims is the negation of one of our own claims
         # we need to add an (assumed?) attack relation between the two!
         for a in other.claims:
-            for b in claims.keys():
-                if a.scope == b.scope \
-                    and a.object.__class__.__name__ == 'Negation' \
-                    and a.subject.__class__.__name__ == 'Instance' \
-                    and b.subject.__class__.__name__ == 'Instance' \
-                    and argument.find_instance(a.subject) == argument.find_instance(b.subject) \
-                    and a.verb == b.verb \
-                    and a.object.object == b.object:
-                    argument.relations.add(Relation(sources={a}, target=b, type=Relation.ATTACK, assumption=True))
-                    argument.relations.add(Relation(sources={b}, target=a, type=Relation.ATTACK, assumption=True))
-
+            a_subj = argument.find_instance(a.subject)
+            if a_subj is not None:
+                for b in claims.keys():
+                    if a.scope == b.scope \
+                        and a.object.__class__.__name__ == 'Negation' \
+                        and a.subject.__class__.__name__ == 'Instance' \
+                        and b.subject.__class__.__name__ == 'Instance' \
+                        and a_subj == argument.find_instance(b.subject) \
+                        and a.verb == b.verb \
+                        and a.object.object == b.object:
+                        argument.relations.add(Relation(sources={a}, target=b, type=Relation.ATTACK, assumption=True))
+                        argument.relations.add(Relation(sources={b}, target=a, type=Relation.ATTACK, assumption=True))
+        
         return argument
 
 
@@ -71,7 +89,7 @@ class Argument(object):
 
     def __repr__(self) -> str:
         """Return a string representation of the argument for inspection."""
-        return "Argument(claims={claims!r} relations={relations!r})".format(**self.__dict__)
+        return "Argument(claims={claims!r} relations={relations!r} instances={instances!r})".format(**self.__dict__)
 
     def with_scope(self, scope: 'Scope') -> 'Argument':
         claims = OrderedDict()
@@ -83,8 +101,14 @@ class Argument(object):
     def find_claim(self, claim: 'Claim') -> 'Claim':
         return self.__find_occurrence(self.claims, claim)
 
+    def get_claim(self, claim: 'Claim') -> 'Claim':
+        return self.__get_occurrence(self.claims, claim)
+
     def find_instance(self, instance: 'Instance') -> 'Instance':
         return self.__find_occurrence(self.instances, instance)
+
+    def get_instance(self, instance: 'Instance') -> 'Instance':
+        return self.__get_occurrence(self.instances, instance)
 
     def __merge_instances(self, other: 'Argument') -> Dict['Instance', Set['Instance']]:
         # Merge the instances of this and the other Interpretation
@@ -156,7 +180,13 @@ class Argument(object):
         for full_instance, occurrences in instances.items():
             if instance in occurrences:
                 return full_instance
-        raise RuntimeError('Instance {!r} not part of this argument'.format(instance))
+        return None
+
+    def __get_occurrence(self, instances, instance):
+        found = self.__find_occurrence(instances, instance)
+        if found is None:
+            raise RuntimeError('Instance {!r} not part of this argument'.format(instance))
+        return found
 
 
 class Relation(object):

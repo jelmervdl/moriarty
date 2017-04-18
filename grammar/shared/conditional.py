@@ -92,7 +92,13 @@ def general_claim_singular(state, data):
     condition = SpecificClaim(subj, Verb('is'), data[0].local.singular, scope=scope)
     claim = ConditionalClaim(subj, data[1].local, data[2].local, scope=scope)
     relation = Relation({condition}, claim, Relation.CONDITION)
-    return Interpretation(argument=Argument(claims={claim: {claim}, condition: {condition}}, relations={relation}, instances={subj: {subj}}), local=claim)
+    return Interpretation(
+        argument=Argument(
+            claims={claim: {claim}, condition: {condition}},
+            relations={relation},
+            instances={subj: {subj}}
+        ),
+        local=claim)
 
 
 def general_claim_plural(state, data):
@@ -101,8 +107,13 @@ def general_claim_plural(state, data):
     condition = SpecificClaim(subj, Verb('are'), data[0].local.plural, scope=scope)
     claim = ConditionalClaim(subj, data[1].local, data[2].local, scope=scope)
     relation = Relation({condition}, claim, Relation.CONDITION)
-    return Interpretation(argument=Argument(claims={claim: {claim}, condition: {condition}}, relations={relation}, instances={subj: {subj}}), local=claim)
-    # return general_claim_singular(state, data)
+    return Interpretation(
+        argument=Argument(
+            claims={claim: {claim}, condition: {condition}},
+            relations={relation},
+            instances={subj: {subj}}
+        ),
+        local=claim)
 
 
 grammar = pronoun.grammar \

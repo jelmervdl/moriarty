@@ -96,7 +96,7 @@ def expanded_claim(state, data):
     if data[2].local:
         interpretation += data[2]
         for attack in data[2].local:
-            interpretation += attack.instantiate(data[0].local, data[1].argument)
+            interpretation += attack.instantiate(data[0].local, data[2].argument)
 
     return interpretation
 
