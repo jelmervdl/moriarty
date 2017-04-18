@@ -18,6 +18,16 @@ from interpretation import Interpretation
 from argumentation import Argument, Relation
 
 
+def ucfirst(string):
+    '''Make the first letter of a string uppercase.
+    
+    Like PHP's ucfirst, this only affects the first character of a string.
+    Because str.title capitalises every word, and str.capitalize lowers all
+    other words.
+    '''
+    return string[0].upper() + string[1:]
+
+
 class TokenizeError(Exception):
     pass
 
@@ -62,7 +72,7 @@ class JSONEncoder(flask.json.JSONEncoder):
         elif isinstance(o, claim.Claim):
             op = context.find_claim(o)
             return dict(cls='claim', id=op.id,
-                text=op.text(context),
+                text=ucfirst(op.text(context)),
                 assumption=op.assumption,
                 scope=self._simplify(op.scope, context))
         elif isinstance(o, Relation):
