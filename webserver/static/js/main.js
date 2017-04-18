@@ -209,8 +209,9 @@ jQuery(function($) {
     }
 
     function setDefaultGrammar(name) {
+        let grammar = grammars.get().find((grammar) => grammar.name == name);
         $("#parse-sentence-form input[name=grammar][value='" + name + "']").prop('checked', true);
-        $('#parse-sentence-form .current-grammar').text(name);
+        $('#parse-sentence-form .current-grammar').text(grammar.label.toLowerCase());
     }
 
     function addToHistory(sentence) {

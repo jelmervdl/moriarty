@@ -29,7 +29,7 @@ class ConditionalClaim(Claim):
         self.conj = conj
 
     def is_preferred_over(self, other: Claim, argument: Argument) -> bool:
-        assert isinstance(other, self.__class__)
+        # assert isinstance(other, ConditionalClaim)
         # return len(find_conditions(self,argument)) > len(find_conditions(other, argument))
         return False
 
@@ -40,6 +40,7 @@ class ConditionalClaim(Claim):
         if len(conditions) == 1:
             (condition,) = conditions
             if self.subject == condition.subject \
+                and condition.verb is not None \
                 and condition.verb.literal in ('is', 'are') \
                 and isinstance(condition.object, Prototype):
                 return "{a!s} {verb!s} {b!s}".format(a=condition.object, verb=self.verb, b=self.object)

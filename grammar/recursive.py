@@ -1,11 +1,12 @@
 from parser import Rule, RuleRef, Literal
 from argumentation import Argument, Relation
-from interpretation import Interpretation
+from interpretation import Interpretation, Expression
 from grammar.macros import and_rules
 from grammar.shared.claim import Scope
 from grammar.shared.instance import Instance
 from grammar.shared.negation import Negation
 from grammar.shared.prototype import Prototype
+from grammar.shared.specific import SpecificClaim
 from grammar.shared.conditional import ConditionalClaim, find_conditions
 
 
@@ -76,10 +77,11 @@ class PartialRelation(object):
                         Relation([conditional], relation, Relation.SUPPORT),
                         Relation(assumptions, conditional, Relation.CONDITION)
                     })
-        
-        assert len(relation.sources) > 0, "Cannot instantiate relation without specific or assumed claims."
 
-        return Interpretation(argument=argument, local=claim)
+        if len(relation.sources) > 0:
+            return Interpretation(argument=argument, local=claim)
+        else:
+            return Interpretation(local=claim)
         
 
 def expanded_claim(state, data):

@@ -10,7 +10,7 @@ sys.path.insert(0, '../')
 
 import parser
 from grammar.shared import specific, negation, claim, conditional, instance
-from grammar import simple, recursive
+from grammar import simple, recursive, blob
 from flask import Flask, render_template, request, jsonify
 from collections import OrderedDict
 import os
@@ -71,6 +71,7 @@ class JSONEncoder(flask.json.JSONEncoder):
             )
         elif isinstance(o, claim.Claim):
             op = context.find_claim(o)
+            print(repr(op))
             return dict(cls='claim', id=op.id,
                 text=ucfirst(op.text(context)),
                 assumption=op.assumption,
@@ -133,8 +134,9 @@ for sentence_file in sentence_files:
 # print()
 
 grammars = {
-    'simple':specific.grammar | conditional.grammar | negation.grammar | simple.grammar,
-    'recursive':specific.grammar | conditional.grammar | negation.grammar | recursive.grammar
+    'simple': specific.grammar | conditional.grammar | negation.grammar | simple.grammar,
+    'recursive': specific.grammar | conditional.grammar | negation.grammar | recursive.grammar,
+    'recursive_fallback': specific.grammar | conditional.grammar | negation.grammar | blob.grammar,
 }
 
 

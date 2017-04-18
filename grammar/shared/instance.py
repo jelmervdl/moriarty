@@ -69,7 +69,8 @@ class Instance(object):
         elif self.pronoun in ('he', 'she'):
             return self.pronoun == other.pronoun
         else:
-            assert False, "this instance is weird: {!r}".format(self)
+            # assert False, "this instance is weird: {!r}".format(self)
+            return False
 
     def replaces(self, instance: 'Instance') -> bool:
         """
