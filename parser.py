@@ -125,6 +125,7 @@ class State:
         self.reference = reference
         self.parent = parent
         self.data = []  # type: List[Any]
+        self.error = None
 
     def __repr__(self) -> str:
         return "{rule}, from: {ref} (data:{data!r}, parent:\n{parent!r})".format(rule=self.rule.__repr__(self.expect), ref=self.reference, data=self.data, parent=self.parent)
@@ -185,8 +186,9 @@ class State:
                     # if (i !== -1) {
                     #     addedRules.splice(i, 1);
                     # }
-            except ParseError:
-                log("apparently {} could not be parsed here".format(self.rule))
+            except Exception as e:
+                log("apparently {} could not be parsed here: {}".format(self.rule, e))
+                self.error = e
                 pass
         else:
             # in case I missed an older nullable's sweep, update yourself. See

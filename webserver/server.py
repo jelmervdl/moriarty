@@ -100,10 +100,6 @@ class JSONEncoder(flask.json.JSONEncoder):
     def default(self, o):
         if isinstance(o, Interpretation):
             return self._simplify(o.argument, o.argument)
-        # elif '__dict__' in dir(o):
-        #     return o.__dict__
-        # elif isinstance(o, set):
-        #     return list(o)
         else:
             return super().default(o)
 
@@ -160,6 +156,7 @@ def api_parse_sentence():
         p = parser.Parser(grammar, 'ARGUMENT')
         parses = p.parse(tokens)
         reply['parses'] = parses
+        # reply['states'] = p.table
         return jsonify(reply)
     except Exception as error:
         traceback.print_exc()

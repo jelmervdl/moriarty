@@ -28,7 +28,6 @@ class PartialRelation(object):
 
         if self.conditional is not None:
             argument = argument | Argument(relations={Relation([self.conditional], relation, Relation.SUPPORT)})
-            print("Searching for {!r} in {!r}".format(self.conditional, context))
             conditions = find_conditions(self.conditional, context)
             if len(conditions) > 0:
                 assumptions = []
@@ -64,12 +63,10 @@ class PartialRelation(object):
             assumptions = []
             
             for specific in self.specifics:
-                print("Testing if {!r} could be {!r}".format(claim.subject, specific.subject))
                 if claim.subject.could_be(specific.subject):
                     assumptions.append(specific.clone(id=None, subject=conditional.subject, scope=conditional.scope))
 
             if len(assumptions) > 0:
-                print("Adding support {!r} for {!r}".format(conditional, relation))
                 argument = argument | Argument(
                     instances={subject: {subject}},
                     claims={conditional: {conditional}, **{assumption: {assumption} for assumption in assumptions}},
@@ -78,10 +75,10 @@ class PartialRelation(object):
                         Relation(assumptions, conditional, Relation.CONDITION)
                     })
 
-        if len(relation.sources) > 0:
-            return Interpretation(argument=argument, local=claim)
-        else:
-            return Interpretation(local=claim)
+        if len(relation.sources) == 0:
+            raise Exception("No specific claim or assumption to link the conditional claim to")
+        
+        return Interpretation(argument=argument, local=claim)
         
 
 def expanded_claim(state, data):
