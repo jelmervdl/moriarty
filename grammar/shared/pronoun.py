@@ -1,16 +1,16 @@
 from parser import Rule, passthru
-from interpretation import Literal
+from interpretation import Expression
 
 grammar = {
     # Singular
-    Rule("PRONOUN", [Literal('he')], passthru),
-    Rule("PRONOUN", [Literal('she')], passthru),
-    Rule("PRONOUN", [Literal('it')], passthru),
+    Rule("PRONOUN", [Expression(r'[Hh]e')], passthru),
+    Rule("PRONOUN", [Expression(r'[Ss]he')], passthru),
+    Rule("PRONOUN", [Expression(r'[Ii]t')], passthru),
 
     # Plural
-    Rule("PRONOUNS", [Literal('they')], passthru),
+    Rule("PRONOUNS", [Expression(r'[Tt]hey')], passthru),
 
     # Undetermined
-    Rule("PRONOUN", [Literal('someone')], passthru),
-    Rule("PRONOUN", [Literal('something')], passthru),
+    Rule("PRONOUN", [Expression(r'[Ss]omeone')], passthru),
+    Rule("PRONOUN", [Expression(r'[Ss]omething')], passthru),
 }

@@ -184,10 +184,10 @@ grammar = name.grammar | noun.grammar | pronoun.grammar | {
     Rule("INSTANCE", [RuleRef("NAME")],
         Instance.from_name_rule),
 
-    Rule("INSTANCE", [Literal("the"), RuleRef("NOUN")],
+    Rule("INSTANCE", [Expression(r"[Tt]he"), RuleRef("NOUN")],
         Instance.from_noun_rule),
 
-    Rule("INSTANCE", [Expression(r"his|her|their"), RuleRef("NOUN")],
+    Rule("INSTANCE", [Expression(r"[Hh]is|[Hh]er|[Tt]heir"), RuleRef("NOUN")],
         Instance.from_noun_rule),
 
     # Plural
@@ -197,10 +197,10 @@ grammar = name.grammar | noun.grammar | pronoun.grammar | {
     Rule("INSTANCES", [RuleRef("NAMES")],
         InstanceGroup.from_names_rule),
 
-    Rule("INSTANCES", [Literal("the"), RuleRef("NOUNS")],
+    Rule("INSTANCES", [Expression(r"[Tt]he"), RuleRef("NOUNS")],
         InstanceGroup.from_noun_rule),
 
-    Rule("INSTANCES", [Expression(r"his|her|their"), RuleRef("NOUNS")],
+    Rule("INSTANCES", [Expression(r"[Hh]is|[Hh]er|[Tt]heir"), RuleRef("NOUNS")],
         InstanceGroup.from_noun_rule),
 }
 
