@@ -135,9 +135,9 @@ grammar = pronoun.grammar \
             lambda state, data: data[0]),
 
         # an A is a B
-        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPE'), VerbParser('is|has'), RuleRef('CATEGORY')],
+        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPE'), VerbParser('is|has|was'), RuleRef('CATEGORY')],
             general_claim_singular),
-        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPE'), VerbParser('is|has'), RuleRef('PROTOTYPE')],
+        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPE'), VerbParser('is|has|was'), RuleRef('PROTOTYPE')],
             general_claim_singular),
 
         Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPE'), VerbParser('can|may|should'), RuleRef('VERB_INF')],

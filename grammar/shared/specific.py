@@ -23,19 +23,14 @@ grammar = instance.grammar | category.grammar | prototype.grammar | verb.grammar
     Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), VerbParser(r'is|has|was'), RuleRef('PROTOTYPE')],
         SpecificClaim.from_rule),
 
-    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCES'), VerbParser('are'), RuleRef('CATEGORY')],
+    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCES'), VerbParser('are|have'), RuleRef('CATEGORY')],
         SpecificClaim.from_rule),
-    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCES'), VerbParser('are'), RuleRef('PROTOTYPE')],
-        SpecificClaim.from_rule),
-
-    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCES'), VerbParser('have'), RuleRef('CATEGORY')],
-        SpecificClaim.from_rule),
-    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCES'), VerbParser('have'), RuleRef('PROTOTYPE')],
+    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCES'), VerbParser('are|have'), RuleRef('PROTOTYPE')],
         SpecificClaim.from_rule),
 
-    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), VerbParser('can'), RuleRef('VERB_INF')],
+    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), VerbParser('can|may|should'), RuleRef('VERB_INF')],
         SpecificClaim.from_rule),
 
-    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCES'), VerbParser('can'), RuleRef('VERB_INF')],
+    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCES'), VerbParser('can|may|should'), RuleRef('VERB_INF')],
         SpecificClaim.from_rule)
 }
