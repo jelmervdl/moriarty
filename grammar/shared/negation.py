@@ -23,7 +23,11 @@ class Negation(object):
 
     @classmethod
     def from_rule(cls, state, data):
-        return data[1] + Interpretation(local=cls(data[1].local))
+        if isinstance(data[1].local, cls):
+            neg = data[1].local.object  # Unwrap double negations
+        else:
+            neg = cls(data[1].local)
+        return data[1] + Interpretation(local=neg)
 
 
 grammar = category.grammar | prototype.grammar | verb.grammar | {
