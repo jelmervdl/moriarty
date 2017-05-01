@@ -1,13 +1,22 @@
+from typing import Set, Optional
 from parser import Rule, Literal, RuleRef
 from interpretation import Interpretation
 from datastructures import OrderedSet
 
 
-def and_rules(name, singleton, accept_singular=False, first_singleton=None, last_singleton=None):
+def and_rules(name: str, singleton: str, accept_singular: bool = False, first_singleton: Optional[str] = None, last_singleton: Optional[str] = None) -> Set[Rule]:
     """
     Creates a mini-grammar of rules that are needed to parse 'A and B',
     'A, B and C', 'A, B, C and D', etc. where A, B, C and D all are parseable
     using the rule name passed using the singleton argument.
+
+    Grammar:
+
+        <As> ::= A_helper `and' A_last
+        <A_helper> ::= A_helper `,' A
+        <A_helper> ::= A_first
+        <As> ::= A
+    
     """
     if last_singleton is None:
         last_singleton = singleton
