@@ -1,7 +1,7 @@
 from parser import Rule, RuleRef, Literal
 from argumentation import Argument
 from interpretation import Interpretation, Expression
-from grammar.shared.conditional import ConditionalClaim
+from grammar.shared.conditional import GeneralClaim
 from grammar.shared.specific import SpecificClaim
 from grammar.shared.instance import Instance
 from grammar import recursive
@@ -20,7 +20,7 @@ class SpecificBlob(SpecificClaim):
         return " ".join(self.literals)
 
 
-class ConditionalBlob(ConditionalClaim):
+class GeneralBlob(GeneralClaim):
     def __init__(self, subject, verb, object, literals, **kwargs):
         self.literals = literals
         super().__init__(subject, verb, object, **kwargs)
@@ -46,7 +46,7 @@ def blob_conditional_claim(state, data):
     subject = Instance()
     verb = None
     object = None
-    claim = ConditionalBlob(subject, verb, object, data[0])
+    claim = GeneralBlob(subject, verb, object, data[0])
     argument = Argument(instances={subject: {subject}}, claims={claim: {claim}})
     return Interpretation(argument=argument, local=claim)
 

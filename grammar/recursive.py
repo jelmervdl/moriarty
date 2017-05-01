@@ -7,13 +7,13 @@ from grammar.shared.instance import Instance
 from grammar.shared.negation import Negation
 from grammar.shared.prototype import Prototype
 from grammar.shared.specific import SpecificClaim
-from grammar.shared.conditional import ConditionalClaim, find_conditions
+from grammar.shared.conditional import GeneralClaim, find_conditions
 
 
 class PartialRelation(object):
     def __init__(self, relation_type, specifics=None, conditional=None):
         # assert all(o.__class__.__name__ == 'SpecificClaim' for o in specifics)
-        assert conditional is None or isinstance(conditional, ConditionalClaim)
+        assert conditional is None or isinstance(conditional, GeneralClaim)
         self.type = relation_type
         self.specifics = specifics
         self.conditional = conditional
@@ -59,7 +59,7 @@ class PartialRelation(object):
             else:
                 assert False, "Can't deal with this kind of relation"
 
-            conditional = ConditionalClaim(subject, claim.verb, object, scope=Scope(), assumption=True)
+            conditional = GeneralClaim(subject, claim.verb, object, scope=Scope(), assumption=True)
             assumptions = []
             
             for specific in self.specifics:

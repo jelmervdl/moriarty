@@ -18,7 +18,7 @@ def find_conditions(claim, argument):
             if relation.target == claim and relation.type == Relation.CONDITION]))
 
 
-class ConditionalClaim(Claim):
+class GeneralClaim(Claim):
     """
     An Undetermined Claim is in many ways similar to a specific Claim
     except that the subject is undetermined. It functions as an unbound
@@ -29,7 +29,7 @@ class ConditionalClaim(Claim):
         self.conj = conj
 
     def is_preferred_over(self, other: Claim, argument: Argument) -> bool:
-        # assert isinstance(other, ConditionalClaim)
+        # assert isinstance(other, GeneralClaim)
         # return len(find_conditions(self,argument)) > len(find_conditions(other, argument))
         return False
 
@@ -51,14 +51,14 @@ class ConditionalClaim(Claim):
             english.join([claim.text(argument) for claim in sorted(conditions, key=lambda condition: condition.id)]))
 
     @classmethod
-    def from_claim(cls, claim: 'SpecificClaim', scope: 'Scope', conj: str = None) -> 'ConditionalClaim':
+    def from_claim(cls, claim: 'SpecificClaim', scope: 'Scope', conj: str = None) -> 'GeneralClaim':
         return claim.clone(cls=cls, scope=scope, conj=conj)
 
 
 def undetermined_claim(state, data):
     scope = Scope()
     conditions = set(claim.clone(scope=scope) for claim in data[2].local)
-    claim = ConditionalClaim.from_claim(data[0].local, scope=scope, conj=data[1].local)
+    claim = GeneralClaim.from_claim(data[0].local, scope=scope, conj=data[1].local)
     relation = Relation(conditions, claim, Relation.CONDITION)
     return data[0] + data[2] + Interpretation(
         argument=Argument(
@@ -91,7 +91,7 @@ def general_claim_singular(state, data):
     scope = Scope()
     subj = Instance(pronoun='something', scope=scope)
     condition = SpecificClaim(subj, Verb('is'), data[0].local.singular, scope=scope)
-    claim = ConditionalClaim(subj, data[1].local, data[2].local, scope=scope)
+    claim = GeneralClaim(subj, data[1].local, data[2].local, scope=scope)
     relation = Relation({condition}, claim, Relation.CONDITION)
     return Interpretation(
         argument=Argument(
@@ -106,7 +106,7 @@ def general_claim_plural(state, data):
     scope = Scope()
     subj = InstanceGroup(pronoun='all', scope=scope)
     condition = SpecificClaim(subj, Verb('are'), data[0].local.plural, scope=scope)
-    claim = ConditionalClaim(subj, data[1].local, data[2].local, scope=scope)
+    claim = GeneralClaim(subj, data[1].local, data[2].local, scope=scope)
     relation = Relation({condition}, claim, Relation.CONDITION)
     return Interpretation(
         argument=Argument(
