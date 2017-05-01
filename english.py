@@ -605,6 +605,18 @@ def singularize(word, pos=NOUN, custom={}):
             return suffix.sub(inflection, word)
     return word
 
+
+#### Tests for plural and singular abusing singularize's rules
+
+
+def is_singular(word):
+    return singularize(word) == word
+
+
+def is_plural(word):
+    return not is_singular(word)
+
+
 #### COMPARATIVE & SUPERLATIVE #####################################################################
 
 VOWELS = "aeiouy"

@@ -9,13 +9,15 @@ class NounParser(Symbol):
         self.is_plural = is_plural
 
     def test(self, literal: str, position: int, state: 'State') -> bool:
-        if not literal.islower() and position != 0:
+        # Is it a name?
+        if not literal.islower() and position != 0: 
             return False
-        if self.is_plural and literal[-1] != 's':
-            return False
-        if not self.is_plural and literal[-1] == 's':
-            return False
-        return True
+
+        # Otherwise, delegate the testing to the English library of hacks.
+        if self.is_plural:
+            return english.is_plural(literal)
+        else:
+            return english.is_singular(literal)
 
     def finish(self, literal: str, state: 'State'):
         return Interpretation(local=Noun(literal, self.is_plural))
