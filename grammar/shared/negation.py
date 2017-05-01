@@ -1,6 +1,6 @@
 from grammar.shared import category, prototype, verb
-from parser import Rule, RuleRef, Literal
-from interpretation import Interpretation
+from parser import Rule, RuleRef
+from interpretation import Interpretation, Expression
 
 
 class Negation(object):
@@ -31,15 +31,15 @@ class Negation(object):
 
 
 grammar = category.grammar | prototype.grammar | verb.grammar | {
-    Rule('CATEGORY', [Literal('no'), RuleRef('CATEGORY')],
+    Rule('CATEGORY', [Expression('not?'), RuleRef('CATEGORY')],
         Negation.from_rule),
 
-    Rule('PROTOTYPE', [Literal('not'), RuleRef('PROTOTYPE')],
+    Rule('PROTOTYPE', [Expression('not'), RuleRef('PROTOTYPE')],
         Negation.from_rule),
 
-    Rule('PROTOTYPES', [Literal('not'), RuleRef('PROTOTYPES')],
+    Rule('PROTOTYPES', [Expression('not'), RuleRef('PROTOTYPES')],
         Negation.from_rule),
 
-    Rule('VERB_INF', [Literal('not'), RuleRef('VERB_INF')],
+    Rule('VERB_INF', [Expression('not'), RuleRef('VERB_INF')],
         Negation.from_rule)
 }
