@@ -13,3 +13,9 @@ Array.prototype.min = makeReduceOrFallback(Math.min, 0);
 Array.prototype.sum = makeReduceOrFallback((a, b) => a + b, 0);
 
 Array.prototype.flatten = makeReduceOrFallback((acc, arr) => acc.concat(arr), []);
+
+if (!('includes' in Array.prototype)) {
+    Array.prototype.includes = function(value) {
+        return this.indexOf(value) !== -1;
+    };
+}

@@ -1,7 +1,8 @@
-function Claim(graph, text)
+function Claim(graph, text, data)
 {
 	this.graph = graph;
 	this.text = text.split(/\n/);
+	this.data = data || {};
 	this.ax = 0;
 	this.ay = 0;
 	this.dx = 0;
@@ -49,11 +50,12 @@ Claim.prototype = {
 	}
 }
 
-function Relation(graph, claim, target, type) {
+function Relation(graph, claim, target, type, data) {
 	this.graph = graph;
 	this.claim = claim;
 	this.target = target;
 	this.type = type;
+	this.data = data || {};
 }
 
 Relation.SUPPORT = 'support';
@@ -98,6 +100,17 @@ Relation.prototype = {
 	}
 }
 
+
+function typerepr(obj)
+{
+	if (obj === undefined)
+		return 'undefined';
+	if (obj === null)
+		return 'null';
+	return typeof obj;
+}
+
+
 function Graph(container)
 {
 	this.container = container;
@@ -130,18 +143,46 @@ function Graph(container)
 	this.canvas.addEventListener('focus', this.update.bind(this));
 	this.canvas.addEventListener('blur', this.update.bind(this));
 
+	var scopeStyles = {};
+
+	var colours = [
+		"#ff0000", "#ffee00", "#5395a6", "#40002b", "#f20000", "#7f7920",
+		"#6c98d9", "#d9a3bf", "#e58273", "#807d60", "#3d3df2", "#ff408c",
+		"#ff8c40", "#5ccc33", "#110080", "#8c2331", "#e6c3ac", "#004d29",
+		"#282633", "#593c00", "#00bf99", "#b32daa"
+	];
+
 	this.style = {
 		scale: window.devicePixelRatio || 1.0,
 		claim: {
 			padding: 5,
 			fontSize: 13,
 			lineHeight: 16,
-			fontColor: 'black',
-			background: 'white',
-			border: 'black'
+			background: function(claim) {
+				return 'white';
+			},
+			fontColor: function(claim) {
+				return claim.data.assumption ? '#ccc' : 'black';
+			},
+			fontStyle: function(claim) {
+				return claim.data.assumption ? 'italic' : '';
+			},
+			border: function(claim) {
+				if (claim.data.scope) {
+					if (!(claim.data.scope in scopeStyles))
+						scopeStyles[claim.data.scope] = colours.pop();
+					
+					return scopeStyles[claim.data.scope];
+				}
+
+				return claim.data.assumption ? '#ccc' : 'black';
+			}
 		},
 		relation: {
-			size: 5
+			size: 5,
+			color: function(relation) {
+				return relation.data.assumption ? '#ccc' : 'black';
+			}
 		}
 	};
 
@@ -157,14 +198,14 @@ function Graph(container)
 }
 
 Graph.prototype = {
-	addClaim: function(text) {
-		var claim = new Claim(this, text);
+	addClaim: function(text, data) {
+		var claim = new Claim(this, text, data);
 		this.claims.push(claim);
 		this.update();
 		return claim;
 	},
 
-	addRelation: function(claim, target, type) {
+	addRelation: function(claim, target, type, data) {
 		if (Array.isArray(claim)) {
 			if (claim.length === 0) {
 				return null;
@@ -174,10 +215,10 @@ Graph.prototype = {
 				var compound = this.addClaim('&');
 
 				claim.forEach(function(claim) {
-					this.addRelation(claim, compound, null);
+					this.addRelation(claim, compound, null, data);
 				}, this);
 
-				return this.addRelation(compound, target, type);
+				return this.addRelation(compound, target, type, Object.assign({}, data, {merged: true}));
 			}
 			else {
 				// Treat it as a single argument
@@ -185,7 +226,13 @@ Graph.prototype = {
 			}
 		}
 
-		var relation = new Relation(this, claim, target, type);
+		if (!(claim instanceof Claim))
+			throw new TypeError('Claim should be instance of Claim, is ' + typerepr(target));
+
+		if (!(target instanceof Claim) && !(target instanceof Relation))
+			throw new TypeError('Target should be instance of Claim or Relation, is ' + typerepr(target));
+
+		var relation = new Relation(this, claim, target, type, data);
 		this.relations.push(relation);
 		this.update();
 		return relation;
@@ -242,13 +289,7 @@ Graph.prototype = {
 				&& e.offsetY < claim.y + claim.height;
 		});
 
-		if (!claim) {
-			if (this.selectedClaims.length != 0) {
-				this.selectedClaims = [];
-				this.update();
-			}
-		}
-		else if (!this.selectedClaims.includes(claim)) {
+		if (claim && !this.selectedClaims.includes(claim)) {
 			if (e.shiftKey)
 				this.selectedClaims.push(claim);
 			else
@@ -313,7 +354,22 @@ Graph.prototype = {
 
 		this.canvas.style.cursor = 'default';
 
-		if (this.selectedClaims.length > 0) {
+		if (!this.wasDragging) {
+			var claim = this.claims.find(function(claim) {
+				return e.offsetX > claim.x
+					&& e.offsetY > claim.y
+					&& e.offsetX < claim.x + claim.width
+					&& e.offsetY < claim.y + claim.height;
+			});
+
+			if (!claim) {
+				if (this.selectedClaims.length != 0) {
+					this.selectedClaims = [];
+					this.update();
+				}
+			}
+		}
+		else if (this.selectedClaims.length > 0) {
 			this.selectedClaims.forEach(function(claim) {
 				claim.ax += claim.dx;
 				claim.ay += claim.dy;
@@ -323,7 +379,7 @@ Graph.prototype = {
 
 			this.fire('drop');
 		}
-
+		
 		this.dragStartPosition = null;
 	},
 
@@ -498,11 +554,7 @@ Graph.prototype = {
 
 	draw: function() {
 		var ctx = this.context,
-			padding = this.style.claim.padding,
-			scale = this.style.scale,
-			claimColor = this.style.claim.background,
-			claimBorder = this.style.claim.border,
-			arrowRadius = this.style.relation.size;
+			scale = this.style.scale;
 
 		// Clear the canvas
 		ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -510,13 +562,13 @@ Graph.prototype = {
 		// Update the size of all the claim boxes
 		this.updateClaimSizes();
 
-		this.drawClaims();
-
 		ctx.strokeStyle = '#000';
 		ctx.fillStyle = 'black';
 		ctx.lineWidth = scale * 1;
 
 		this.drawRelations();
+
+		this.drawClaims();
 
 		this.drawSelection();
 
@@ -532,6 +584,7 @@ Graph.prototype = {
 			claimBorder = this.style.claim.border,
 			fontColor = this.style.claim.fontColor,
 			fontSize = this.style.claim.fontSize,
+			fontStyle = this.style.claim.fontStyle,
 			lineHeight = this.style.claim.lineHeight;
 
 		// Sort claims with last selected drawn last (on top)
@@ -539,13 +592,10 @@ Graph.prototype = {
 			return this.selectedClaims.indexOf(a) - this.selectedClaims.indexOf(b); 
 		}.bind(this));
 
-		// Set the font
-		ctx.font = (scale * fontSize) + 'px sans-serif';
-
 		// Draw all claims
 		this.claims.forEach(function(claim) {
 			// Draw the background
-			ctx.fillStyle = claimColor;
+			ctx.fillStyle = claimColor(claim);
 			ctx.fillRect(
 				scale * claim.x,
 				scale * claim.y,
@@ -553,7 +603,7 @@ Graph.prototype = {
 				scale * claim.height);
 
 			// Draw the border
-			ctx.strokeStyle = claimBorder;
+			ctx.strokeStyle = claimBorder(claim);
 			ctx.lineWidth = scale * 1;
 			ctx.strokeRect(
 				scale * claim.x,
@@ -561,8 +611,11 @@ Graph.prototype = {
 				scale * claim.width,
 				scale * claim.height);
 
+			// Set the font
+			ctx.font = [fontStyle(claim), (scale * fontSize) + 'px','sans-serif'].join(' ');
+
 			// Draw the inner text
-			ctx.fillStyle = fontColor;
+			ctx.fillStyle = fontColor(claim);
 			claim.text.forEach(function(line, i) {
 				ctx.fillText(line,
 					scale * (claim.x + padding),
@@ -584,10 +637,10 @@ Graph.prototype = {
 		// Draw an extra outline for the selected claims
 		this.selectedClaims.forEach(function(claim) {
 			ctx.strokeRect(
-				scale * claim.x,
-				scale * claim.y,
-				scale * claim.width,
-				scale * claim.height);
+				scale * (claim.x - 2),
+				scale * (claim.y - 2),
+				scale * (claim.width + 4),
+				scale * (claim.height + 4));
 		});
 	},
 
@@ -595,6 +648,7 @@ Graph.prototype = {
 	{
 		var ctx = this.context,
 			scale = this.style.scale,
+			relationColor = this.style.relation.color,
 			arrowRadius = this.style.relation.size;
 
 		// Draw all the relation arrows
@@ -612,6 +666,8 @@ Graph.prototype = {
 
 			ctx.beginPath();
 			ctx.moveTo(scale * s.x, scale * s.y);
+
+			ctx.strokeStyle = relationColor(relation);
 
 			// To almost the target (but a bit less)
 			var angle = Math.atan2(

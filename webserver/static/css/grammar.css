@@ -24,6 +24,59 @@ ul.attacks li:before {
 }
 
 .network {
-	width: 100%;
+	/*width: 100%;*/
 	height: 400px;
+    margin: 0 -28px;
+}
+
+.list-group-item:first-child .network {
+    margin-top: -23px;
+}
+
+.list-group-item:last-child .network {
+    margin-bottom: -23px;
+}
+
+.network canvas:focus {
+    outline: 1px dashed #ccc;
+}
+
+.instance-list {
+    /*display: none;*/
+}
+
+.example-sentence {
+    cursor: pointer;
+}
+
+.example-sentence:hover {
+    text-decoration: underline;
+}
+
+.example-sentence.test-error::before,
+.example-sentence.test-valid::before,
+.example-sentence.test-ambiguous::before {
+    content: '';
+    display: inline-block;
+    margin-right: 1ch;
+    padding: 0 4px;
+    font-size: 0.8em;
+    color: #333;
+    border-radius: 2px;
+    background: grey;
+}
+
+.example-sentence.test-error::before {
+    content: 'error';
+    background: #f2dede;
+}
+
+.example-sentence.test-valid::before {
+    content: 'ok';
+    background: #dff0d8;
+}
+
+.example-sentence.test-ambiguous::before {
+    content: 'ambiguous';
+    background: #fcf8e3;
 }
