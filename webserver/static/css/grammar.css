@@ -27,6 +27,8 @@ ul.attacks li:before {
 	/*width: 100%;*/
 	height: 400px;
     margin: 0 -28px;
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 
 .list-group-item:first-child .network {
@@ -35,6 +37,11 @@ ul.attacks li:before {
 
 .list-group-item:last-child .network {
     margin-bottom: -23px;
+}
+
+.network canvas {
+    width: auto;
+    height: 100%;
 }
 
 .network canvas:focus {

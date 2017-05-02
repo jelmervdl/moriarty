@@ -116,8 +116,6 @@ function Graph(container)
 	this.container = container;
 
 	this.canvas = document.createElement('canvas');
-	this.canvas.style.width = '100%';
-	this.canvas.style.height = '100%';
 	this.canvas.tabIndex = 1;
 	this.container.appendChild(this.canvas);
 
@@ -186,11 +184,11 @@ function Graph(container)
 		}
 	};
 
-	this.input = document.createElement('input');
-	this.input.type = 'text';
-	this.input.style.position = 'absolute';
-	this.input.style.display = 'none';
-	this.canvas.parentNode.appendChild(this.input);
+	// this.input = document.createElement('input');
+	// this.input.type = 'text';
+	// this.input.style.position = 'absolute';
+	// this.input.style.display = 'none';
+	// this.canvas.parentNode.appendChild(this.input);
 
 	window.addEventListener('resize', this.resize.bind(this));
 
@@ -468,7 +466,10 @@ Graph.prototype = {
 	},
 
 	resize: function() {
-		window.requestAnimationFrame(this.updateCanvasSize.bind(this));
+		window.requestAnimationFrame(() => {
+			this.updateCanvasSize();
+			this.draw();
+		});
 	},
 
 	fit: function(padding) {
@@ -498,17 +499,17 @@ Graph.prototype = {
 		padding = padding || 0;
 
 		// Find initial offsets
-		var startY = this.claims.map(function(claim) { return claim.y; }).min();
+		const startY = this.claims.map(claim => claim.y).min();
 
 		// Remove that empty offset
-		this.claims.forEach(function(claim) {
+		this.claims.forEach(claim => {
 			claim.setPosition(
 				claim.x,
-				claim.y - startY + padding);
+				claim.y - startY + padding * this.style.scale);
 		});
 
 		// Find outer limits
-		var height = this.claims.map(function(claim) { return claim.y + claim.height; }).max();
+		const height = this.claims.map(claim => claim.y + claim.height).max();
 
 		this.container.style.height = padding + height + 'px';
 		this.resize();
@@ -519,9 +520,13 @@ Graph.prototype = {
 	},
 
 	updateCanvasSize: function(e) {
-		this.canvas.width = this.style.scale * this.container.clientWidth;
-		this.canvas.height = this.style.scale * this.container.clientHeight;
-		this.update();
+		this.canvas.width = this.style.scale * Math.max(
+			this.claims.map(claim => claim.x + claim.width).max(),
+			this.container.clientWidth);
+
+		this.canvas.height = this.style.scale * Math.max(
+			this.claims.map(claim => claim.y + claim.height).max(),
+			this.container.clientHeight);
 	},
 
 	updateClaimSizes: function() {
@@ -556,11 +561,14 @@ Graph.prototype = {
 		var ctx = this.context,
 			scale = this.style.scale;
 
-		// Clear the canvas
-		ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
 		// Update the size of all the claim boxes
 		this.updateClaimSizes();
+
+		// Make sure all the boxes will fit inside the canvas
+		this.updateCanvasSize();
+
+		// Clear the canvas
+		ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
 		ctx.strokeStyle = '#000';
 		ctx.fillStyle = 'black';
@@ -756,3 +764,8 @@ Graph.prototype = {
 	}
 }
 
+if (typeof exports !== 'undefined') {
+	exports.Claim = Claim;
+	exports.Relation = Relation;
+	exports.Graph = Graph;
+}
