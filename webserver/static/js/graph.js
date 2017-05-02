@@ -16,22 +16,19 @@ Claim.prototype = {
 		this.ax = x;
 		this.ay = y;
 	},
+	
 	delete: function() {
 		// Remove the claims from the graph
-		this.graph.claims = this.graph.claims.filter(function(claim) {
-			return claim !== this;
-		}, this);
+		this.graph.claims = this.graph.claims.filter(claim => claim !== this);
 
 		// Also from the current selection
-		this.graph.selectedClaims = this.graph.selectedClaims.filter(function(claim) {
-			return claim !== this;
-		}, this);
+		this.graph.selectedClaims = this.graph.selectedClaims.filter(claim => claim !== this);
 
 		// And delete any of the relations that are connected to this claim
-		this.graph.relations.forEach(function(relation) {
+		this.graph.relations.forEach(relation => {
 			if (relation.claim === this || relation.target === this)
 				relation.delete();
-		}, this);
+		});
 	},
 	
 	get x() {
@@ -197,7 +194,7 @@ function Graph(container)
 
 Graph.prototype = {
 	addClaim: function(text, data) {
-		var claim = new Claim(this, text, data);
+		let claim = new Claim(this, text, data);
 		this.claims.push(claim);
 		this.update();
 		return claim;
@@ -238,14 +235,10 @@ Graph.prototype = {
 
 	findRootClaims: function() {
 		// Find all claims that are the source for a relation
-		var sources = this.relations.map(function(relation) {
-			return relation.claim;
-		});
+		const sources = this.relations.map(relation => relation.claim);
 
 		// Now filter from all known claims those source claims
-		var roots = this.claims.filter(function(claim) {
-			return sources.indexOf(claim) === -1;
-		});
+		const roots = this.claims.filter(claim => sources.indexOf(claim) === -1);
 
 		// and we should be left with the roots
 		// (which are only attacked or supported, or neither)
@@ -262,7 +255,7 @@ Graph.prototype = {
 			criteria = [criteria];
 
 		function test(relation) {
-			return criteria.some(function(condition) {
+			return criteria.some(condition => {
 				return (!('claim' in condition) || relation.claim === condition.claim)
 				    && (!('target' in condition) || relation.target === condition.target)
 				    && (!('type' in condition || relation.type === condition.type));
@@ -280,7 +273,7 @@ Graph.prototype = {
 			y: e.offsetY
 		};
 
-		var claim = this.claims.find(function(claim) {
+		var claim = this.claims.find(claim => {
 			return e.offsetX > claim.x
 				&& e.offsetY > claim.y
 				&& e.offsetX < claim.x + claim.width
@@ -319,7 +312,7 @@ Graph.prototype = {
 
 	onMouseMove: function(e) {
 		if (this.dragStartPosition === null) {
-			if (this.claims.some(function(claim) {
+			if (this.claims.some(claim => {
 				return e.offsetX > claim.x
 					&& e.offsetY > claim.y
 					&& e.offsetX < claim.x + claim.width
@@ -329,7 +322,7 @@ Graph.prototype = {
 			else
 				this.canvas.style.cursor = 'default';	
 		} else {
-			var delta = {
+			const delta = {
 				x: e.offsetX - this.dragStartPosition.x,
 				y: e.offsetY - this.dragStartPosition.y
 			};
@@ -338,7 +331,7 @@ Graph.prototype = {
 			if (Math.abs(delta.x) > 2 || Math.abs(delta.y) > 2)
 				this.wasDragging = true;
 
-			this.selectedClaims.forEach(function(claim) {
+			this.selectedClaims.forEach(claim => {
 				claim.dx = delta.x;
 				claim.dy = delta.y;
 			});
@@ -353,7 +346,7 @@ Graph.prototype = {
 		this.canvas.style.cursor = 'default';
 
 		if (!this.wasDragging) {
-			var claim = this.claims.find(function(claim) {
+			let claim = this.claims.find(claim => {
 				return e.offsetX > claim.x
 					&& e.offsetY > claim.y
 					&& e.offsetX < claim.x + claim.width
@@ -368,7 +361,7 @@ Graph.prototype = {
 			}
 		}
 		else if (this.selectedClaims.length > 0) {
-			this.selectedClaims.forEach(function(claim) {
+			this.selectedClaims.forEach(claim => {
 				claim.ax += claim.dx;
 				claim.ay += claim.dy;
 				claim.dx = 0;
@@ -387,9 +380,7 @@ Graph.prototype = {
 		switch (e.keyCode) {
 			case 8: // Backspace
 			case 46: // Delete
-				this.selectedClaims.forEach(function(claim) {
-					claim.delete();
-				});
+				this.selectedClaims.forEach(claim => claim.delete());
 				e.preventDefault();
 				this.update();
 				break;
@@ -416,7 +407,7 @@ Graph.prototype = {
 				break;
 
 			case 40: // down
-				this.selectedClaims.forEach(function(claim) {
+				this.selectedClaims.forEach(claim => {
 					claim.ay += stepSize;
 				});
 				e.preventDefault();
@@ -424,7 +415,7 @@ Graph.prototype = {
 				break;
 
 			case 38: // up
-				this.selectedClaims.forEach(function(claim) {
+				this.selectedClaims.forEach(claim => {
 					claim.ay -= stepSize;
 				});
 				e.preventDefault();
@@ -432,7 +423,7 @@ Graph.prototype = {
 				break;
 
 			case 37: // left
-				this.selectedClaims.forEach(function(claim) {
+				this.selectedClaims.forEach(claim => {
 					claim.ax -= stepSize;
 				});
 				e.preventDefault();
@@ -440,7 +431,7 @@ Graph.prototype = {
 				break;
 
 			case 39: // right
-				this.selectedClaims.forEach(function(claim) {
+				this.selectedClaims.forEach(claim => {
 					claim.ax += stepSize;
 				});
 				e.preventDefault();
@@ -454,15 +445,11 @@ Graph.prototype = {
 	},
 
 	off: function(eventName, callback) {
-		this.listeners[eventName] = this.listeners[eventName].filter(function(registeredCallback) {
-			return callback !== registeredCallback;
-		});
+		this.listeners[eventName] = this.listeners[eventName].filter(registeredCallback => callback !== registeredCallback);
 	},
 
 	fire: function(eventName) {
-		this.listeners[eventName].forEach(function(callback) {
-			callback(this);
-		}, this);
+		this.listeners[eventName].forEach(callback => callback(this));
 	},
 
 	resize: function() {
@@ -476,19 +463,19 @@ Graph.prototype = {
 		padding = padding || 0;
 
 		// Find initial offsets
-		var startX = this.claims.map(function(claim) { return claim.x; }).min();
-		var startY = this.claims.map(function(claim) { return claim.y; }).min();
+		const startX = this.claims.map(claim => claim.x).min();
+		const startY = this.claims.map(claim => claim.y).min();
 
 		// Remove that empty offset
-		this.claims.forEach(function(claim) {
+		this.claims.forEach(claim => {
 			claim.setPosition(
 				claim.x - startX + padding,
 				claim.y - startY + padding);
 		});
 
 		// Find outer limits
-		var width = this.claims.map(function(claim) { return claim.x + claim.width; }).max();
-		var height = this.claims.map(function(claim) { return claim.y + claim.height; }).max();
+		const width = this.claims.map(claim => claim.x + claim.width).max();
+		const height = this.claims.map(claim => claim.y + claim.height).max();
 
 		this.container.style.width = padding + width + 'px';
 		this.container.style.height = padding + height + 'px';
@@ -530,25 +517,13 @@ Graph.prototype = {
 	},
 
 	updateClaimSizes: function() {
-		var ctx = this.context,
-			padding = this.style.claim.padding,
-			scale = this.style.scale,
-			fontSize = this.style.claim.fontSize,
-			lineHeight = this.style.claim.lineHeight;
+		this.context.font = (this.style.scale * this.style.claim.fontSize) + 'px sans-serif';
 
-		ctx.font = (scale * fontSize) + 'px sans-serif';
-
-		this.claims.forEach(function(claim) {
+		this.claims.forEach(claim => {
 			if (claim.width === null || claim.height === null) {
-				var textWidth = claim.text
-					.map(function(line) {
-						return ctx.measureText(line).width;
-					})
-					.reduce(function(a, b) {
-						return Math.max(a, b);
-					});
-				claim.width = textWidth / scale + 2 * padding;
-				claim.height = claim.text.length * lineHeight + 2 * padding;
+				let textWidth = claim.text.map(line => this.context.measureText(line).width).max();
+				claim.width = textWidth / this.style.scale + 2 * this.style.claim.padding;
+				claim.height = claim.text.length * this.style.claim.lineHeight + 2 * this.style.claim.padding;
 			}
 		});
 	},
@@ -558,9 +533,6 @@ Graph.prototype = {
 	},
 
 	draw: function() {
-		var ctx = this.context,
-			scale = this.style.scale;
-
 		// Update the size of all the claim boxes
 		this.updateClaimSizes();
 
@@ -568,11 +540,11 @@ Graph.prototype = {
 		this.updateCanvasSize();
 
 		// Clear the canvas
-		ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-		ctx.strokeStyle = '#000';
-		ctx.fillStyle = 'black';
-		ctx.lineWidth = scale * 1;
+		this.context.strokeStyle = '#000';
+		this.context.fillStyle = 'black';
+		this.context.lineWidth = this.style.scale * 1;
 
 		this.drawRelations();
 
@@ -596,12 +568,10 @@ Graph.prototype = {
 			lineHeight = this.style.claim.lineHeight;
 
 		// Sort claims with last selected drawn last (on top)
-		this.claims.slice().sort(function(a, b) {
-			return this.selectedClaims.indexOf(a) - this.selectedClaims.indexOf(b); 
-		}.bind(this));
+		this.claims.slice().sort((a, b) => this.selectedClaims.indexOf(a) - this.selectedClaims.indexOf(b));
 
 		// Draw all claims
-		this.claims.forEach(function(claim) {
+		this.claims.forEach(claim => {
 			// Draw the background
 			ctx.fillStyle = claimColor(claim);
 			ctx.fillRect(
@@ -643,7 +613,7 @@ Graph.prototype = {
 		ctx.strokeStyle = color;
 		
 		// Draw an extra outline for the selected claims
-		this.selectedClaims.forEach(function(claim) {
+		this.selectedClaims.forEach(claim => {
 			ctx.strokeRect(
 				scale * (claim.x - 2),
 				scale * (claim.y - 2),
@@ -660,7 +630,7 @@ Graph.prototype = {
 			arrowRadius = this.style.relation.size;
 
 		// Draw all the relation arrows
-		this.relations.forEach(function(relation) {
+		this.relations.forEach(relation => {
 			// Offset the target position of the line a bit towards the border. So that
 			// when drawing an arrow, we draw it towards the border, and not the center
 			// where it will be behind the actual box.
@@ -722,7 +692,7 @@ Graph.prototype = {
 					ctx.stroke();
 					break;
 			}
-		}, this);
+		});
 	},
 
 	offsetPosition: function(sourceBox, targetBox) {
@@ -735,15 +705,15 @@ Graph.prototype = {
 			};
 		}
 
-		var source = center(sourceBox);
-		var target = center(targetBox);
+		const source = center(sourceBox);
+		const target = center(targetBox);
 
-		var D = {
+		const D = {
 			x: source.x - target.x,
 			y: source.y - target.y
 		};
 
-		var t = {
+		let t = {
 			x: target.x + (target.x > source.x ? -0.5 : 0.5) * target.width,
 			y: target.y + (D.y / D.x) * (target.x > source.x ? -0.5 : 0.5) * target.width
 		};
