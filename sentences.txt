@@ -89,8 +89,9 @@ Socrates is mortal because all men are mortal.
 Socrates is mortal because he is a man.
 Socrates is mortal because he is a man and all men are mortal.
 Socrates is mortal because all men are mortal and he is a man.
-Socrates is mortal because he is a man, he is dead and all men are mortal.
-Socrates is mortal because all men are mortal, he is a man and he is dead.
+Socrates is mortal because he is a man, has died and all men are mortal.
+Socrates is mortal because all men are mortal, he is a man and has died.
+Socrates is mortal because he is a man and all men are mortal and because he has died.
 
 # Broken
 the queen can fly because Tweety is a bird, he has wings and she is a queen. Tweety is a queen because she is pretty.
