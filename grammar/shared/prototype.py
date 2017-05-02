@@ -14,7 +14,7 @@ class Prototype(object):
     def __eq__(self, other):
         return isinstance(other, self.__class__) \
             and self.noun == other.noun \
-            and self.article == other.article
+            and (self.article is None or other.article is None or self.article == other.article)
     
     def __str__(self):
         if self.noun.grammatical_number is 'singular':
@@ -30,7 +30,7 @@ class Prototype(object):
                 return str(self.noun.plural)
 
     def __repr__(self):
-        return "Prototype({!r})".format(self.noun)
+        return "Prototype(noun={!r}{})".format(self.noun, ' article=' + self.article if self.article else '')
 
     def _transform(self, grammatical_number):
         if self.noun.grammatical_number == grammatical_number:
