@@ -48,6 +48,16 @@ ul.attacks li:before {
     outline: 1px dashed #ccc;
 }
 
+.network .graph-text {
+    display: none;
+}
+
+.network .graph-copy-button {
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
 .instance-list {
     /*display: none;*/
 }

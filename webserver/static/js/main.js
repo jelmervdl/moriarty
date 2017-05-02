@@ -139,6 +139,17 @@ jQuery(function($) {
 
         $el.data('graph', graph);
 
+        let $button = $('<button class="btn btn-default btn-xs copy-btn graph-copy-button"></button>')
+            .prop('title', 'Copy graph to clipboard')
+            .append('<span class="glyphicon glyphicon-copy"></span>')
+            .appendTo($el);
+
+        $button.on('click', (e) => {
+            // Set the to be copied data just before the click event
+            // propagates to the Clipboard listener.
+            $button.attr('data-clipboard-text', graph.toString());
+        });
+
         return $el;
     }
 
@@ -306,6 +317,9 @@ jQuery(function($) {
                 });
         });
     });
+
+    if ('Clipboard' in window)
+        new Clipboard('.copy-btn');
 
     // var stream = new EventSource('/api/stream');
     // stream.onmessage = function(e) {

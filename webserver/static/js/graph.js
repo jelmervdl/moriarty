@@ -108,6 +108,35 @@ function typerepr(obj)
 }
 
 
+class LetterSequence {
+	constructor() {
+		this.counter = 0;
+	}
+
+	next() {
+		let val = this.toString();
+		++this.counter;
+		return val;
+	}
+
+	toString() {
+		let value = this.counter;
+		let chars = '';
+		
+		if (value === 0) {
+			return 'a';
+		}
+
+		while (value > 0) {
+			chars = ((value % 26) + 10).toString(36) + chars;
+			value = Math.floor(value / 26);
+		}
+
+		return chars;
+	}
+}
+
+
 function Graph(container)
 {
 	this.container = container;
@@ -207,7 +236,7 @@ Graph.prototype = {
 			}
 			else if (claim.length > 1) {
 				// We need a compound statement to merge stuff
-				var compound = this.addClaim('&');
+				var compound = this.addClaim('&', {compound: true});
 
 				claim.forEach(function(claim) {
 					this.addRelation(claim, compound, null, data);
@@ -731,6 +760,77 @@ Graph.prototype = {
 			};
 
 		return t;
+	},
+
+	toString: function() {
+		let variables = new LetterSequence();
+
+		let mapping = new Map();
+
+		let lines = [];
+
+		this.claims.forEach(claim => {
+			// Skip the compound nodes
+			if (claim.data.compound)
+				return;
+
+			let variable = variables.next();
+
+			let line = [variable + ':'];
+
+			mapping.set(claim, variable);
+
+			if (claim.data.assumption)
+				line.push('assume');
+
+			line.push(claim.text.join(" ").replace(/\s+\(.+?\)\s+/g, ' '));
+
+			lines.push(line.join(' '));
+		});
+
+		this.relations.forEach(relation => {
+			// Skip the relations that link to compound nodes.
+			// We handle those at the compound nodes.
+			if (relation.target.data.compound)
+				return;
+
+			let variable = variables.next();
+
+			let line = [variable + ':'];
+
+			// Save the variable for later references
+			mapping.set(relation, variable);
+
+			// Find the sources: If it is a merged relation, go
+			// to the relations that link to the originating
+			// compound claim and get their origin. Otherwise
+			// just get the origin of the relation.
+			let sources = relation.data.merged
+				? this.relations
+					.filter(rel => rel.target === relation.claim)
+					.map(rel => rel.claim)
+				: [relation.claim];
+			
+			// If either the original relation is an assumption, or
+			// it is a merged relation and all sources are assumptions,
+			// this relation will be marked as an assumption.
+			if (relation.data.assumption || relation.data.merged && sources.filter(rel => !rel.data.assumption).length == 0)
+				line.push('assume');
+
+			// Add all the variables of the sources
+			line.push.apply(line, sources.map((source) => mapping.get(source)));
+
+			// Add the type
+			line.push(relation.type + 's');
+
+			// Add the target
+			line.push(mapping.get(relation.target));
+
+			// Done!
+			lines.push(line.join(' '));
+		});
+
+		return lines.join("\n");
 	}
 }
 
