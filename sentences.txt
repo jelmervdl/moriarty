@@ -82,5 +82,17 @@ Tweety can fly because a bird can fly when it has wings and it has feathers. Twe
 Tweety can fly because a bird can fly if it is not a penguin.
 Tweety can fly because a bird can fly if it is not a penguin because it has wings.
 
+# Examples
+The act is tortious because an act is tortious when it is a violation, it is not justifiable and it is a result but the act was an omission.
+
+Socrates is mortal because all men are mortal.
+Socrates is mortal because he is a man.
+Socrates is mortal because he is a man and all men are mortal.
+Socrates is mortal because all men are mortal and he is a man.
+Socrates is mortal because he is a man, he is dead and all men are mortal.
+Socrates is mortal because all men are mortal, he is a man and he is dead.
+
 # Broken
 the queen can fly because Tweety is a bird, he has wings and she is a queen. Tweety is a queen because she is pretty.
+The act is tortious because an act is tortious when it is bad, it is sad and it is wrong.
+The act is tortious because an act is tortious when it is a violation, it is not justifiable and it is the result.
