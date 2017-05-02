@@ -93,7 +93,12 @@ Socrates is mortal because he is a man, has died and all men are mortal.
 Socrates is mortal because all men are mortal, he is a man and has died.
 Socrates is mortal because he is a man and all men are mortal and because he has died.
 
+# Unused examples
+The man is free because he has survived and because the enemy is defeated.
+The man is free because he has survived and because he defeated the enemy.
+
 # Broken
 the queen can fly because Tweety is a bird, he has wings and she is a queen. Tweety is a queen because she is pretty.
 The act is tortious because an act is tortious when it is bad, it is sad and it is wrong.
 The act is tortious because an act is tortious when it is a violation, it is not justifiable and it is the result.
+The man is free because a man is free when the country is safe.
