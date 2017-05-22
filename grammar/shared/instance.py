@@ -62,8 +62,7 @@ class Instance(object):
                     or self.pronoun == other.pronoun)
         elif self.noun is not None:
             return self.noun == other.noun \
-                or other.noun is None and other.pronoun == 'it' \
-                or other.noun is None and other.pronoun in ('he', 'she')
+                or other.noun is None and other.pronoun in ('he', 'she', 'it')
         elif self.pronoun == 'it':
             return other.pronoun == 'it'
         elif self.pronoun in ('he', 'she'):

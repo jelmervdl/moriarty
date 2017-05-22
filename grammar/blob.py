@@ -56,7 +56,7 @@ grammar = recursive.grammar | {
     
     Rule('CONDITIONAL_CLAIM', [RuleRef('BLOB')], blob_conditional_claim),
 
-    Rule('BLOB_WORD', [Expression(r'(?!because|but)')],
+    Rule('BLOB_WORD', [Expression(r'(?!because|but|except)')],
         lambda state, data: data[0].local),
     
     Rule('BLOB', [RuleRef('BLOB_WORD')],
