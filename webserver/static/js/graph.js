@@ -1,3 +1,19 @@
+(function(exports) {
+
+var requestAnimationFrame = (function() {
+	if (typeof window !== 'undefined' && 'requestAnimationFrame' in window)
+		return function(callback) {
+			window.requestAnimationFrame(callback);
+		};
+	else {
+		var timeout = null;
+		return function(callback) {
+			clearTimeout(timeout);
+			timeout = setTimeout(callback, 10);
+		};
+	}
+})();
+
 function Claim(graph, text, data)
 {
 	this.graph = graph;
@@ -104,6 +120,8 @@ function typerepr(obj)
 		return 'undefined';
 	if (obj === null)
 		return 'null';
+	if (obj.constructor)
+		return obj.constructor.name;
 	return typeof obj;
 }
 
@@ -137,13 +155,9 @@ class LetterSequence {
 }
 
 
-function Graph(container)
+function Graph(canvas)
 {
-	this.container = container;
-
-	this.canvas = document.createElement('canvas');
-	this.canvas.tabIndex = 1;
-	this.container.appendChild(this.canvas);
+	this.canvas = canvas;
 
 	this.context = this.canvas.getContext('2d');
 
@@ -159,13 +173,15 @@ function Graph(container)
 		'drop': []
 	};
 
-	this.canvas.addEventListener('mousedown', this.onMouseDown.bind(this));
-	this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
-	this.canvas.addEventListener('mouseup', this.onMouseUp.bind(this));
-	this.canvas.addEventListener('dblclick', this.onDoubleClick.bind(this));
-	this.canvas.addEventListener('keydown', this.onKeyDown.bind(this));
-	this.canvas.addEventListener('focus', this.update.bind(this));
-	this.canvas.addEventListener('blur', this.update.bind(this));
+	if ('addEventListener' in this.canvas) {
+		this.canvas.addEventListener('mousedown', this.onMouseDown.bind(this));
+		this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
+		this.canvas.addEventListener('mouseup', this.onMouseUp.bind(this));
+		this.canvas.addEventListener('dblclick', this.onDoubleClick.bind(this));
+		this.canvas.addEventListener('keydown', this.onKeyDown.bind(this));
+		this.canvas.addEventListener('focus', this.update.bind(this));
+		this.canvas.addEventListener('blur', this.update.bind(this));
+	}
 
 	var scopeStyles = {};
 
@@ -177,7 +193,8 @@ function Graph(container)
 	];
 
 	this.style = {
-		scale: window.devicePixelRatio || 1.0,
+		scale: typeof window !== 'undefined' && 'devicePixelRatio' in window ? window.devicePixelRatio : 1.0,
+		padding: 20,
 		claim: {
 			padding: 5,
 			fontSize: 13,
@@ -216,10 +233,13 @@ function Graph(container)
 	// this.input.style.display = 'none';
 	// this.canvas.parentNode.appendChild(this.input);
 
-	window.addEventListener('resize', this.resize.bind(this));
+	if (typeof window !== 'undefined' && 'addEventListener' in window)
+		window.addEventListener('resize', this.resize.bind(this));
 
 	this.updateCanvasSize();
 }
+
+Graph.Claim = Claim;
 
 Graph.prototype = {
 	addClaim: function(text, data) {
@@ -259,6 +279,7 @@ Graph.prototype = {
 		var relation = new Relation(this, claim, target, type, data);
 		this.relations.push(relation);
 		this.update();
+
 		return relation;
 	},
 
@@ -482,15 +503,13 @@ Graph.prototype = {
 	},
 
 	resize: function() {
-		window.requestAnimationFrame(() => {
+		requestAnimationFrame(() => {
 			this.updateCanvasSize();
 			this.draw();
 		});
 	},
 
-	fit: function(padding) {
-		padding = padding || 0;
-
+	fit: function() {
 		// Find initial offsets
 		const startX = this.claims.map(claim => claim.x).min();
 		const startY = this.claims.map(claim => claim.y).min();
@@ -498,22 +517,14 @@ Graph.prototype = {
 		// Remove that empty offset
 		this.claims.forEach(claim => {
 			claim.setPosition(
-				claim.x - startX + padding,
-				claim.y - startY + padding);
+				claim.x - startX,
+				claim.y - startY);
 		});
 
-		// Find outer limits
-		const width = this.claims.map(claim => claim.x + claim.width).max();
-		const height = this.claims.map(claim => claim.y + claim.height).max();
-
-		this.container.style.width = padding + width + 'px';
-		this.container.style.height = padding + height + 'px';
 		this.resize();
 	},
 
-	fitVertically: function(padding) {
-		padding = padding || 0;
-
+	fitVertically: function() {
 		// Find initial offsets
 		const startY = this.claims.map(claim => claim.y).min();
 
@@ -521,13 +532,12 @@ Graph.prototype = {
 		this.claims.forEach(claim => {
 			claim.setPosition(
 				claim.x,
-				claim.y - startY + padding * this.style.scale);
+				claim.y - startY + this.style.scale);
 		});
 
 		// Find outer limits
 		const height = this.claims.map(claim => claim.y + claim.height).max();
 
-		this.container.style.height = padding + height + 'px';
 		this.resize();
 	},
 
@@ -536,13 +546,17 @@ Graph.prototype = {
 	},
 
 	updateCanvasSize: function(e) {
-		this.canvas.width = this.style.scale * Math.max(
-			this.claims.map(claim => claim.x + claim.width).max(),
-			this.container.clientWidth);
+		const width = 2 * this.style.padding + this.claims.map(claim => claim.x + claim.width).max();
 
-		this.canvas.height = this.style.scale * Math.max(
-			this.claims.map(claim => claim.y + claim.height).max(),
-			this.container.clientHeight);
+		const height = 2 * this.style.padding + this.claims.map(claim => claim.y + claim.height).max();
+
+		this.canvas.width = this.style.scale * width;
+		this.canvas.height = this.style.scale * height;
+
+		if ('style' in this.canvas) {
+			this.canvas.style.width = width + 'px';
+			this.canvas.style.height = height + 'px';
+		}
 	},
 
 	updateClaimSizes: function() {
@@ -558,7 +572,7 @@ Graph.prototype = {
 	},
 
 	update: function() {
-		window.requestAnimationFrame(this.draw.bind(this));
+		requestAnimationFrame(this.draw.bind(this));
 	},
 
 	draw: function() {
@@ -571,6 +585,9 @@ Graph.prototype = {
 		// Clear the canvas
 		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
+		// Translate for the padding (simplifies drawing commands immensely)
+		this.context.translate(this.style.padding, this.style.padding);
+
 		this.context.strokeStyle = '#000';
 		this.context.fillStyle = 'black';
 		this.context.lineWidth = this.style.scale * 1;
@@ -580,6 +597,9 @@ Graph.prototype = {
 		this.drawClaims();
 
 		this.drawSelection();
+
+		// Undo the translation
+		this.context.setTransform(1, 0, 0, 1, 0, 0);
 
 		this.fire('draw');
 	},
@@ -636,7 +656,7 @@ Graph.prototype = {
 		var ctx = this.context,
 			scale = this.style.scale;
 
-		var color = document.activeElement == this.canvas ? 'blue' : 'gray';
+		var color = typeof document !== 'undefined' && document.activeElement == this.canvas ? 'blue' : 'gray';
 
 		ctx.lineWidth = scale * 3;
 		ctx.strokeStyle = color;
@@ -834,8 +854,8 @@ Graph.prototype = {
 	}
 }
 
-if (typeof exports !== 'undefined') {
-	exports.Claim = Claim;
-	exports.Relation = Relation;
-	exports.Graph = Graph;
-}
+exports.Claim = Claim;
+exports.Relation = Relation;
+exports.Graph = Graph;
+
+})(typeof exports !== 'undefined' ? exports : window);

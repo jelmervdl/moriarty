@@ -1,3 +1,6 @@
+(function() {
+
+var patch = (function(CanvasRenderingContext2D) {
 /**
  * Draws a path (you have to call stroke or fill) of an arrow pointed in the
  * correct direction with lines of radius r.
@@ -57,4 +60,13 @@ CanvasRenderingContext2D.prototype.cross = function(r, fromx, fromy, tox, toy)
 	this.moveTo(b.x - 0.5 * r * Math.cos(angle), b.y - 0.5 * r * Math.sin(angle));
 
 	this.lineTo(a.x - 2.5 * r * Math.cos(angle), a.y - 2.5 * r * Math.sin(angle));
-}
+};
+
+});
+
+if (typeof module !== 'undefined')
+	module.exports = patch;
+else
+	patch(window.CanvasRenderingContext2D);
+
+})();

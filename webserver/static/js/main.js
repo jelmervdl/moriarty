@@ -83,8 +83,10 @@ jQuery(function($) {
 
     function networkifyParse(parse) {
         var $el = $('<div>').addClass('network');
+
+        var $canvas = $('<canvas>').prop('tabIndex', 1).appendTo($el);
         
-        var graph = new Graph($el.get(0));
+        var graph = new Graph($canvas.get(0));
 
         var claims = {}, relations = {};
 

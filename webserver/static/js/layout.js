@@ -1,3 +1,7 @@
+(function() {
+
+var patch = (function (Graph) {
+
 Graph.prototype.layout = function()
 {
 	var graph = this;
@@ -222,4 +226,13 @@ function OutlinePainter(color) {
 // Add a few more outline drawing functions for easyness
 Spacer.prototype.drawOutline = OutlinePainter('rgba(255, 0, 255, 0.5)');
 
-Claim.prototype.drawOutline = OutlinePainter('rgba(255, 255, 0, 0.5)');
+Graph.Claim.prototype.drawOutline = OutlinePainter('rgba(255, 255, 0, 0.5)');
+
+});
+
+if (typeof module !== 'undefined')
+	module.exports = patch;
+else
+	patch(window.Graph);
+
+})();
