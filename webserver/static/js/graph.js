@@ -1,6 +1,4 @@
-(function(exports) {
-
-var requestAnimationFrame = (function() {
+var _requestAnimationFrame = (function() {
 	if (typeof window !== 'undefined' && 'requestAnimationFrame' in window)
 		return function(callback) {
 			window.requestAnimationFrame(callback);
@@ -284,6 +282,9 @@ Graph.prototype = {
 	},
 
 	findRootClaims: function() {
+		if (this.claims.length == 0)
+			return [];
+		
 		// Find all claims that are the source for a relation
 		const sources = this.relations.map(relation => relation.claim);
 
@@ -292,7 +293,11 @@ Graph.prototype = {
 
 		// and we should be left with the roots
 		// (which are only attacked or supported, or neither)
-		return roots;
+		if (roots.length > 0)
+			return roots;
+
+		// Oh crap, only circular claims. Great! Let's just take the first one added.
+		return [this.claims[0]];
 	},
 
 	findRelations: function(criteria) {
@@ -503,7 +508,7 @@ Graph.prototype = {
 	},
 
 	resize: function() {
-		requestAnimationFrame(() => {
+		_requestAnimationFrame(() => {
 			this.updateCanvasSize();
 			this.draw();
 		});
@@ -572,7 +577,7 @@ Graph.prototype = {
 	},
 
 	update: function() {
-		requestAnimationFrame(this.draw.bind(this));
+		_requestAnimationFrame(this.draw.bind(this));
 	},
 
 	draw: function() {
@@ -597,11 +602,11 @@ Graph.prototype = {
 		this.drawClaims();
 
 		this.drawSelection();
-
+		
+		this.fire('draw');
+		
 		// Undo the translation
 		this.context.setTransform(1, 0, 0, 1, 0, 0);
-
-		this.fire('draw');
 	},
 
 	drawClaims: function()
@@ -854,8 +859,8 @@ Graph.prototype = {
 	}
 }
 
-exports.Claim = Claim;
-exports.Relation = Relation;
-exports.Graph = Graph;
-
-})(typeof exports !== 'undefined' ? exports : window);
+if (typeof exports !== 'undefined') {
+	exports.Claim = Claim;
+	exports.Relation = Relation;
+	exports.Graph = Graph;
+}
