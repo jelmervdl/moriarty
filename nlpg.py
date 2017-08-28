@@ -168,12 +168,17 @@ class Parser(object):
 	def __init__(self, rules):
 		self.rules = rules
 
-	def parse(self, rule, words):
-		for acc, rem_words in self._parse(rule, rule.tokens, words):
-			if len(rem_words) == 0:
-				yield rule.template(*acc)
+	def parse(self, rule_name, words):
+		for resolution, remaining_words in self._parse(rule_name, words):
+			if len(remaining_words) == 0:
+				yield resolution
+	
+	def _parse(self, rule_name, words):
+		for rule in self.rules[rule_name]:
+			for acc, remaining_words in self._parse_rule(rule.tokens, words):
+				yield rule.template(*acc), remaining_words
 
-	def _parse(self, rule, tokens, words):
+	def _parse_rule(self, tokens, words):
 		if len(tokens) == 0:
 			yield [], words
 
@@ -181,13 +186,12 @@ class Parser(object):
 			if len(words) == 0 or not tokens[0].test(words[0]):
 				return
 			else:
-				for subacc, words_rem in self._parse(rule, tokens[1:], words[1:]):
-					yield [l(words[0])] + subacc, words_rem
+				for resolution, remaining_words in self._parse_rule(tokens[1:], words[1:]):
+					yield [l(words[0])] + resolution, remaining_words
 		else:
-			for subrule in self.rules[tokens[0]]:
-				for subacc, words_rem in self._parse(subrule, subrule.tokens, words):
-					for recacc, rec_words_rem in self._parse(rule, tokens[1:], words_rem):
-						yield [subrule.template(*subacc)] + recacc, rec_words_rem
+			for resolution, remaining_words in self._parse(tokens[0], words):
+				for continuation, cont_remaining_words in self._parse_rule(tokens[1:], remaining_words):
+					yield [resolution] + continuation, cont_remaining_words
 
 	def reverse(self, rule_name, tree):
 		debug("reverse {!r} {!r}".format(rule_name, tree))
@@ -219,8 +223,8 @@ def test_list():
 		id: str
 
 	class argument(NamedTuple):
-		claim: claim
-		reasons: List[claim]
+		claim: 'claim'
+		reasons: List['claim']
 
 	rules = ruleset([
 		rule('argument',
@@ -247,7 +251,7 @@ def test_list():
 	
 	words = "A because B and C".split(' ')
 	
-	trees = list(parser.parse(rules['argument'][0], words))
+	trees = list(parser.parse('argument', words))
 
 	print(repr(trees))
 
@@ -261,8 +265,8 @@ def test_optional():
 		id: str
 
 	class argument(NamedTuple):
-		claim: claim
-		support: claim
+		claim: 'claim'
+		support: 'claim'
 
 	rules = ruleset([
 		rule('argument',
@@ -286,7 +290,7 @@ def test_optional():
 	
 	words = "A because B".split(' ')
 	
-	trees = list(parser.parse(rules['argument'][0], words))
+	trees = list(parser.parse('argument', words))
 
 	print(repr(trees))
 
@@ -300,8 +304,8 @@ def test_recursion():
 		id: str
 
 	class argument(NamedTuple):
-		claim: claim
-		support: claim
+		claim: 'claim'
+		support: 'claim'
 
 	rules = ruleset([
 		rule('argument',
@@ -328,7 +332,7 @@ def test_recursion():
 	
 	words = "A because B because C because A".split(' ')
 	
-	trees = list(parser.parse(rules['argument'][0], words))
+	trees = list(parser.parse('argument', words))
 
 	print(repr(trees))
 
@@ -342,9 +346,9 @@ def test_ambiguity():
 		id: str
 
 	class argument(NamedTuple):
-		claim: claim
-		support: claim
-		attack: claim
+		claim: 'claim'
+		support: 'claim'
+		attack: 'claim'
 
 	rules = ruleset([
 		rule('argument',
@@ -377,7 +381,7 @@ def test_ambiguity():
 	
 	words = "A because B except C".split(' ')
 	
-	trees = list(parser.parse(rules['argument'][0], words))
+	trees = list(parser.parse('argument', words))
 
 	pprint(trees)
 
@@ -452,7 +456,7 @@ def test_combined():
 
 	words = sentence.split(' ')
 
-	trees = list(parser.parse(rules['extended_claim'][0], words))
+	trees = list(parser.parse('extended_claim', words))
 
 	pprint(trees)
 
