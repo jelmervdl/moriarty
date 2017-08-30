@@ -1,10 +1,11 @@
-from typing import NamedTuple, List
+from typing import NamedTuple, List, Set, FrozenSet, Union
 from pprint import pprint, pformat
 from collections import defaultdict
 from itertools import chain
+from functools import reduce
 
 
-DEBUG = True
+DEBUG = False
 
 
 def debug(*args, **kwargs):
@@ -205,9 +206,11 @@ class Parser(object):
 		if len(tokens) == 0:
 			if len(flat) == 0:
 				yield []
-		
+			else:
+				raise Exception('Well I did not expect this case? Should I yield nothing now?')
+
 		elif is_literal(tokens[0]):
-			resolution = tokens[0].reverse(flat[0])
+			resolution = tokens[0].reverse(flat[0] if len(flat) > 0 else None)
 			if resolution is not False:
 				for continuation in self._reverse(tokens[1:], flat[1:]):
 					yield [resolution] + continuation
@@ -424,6 +427,207 @@ def test_combined():
 		rule('claim',
 			[l('Tweety'), l('is'), l('a'), l('penguin')],
 			template(claim, id='t_is_p')),
+		rule('claim',
+			[l('Tweety'), l('is'), l('awesome')],
+			template(claim, id='t_is_a')),
+		rule('supports',
+			[],
+			tlist()),
+		rule('supports',
+			['support'],
+			tlist(0)),
+		rule('supports',
+			['support', l('and'), 'supports'],
+			tlist(0, 2)),
+		rule('support',
+			[l('because'), 'extended_claims'],
+			select(1)),
+		rule('attacks',
+			[],
+			tlist()),
+		rule('attacks',
+			['attack'],
+			tlist(0)),
+		rule('attacks',
+			['attack', l('and'), 'attacks'],
+			tlist(0, 2)),
+		rule('attack',
+			['attack_marker', 'extended_claims'],
+			select(1)),
+		rule('attack_marker', [l('but')], empty()),
+		rule('attack_marker', [l('except'), l('that')], empty())
+	])
+
+	parser = Parser(rules)
+	
+	sentence = 'Tweety can fly because Tweety is awesome and because Tweety is a bird and birds can fly but Tweety is a penguin'
+
+	words = sentence.split(' ')
+
+	trees = list(parser.parse('extended_claim', words))
+
+	pprint(trees)
+
+	for tree in trees:
+		for realisation in parser.reverse('extended_claim', tree):
+			print(' '.join(realisation))
+
+
+def test_generate():
+	class claim(NamedTuple):
+		id: str
+
+	class argument(NamedTuple):
+		claim: 'claim'
+		support: 'claim'
+		attack: 'claim'
+
+	rules = ruleset([
+		rule('argument_r',
+			['claim', 'support', 'attack_r'],
+			template(argument, claim=0, support=1, attack=2)),
+		rule('argument_r',
+			['claim', 'attack', 'support_r'],
+			template(argument, claim=0, support=2, attack=1)),
+		rule('argument',
+			['claim'],
+			template(argument, claim=0, support=None, attack=None)),
+		rule('claim', [l('A')], template(claim, id='a')),
+		rule('claim', [l('B')], template(claim, id='b')),
+		rule('claim', [l('C')], template(claim, id='c')),
+		rule('support', [], empty()),
+		rule('support', [l('because'), 'argument'], select(1)),
+		rule('attack', [], empty()),
+		rule('attack', [l('except'), 'argument'], select(1)),
+		rule('support_r', [], empty()),
+		rule('support_r', [l('because'), 'argument_r'], select(1)),
+		rule('attack_r', [], empty()),
+		rule('attack_r', [l('except'), 'argument_r'], select(1)),
+	])
+	
+	parser = Parser(rules)
+
+	tree = argument(
+		claim=claim(id='a'),
+		support=argument(
+			claim=claim(id='b'),
+			support=None,
+			attack=argument(
+				claim=claim(id='c'),
+				support=None,
+				attack=None)),
+		attack=None)
+
+	tree = argument(
+		claim=claim(id='a'),
+		support=argument(
+			claim=claim(id='b'),
+			support=argument(
+				claim=claim(id='b'),
+				support=None,
+				attack=None),
+			attack=None),
+		attack=argument(
+			claim=claim(id='c'),
+			support=None,
+			attack=None))
+
+	# tree = argument(claim=claim(id='a'), support=None, attack=None)
+	
+	for realisation in parser.reverse('argument_r', tree):
+		print(realisation)
+
+
+def test_sparselist():
+	x = sparselist()
+	x[3] = 5
+	print("{}({!r})".format(type(x), x))
+	print("{}({!r})".format(type(x[1:]), x[1:]))
+
+
+def test_boxes_and_arrows():
+	class claim(NamedTuple):
+		id: str
+
+	class argument(NamedTuple):
+		claim: 'claim'
+		attacks: List[List['argument']]
+		supports: List[List['argument']]
+
+
+	class relation(NamedTuple):
+		sources: FrozenSet['claim']
+		target: Union['claim', 'relation']
+		type: str
+
+
+	class diagram(NamedTuple):
+		claims: Set['claim']
+		relations: Set['relation']
+
+		def as_trees(self):
+			# First, find the topmost claim (the claim that is the target, but never the source)
+			roots = self.claims - frozenset(chain.from_iterable(relation.sources for relation in self.relations))
+			for root in roots:
+				yield self.as_tree(root)
+
+		def as_tree(self, root):
+			grouped = dict(support=[], attack=[])
+			for relation in self.relations:
+				if relation.target == root:
+					grouped[relation.type].append(list(self.as_tree(claim) for claim in relation.sources))
+			return argument(claim=root, supports=grouped['support'], attacks=grouped['attack'])
+
+		@classmethod
+		def from_tree(cls, tree: 'argument', diagram:'diagram'=None):
+			if diagram is None:
+				diagram = cls(set(), set())
+
+			assert isinstance(tree.claim, claim)
+			diagram.claims.add(tree.claim)
+
+			for attack in tree.attacks:
+				diagram.claims.update(arg.claim for arg in attack)
+				diagram.relations.add(relation(sources=frozenset(arg.claim for arg in attack), target=tree.claim, type='attack'))
+				for arg in attack:
+					cls.from_tree(arg, diagram)
+
+			for support in tree.supports:
+				diagram.claims.update(arg.claim for arg in support)
+				diagram.relations.add(relation(sources=frozenset(arg.claim for arg in support), target=tree.claim, type='support'))
+				for arg in support:
+					cls.from_tree(arg, diagram)
+
+			return diagram
+
+	rules = ruleset([
+		rule('extended_claims',
+			['extended_claim'],
+			tlist(0)),
+		rule('extended_claims',
+			['extended_claim', l('and'), 'extended_claims'],
+			tlist(0, 2)),
+		rule('extended_claim',
+			['claim', 'supports', 'attacks'],
+			template(argument, claim=0, supports=1, attacks=2)),
+		rule('claim',
+			[l('birds'), l('can'), l('fly')],
+			template(claim, id='b_can_f')),
+		rule('claim',
+			[l('Tweety'), l('can'), l('fly')],
+			template(claim, id='t_can_f')),
+		rule('claim',
+			[l('Tweety'), l('has'), l('wings')],
+			template(claim, id='t_has_w')),
+		rule('claim',
+			[l('Tweety'), l('is'), l('a'), l('bird')],
+			template(claim, id='t_is_b')),
+		rule('claim',
+			[l('Tweety'), l('is'), l('a'), l('penguin')],
+			template(claim, id='t_is_p')),
+		rule('claim',
+			[l('Tweety'), l('is'), l('awesome')],
+			template(claim, id='t_is_a')),
 		rule('supports',
 			[],
 			tlist()),
@@ -452,24 +656,20 @@ def test_combined():
 
 	parser = Parser(rules)
 	
-	sentence = 'Tweety can fly because Tweety is a bird and birds can fly but Tweety is a penguin'
+	sentence = 'Tweety can fly because Tweety is awesome and because Tweety is a bird and birds can fly but Tweety is a penguin'
 
 	words = sentence.split(' ')
 
 	trees = list(parser.parse('extended_claim', words))
 
-	pprint(trees)
+	# pprint(trees[0])
 
-	for tree in trees:
-		for realisation in parser.reverse('extended_claim', tree):
-			print(realisation)
-
-
-def test_sparselist():
-	x = sparselist()
-	x[3] = 5
-	print("{}({!r})".format(type(x), x))
-	print("{}({!r})".format(type(x[1:]), x[1:]))
+	for n, tree in enumerate(trees):
+		print("Tree {}:".format(n + 1))
+		diagram = diagram.from_tree(tree)
+		for tree_ in diagram.as_trees():
+			if tree is not tree_:
+				print("oh no they are different?")
 
 
 if __name__ == '__main__':
@@ -479,6 +679,8 @@ if __name__ == '__main__':
 	# test_recursion()
 	# test_ambiguity()
 	test_combined()
+	# test_generate()
+	# test_boxes_and_arrows()
 	# test_sparselist()
 
 
