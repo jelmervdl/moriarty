@@ -221,6 +221,61 @@ class Parser(object):
 					yield resolution + continuation
 
 
+class claim(NamedTuple):
+		id: str
+
+class argument(NamedTuple):
+	claim: 'claim'
+	attacks: List[List['argument']]
+	supports: List[List['argument']]
+
+
+class relation(NamedTuple):
+	sources: FrozenSet['claim']
+	target: Union['claim', 'relation']
+	type: str
+
+
+class diagram(NamedTuple):
+	claims: Set['claim']
+	relations: Set['relation']
+
+	def as_trees(self):
+		# First, find the topmost claim (the claim that is the target, but never the source)
+		roots = self.claims - frozenset(chain.from_iterable(relation.sources for relation in self.relations))
+		for root in roots:
+			yield self.as_tree(root)
+
+	def as_tree(self, root):
+		grouped = dict(support=[], attack=[])
+		for relation in self.relations:
+			if relation.target == root:
+				grouped[relation.type].append(list(self.as_tree(claim) for claim in relation.sources))
+		return argument(claim=root, supports=grouped['support'], attacks=grouped['attack'])
+
+	@classmethod
+	def from_tree(cls, tree: 'argument', diagram:'diagram'=None):
+		if diagram is None:
+			diagram = cls(set(), set())
+
+		assert isinstance(tree.claim, claim)
+		diagram.claims.add(tree.claim)
+
+		for attack in tree.attacks:
+			diagram.claims.update(arg.claim for arg in attack)
+			diagram.relations.add(relation(sources=frozenset(arg.claim for arg in attack), target=tree.claim, type='attack'))
+			for arg in attack:
+				cls.from_tree(arg, diagram)
+
+		for support in tree.supports:
+			diagram.claims.update(arg.claim for arg in support)
+			diagram.relations.add(relation(sources=frozenset(arg.claim for arg in support), target=tree.claim, type='support'))
+			for arg in support:
+				cls.from_tree(arg, diagram)
+
+		return diagram
+
+
 def test_list():
 	class claim(NamedTuple):
 		id: str
@@ -546,60 +601,6 @@ def test_sparselist():
 
 
 def test_boxes_and_arrows():
-	class claim(NamedTuple):
-		id: str
-
-	class argument(NamedTuple):
-		claim: 'claim'
-		attacks: List[List['argument']]
-		supports: List[List['argument']]
-
-
-	class relation(NamedTuple):
-		sources: FrozenSet['claim']
-		target: Union['claim', 'relation']
-		type: str
-
-
-	class diagram(NamedTuple):
-		claims: Set['claim']
-		relations: Set['relation']
-
-		def as_trees(self):
-			# First, find the topmost claim (the claim that is the target, but never the source)
-			roots = self.claims - frozenset(chain.from_iterable(relation.sources for relation in self.relations))
-			for root in roots:
-				yield self.as_tree(root)
-
-		def as_tree(self, root):
-			grouped = dict(support=[], attack=[])
-			for relation in self.relations:
-				if relation.target == root:
-					grouped[relation.type].append(list(self.as_tree(claim) for claim in relation.sources))
-			return argument(claim=root, supports=grouped['support'], attacks=grouped['attack'])
-
-		@classmethod
-		def from_tree(cls, tree: 'argument', diagram:'diagram'=None):
-			if diagram is None:
-				diagram = cls(set(), set())
-
-			assert isinstance(tree.claim, claim)
-			diagram.claims.add(tree.claim)
-
-			for attack in tree.attacks:
-				diagram.claims.update(arg.claim for arg in attack)
-				diagram.relations.add(relation(sources=frozenset(arg.claim for arg in attack), target=tree.claim, type='attack'))
-				for arg in attack:
-					cls.from_tree(arg, diagram)
-
-			for support in tree.supports:
-				diagram.claims.update(arg.claim for arg in support)
-				diagram.relations.add(relation(sources=frozenset(arg.claim for arg in support), target=tree.claim, type='support'))
-				for arg in support:
-					cls.from_tree(arg, diagram)
-
-			return diagram
-
 	rules = ruleset([
 		rule('extended_claims',
 			['extended_claim'],

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>NLPG/HASL</title>
+	</head>
+	<body>
+		<textarea name="sentence" cols="30" rows="10">Tweety can fly because birds can fly but Tweety is a penguin</textarea>
+		<button id="text-to-diagram-btn">Parse</button>
+
+		<script>
+			let textarea = document.querySelector('textarea[name=sentence]');
+
+			document.getElementById('text-to-diagram-btn').addEventListener('click', e => {
+				let request = fetch('/api/diagram', {
+					method: 'POST',
+					headers: {
+						'Accept': 'application/json',
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						'text': textarea.value.split(/\s/)
+					})
+				});
+				
+				request
+					.then(resp => resp.json())
+					.then(json => console.log(json));
+			});
+		</script>
+	</body>
+</html>
