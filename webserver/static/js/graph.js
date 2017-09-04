@@ -377,10 +377,11 @@ Graph.prototype = {
 			else
 				this.canvas.style.cursor = 'default';
 
-			if (e.shiftKey) {
+			if (e.shiftKey || e.altKey) {
 				this.cursor = {
 					x: e.offsetX,
-					y: e.offsetY
+					y: e.offsetY,
+					type: e.altKey ? Relation.ATTACK : Relation.SUPPORT
 				};
 				
 				this.update();
@@ -418,8 +419,11 @@ Graph.prototype = {
 			let claim = this.findClaimAtPosition({x: e.offsetX, y: e.offsetY});
 
 			if (claim) {
-				if (this.selectedClaims.length > 0 && e.shiftKey) {
-					this.addRelation(this.selectedClaims[0], claim, 'support');
+				if (this.selectedClaims.length > 0 && (e.shiftKey || e.altKey)) {
+					this.addRelation(
+						this.selectedClaims[0],
+						claim,
+						e.altKey ? Relation.ATTACK : Relation.SUPPORT);
 				}
 			} else {
 				if (this.selectedClaims.length != 0) {
@@ -514,6 +518,7 @@ Graph.prototype = {
 				break;
 
 			case 16: // Shift
+			case 18: // Alt
 				this.update();
 				break;
 		}
@@ -522,6 +527,7 @@ Graph.prototype = {
 	onKeyUp: function(e) {
 		switch (e.keyCode) {
 			case 16: // Shift
+			case 18: // Alt
 				this.update();
 				break;
 		}
@@ -712,10 +718,8 @@ Graph.prototype = {
 
 	drawRelations: function()
 	{
-		var ctx = this.context,
-			scale = this.style.scale,
-			relationColor = this.style.relation.color,
-			arrowRadius = this.style.relation.size;
+		let ctx = this.context,
+			relationColor = this.style.relation.color;
 
 		// Draw all the relation arrows
 		this.relations.forEach(relation => {
@@ -728,59 +732,68 @@ Graph.prototype = {
 
 			var t = this.offsetPosition(relation.claim, relation.target);
 
-			ctx.lineWidth = scale * 1;
-
-			ctx.beginPath();
-			ctx.moveTo(scale * s.x, scale * s.y);
-
 			ctx.strokeStyle = relationColor(relation);
 
-			// To almost the target (but a bit less)
-			var angle = Math.atan2(
-				t.y - s.y,
-				t.x - s.x);
-
-			switch (relation.type) {
-				case Relation.SUPPORT:
-					ctx.lineTo(
-						scale * t.x - scale * arrowRadius * Math.cos(angle),
-						scale * t.y - scale * arrowRadius * Math.sin(angle));
-					ctx.stroke();
-
-					ctx.lineWidth = scale * 2;
-					
-					ctx.arrow(scale * arrowRadius, 
-						scale * s.x,
-						scale * s.y,
-						scale * t.x,
-						scale * t.y);
-					ctx.fill();
-					break;
-
-				case Relation.ATTACK:
-					ctx.lineTo(
-						scale * t.x - scale * arrowRadius * Math.cos(angle),
-						scale * t.y - scale * arrowRadius * Math.sin(angle));
-					ctx.stroke();
-
-					ctx.lineWidth = scale * 2;
-
-					ctx.cross(0.75 * scale * arrowRadius, 
-						scale * s.x,
-						scale * s.y,
-						scale * t.x,
-						scale * t.y);
-					ctx.stroke();
-					break;
-
-				default:
-					ctx.lineTo(
-						scale * t.x,
-						scale * t.y);
-					ctx.stroke();
-					break;
-			}
+			this.drawRelationLine(s, t, relation.type);
 		});
+	},
+
+	drawRelationLine: function(s, t, type)
+	{
+		let ctx = this.context,
+			scale = this.style.scale,
+			arrowRadius = this.style.relation.size;
+
+		ctx.lineWidth = scale * 1;
+
+		ctx.beginPath();
+		ctx.moveTo(scale * s.x, scale * s.y);
+
+		// To almost the target (but a bit less)
+		let angle = Math.atan2(
+			t.y - s.y,
+			t.x - s.x);
+
+		switch (type) {
+			case Relation.SUPPORT:
+				ctx.lineTo(
+					scale * t.x - scale * arrowRadius * Math.cos(angle),
+					scale * t.y - scale * arrowRadius * Math.sin(angle));
+				ctx.stroke();
+
+				ctx.lineWidth = scale * 2;
+				
+				ctx.arrow(scale * arrowRadius, 
+					scale * s.x,
+					scale * s.y,
+					scale * t.x,
+					scale * t.y);
+				ctx.fill();
+				break;
+
+			case Relation.ATTACK:
+				ctx.lineTo(
+					scale * t.x - scale * arrowRadius * Math.cos(angle),
+					scale * t.y - scale * arrowRadius * Math.sin(angle));
+				ctx.stroke();
+
+				ctx.lineWidth = scale * 2;
+
+				ctx.cross(0.75 * scale * arrowRadius, 
+					scale * s.x,
+					scale * s.y,
+					scale * t.x,
+					scale * t.y);
+				ctx.stroke();
+				break;
+
+			default:
+				ctx.lineTo(
+					scale * t.x,
+					scale * t.y);
+				ctx.stroke();
+				break;
+		}
 	},
 
 	drawCursor: function()
@@ -789,18 +802,11 @@ Graph.prototype = {
 			return;
 
 		let ctx = this.context,
-			scale = this.style.scale,
 			relationColor = this.style.relation.color;
 
 		let claim = this.selectedClaims[0];
 
-		ctx.lineWidth = scale * 1;
-
-		ctx.beginPath();
-
-		ctx.moveTo(scale * claim.center.x, scale * claim.center.y);
-		ctx.lineTo(scale * this.cursor.x, scale * this.cursor.y);
-		ctx.stroke();
+		this.drawRelationLine(claim.center, this.cursor, this.cursor.type);
 	},
 
 	offsetPosition: function(sourceBox, targetBox) {
