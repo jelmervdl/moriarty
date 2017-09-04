@@ -165,6 +165,7 @@ function Graph(canvas)
 	this.selectedClaims = [];
 	this.dragStartPosition = null;
 	this.wasDragging = false;
+	this.cursor = null;
 
 	this.listeners = {
 		'draw': [],
@@ -176,8 +177,10 @@ function Graph(canvas)
 		this.canvas.addEventListener('mousedown', this.onMouseDown.bind(this));
 		this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
 		this.canvas.addEventListener('mouseup', this.onMouseUp.bind(this));
+		this.canvas.addEventListener('mouseout', this.onMouseOut.bind(this));
 		this.canvas.addEventListener('dblclick', this.onDoubleClick.bind(this));
 		this.canvas.addEventListener('keydown', this.onKeyDown.bind(this));
+		this.canvas.addEventListener('keyup', this.onKeyDown.bind(this));
 		this.canvas.addEventListener('focus', this.update.bind(this));
 		this.canvas.addEventListener('blur', this.update.bind(this));
 	}
@@ -255,7 +258,7 @@ Graph.prototype = {
 			}
 			else if (claim.length > 1) {
 				// We need a compound statement to merge stuff
-				var compound = this.addClaim('&', {compound: true});
+				let compound = this.addClaim('&', {compound: true});
 
 				claim.forEach(function(claim) {
 					this.addRelation(claim, compound, null, data);
@@ -321,6 +324,15 @@ Graph.prototype = {
 		return this.relations.filter(test);
 	},
 
+	findClaimAtPosition: function(pos) {
+		return this.claims.find(claim => {
+			return pos.x > claim.x
+				&& pos.y > claim.y
+				&& pos.x < claim.x + claim.width
+				&& pos.y < claim.y + claim.height;
+		});
+	},
+
 	onMouseDown: function(e) {
 		this.wasDragging = false;
 
@@ -329,12 +341,7 @@ Graph.prototype = {
 			y: e.offsetY
 		};
 
-		var claim = this.claims.find(claim => {
-			return e.offsetX > claim.x
-				&& e.offsetY > claim.y
-				&& e.offsetX < claim.x + claim.width
-				&& e.offsetY < claim.y + claim.height;
-		});
+		let claim = this.findClaimAtPosition({x: e.offsetX, y: e.offsetY});
 
 		if (claim && !this.selectedClaims.includes(claim)) {
 			if (e.shiftKey)
@@ -347,23 +354,15 @@ Graph.prototype = {
 	},
 
 	onDoubleClick: function(e) {
-		/*
-		var claim = this.claims.find(function(claim) {
-			return e.clientX > claim.x - claim.width / 2
-				&& e.clientY > claim.y - claim.height / 2
-				&& e.clientX < claim.x + claim.width / 2
-				&& e.clientY < claim.y + claim.height / 2;
-		});
+		let claim = this.findClaimAtPosition({x: e.offsetX, y: e.offsetY});
 
-		if (!claim)
+		if (claim)
 			return;
 
-		if (this.input.style.display != 'hidden')
-			this.input.blur();
+		let text = prompt('ID');
 
-		input.value = claim.text;
-		input.
-		*/
+		claim = this.addClaim(text);
+		claim.setPosition(e.offsetX, e.offsetY);
 	},
 
 	onMouseMove: function(e) {
@@ -376,7 +375,21 @@ Graph.prototype = {
 			}))
 				this.canvas.style.cursor = 'pointer';
 			else
-				this.canvas.style.cursor = 'default';	
+				this.canvas.style.cursor = 'default';
+
+			if (e.shiftKey) {
+				this.cursor = {
+					x: e.offsetX,
+					y: e.offsetY
+				};
+				
+				this.update();
+			} else {
+				if (this.cursur)
+					this.update();
+
+				this.cursor = null;
+			}
 		} else {
 			const delta = {
 				x: e.offsetX - this.dragStartPosition.x,
@@ -402,14 +415,13 @@ Graph.prototype = {
 		this.canvas.style.cursor = 'default';
 
 		if (!this.wasDragging) {
-			let claim = this.claims.find(claim => {
-				return e.offsetX > claim.x
-					&& e.offsetY > claim.y
-					&& e.offsetX < claim.x + claim.width
-					&& e.offsetY < claim.y + claim.height;
-			});
+			let claim = this.findClaimAtPosition({x: e.offsetX, y: e.offsetY});
 
-			if (!claim) {
+			if (claim) {
+				if (this.selectedClaims.length > 0 && e.shiftKey) {
+					this.addRelation(this.selectedClaims[0], claim, 'support');
+				}
+			} else {
 				if (this.selectedClaims.length != 0) {
 					this.selectedClaims = [];
 					this.update();
@@ -430,8 +442,15 @@ Graph.prototype = {
 		this.dragStartPosition = null;
 	},
 
+	onMouseOut: function(e) {
+		if (this.cursor) {
+			this.cursor = null;
+			this.update();
+		}
+	},
+
 	onKeyDown: function(e) {
-		var stepSize = 2 * this.style.scale;
+		const stepSize = 2 * this.style.scale;
 
 		switch (e.keyCode) {
 			case 8: // Backspace
@@ -491,6 +510,18 @@ Graph.prototype = {
 					claim.ax += stepSize;
 				});
 				e.preventDefault();
+				this.update();
+				break;
+
+			case 16: // Shift
+				this.update();
+				break;
+		}
+	},
+
+	onKeyUp: function(e) {
+		switch (e.keyCode) {
+			case 16: // Shift
 				this.update();
 				break;
 		}
@@ -603,6 +634,8 @@ Graph.prototype = {
 		this.drawClaims();
 
 		this.drawSelection();
+
+		this.drawCursor();
 		
 		this.fire('draw');
 		
@@ -748,6 +781,26 @@ Graph.prototype = {
 					break;
 			}
 		});
+	},
+
+	drawCursor: function()
+	{
+		if (!this.cursor || this.selectedClaims.length === 0)
+			return;
+
+		let ctx = this.context,
+			scale = this.style.scale,
+			relationColor = this.style.relation.color;
+
+		let claim = this.selectedClaims[0];
+
+		ctx.lineWidth = scale * 1;
+
+		ctx.beginPath();
+
+		ctx.moveTo(scale * claim.center.x, scale * claim.center.y);
+		ctx.lineTo(scale * this.cursor.x, scale * this.cursor.y);
+		ctx.stroke();
 	},
 
 	offsetPosition: function(sourceBox, targetBox) {
