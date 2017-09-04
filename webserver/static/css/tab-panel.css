@@ -1,0 +1,52 @@
+:host {
+	display: flex;
+	flex-wrap: wrap;
+	flex-direction: column;
+	align-content: stretch;
+}
+
+.tab-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	display: block;
+	border-bottom: 1px solid #ccc;
+	flex: 0;
+}
+
+.tab-list > li {
+	display: inline-block;
+	padding: 4px;
+}
+
+.tab-list > li[selected=true] {
+	background: #eee;
+}
+
+.panel-container {
+	flex: 1;
+	display: flex;
+}
+
+.panel-container > div {
+	display: none;
+	flex: 1;
+	flex-basis: 100%;
+	flex-direction: column;
+}
+
+.panel-container > div > textarea {
+	flex: 1 1;
+	margin:0;
+	border:0;
+	padding: 4px;
+}
+
+.panel-container > div > textarea:focus,
+.panel-container > div > canvas:focus {
+	outline: 0;
+}
+
+.panel-container > div[selected=true] {
+	display: flex;
+}

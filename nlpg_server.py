@@ -94,24 +94,21 @@ def diagram_to_json(diag):
 
 def json_to_diagram(json):
 	return diagram(
-		claims=[
-			claim(id=c.id)
+		claims=frozenset(
+			claim(id=c['id'])
 			for c in json['claims']
-		],
-		relations=[
+		),
+		relations=frozenset(
 			relation(
-				sources=[
-					[
-						claim(id=c['id'])
-						for c in source_set
-					]
-					for source_set in r['sources']
-				],
+				sources=frozenset(
+					claim(id=c['id'])
+					for c in r['sources']
+				),
 				target=claim(id=r['target']['id']),
 				type=r['type']
 			)
 			for r in json['relations']
-		]
+		)
 	)
 
 
@@ -121,8 +118,11 @@ def text_to_diagrams(text):
 
 
 def diagram_to_texts(diagram):
-	for realisation in parser.reverse(diagram):
-		yield realisation
+	# This is because a tree has a top argument, but a diagram does not. So it
+	# can be the case that an argument contains multiple trees.
+	for tree in diagram.as_trees():
+		for realisation in parser.reverse(parser.root, tree):
+			yield realisation
 
 
 app = Flask(__name__, static_folder='webserver/static')
@@ -142,7 +142,8 @@ def app_text_to_diagram():
 @app.route('/api/text', methods=['POST'])
 def app_diagram_to_text():
 	diag = json_to_diagram(request.json['diagram'])
-	return jsonify(diagram_to_texts(diag))
+	pprint(diag)
+	return jsonify(texts=list(diagram_to_texts(diag)))
 
 if __name__ == '__main__':
 	app.run()

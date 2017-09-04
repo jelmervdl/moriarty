@@ -172,6 +172,7 @@ function Graph(canvas)
 	};
 
 	if ('addEventListener' in this.canvas) {
+		this.canvas.tabIndex = -1;
 		this.canvas.addEventListener('mousedown', this.onMouseDown.bind(this));
 		this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
 		this.canvas.addEventListener('mouseup', this.onMouseUp.bind(this));
