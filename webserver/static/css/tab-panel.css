@@ -17,10 +17,20 @@
 .tab-list > li {
 	display: inline-block;
 	padding: 4px;
+	cursor: pointer;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	-o-user-select: none;
+	-user-select: none;
+}
+
+.tab-list > li:hover {
+	background: #eee;
 }
 
 .tab-list > li[selected=true] {
-	background: #eee;
+	background: #ddd;
 }
 
 .panel-container {
