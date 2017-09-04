@@ -1,4 +1,4 @@
-from flask import Flask, render_template_string, request, jsonify
+from flask import Flask, render_template_string, request, jsonify, send_from_directory
 
 from nlpg import Parser, \
 	ruleset, rule, l, \
@@ -125,7 +125,7 @@ def diagram_to_texts(diagram):
 		yield realisation
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='webserver/static')
 app.secret_key = 'notrelevant'
 app.debug = True
 
@@ -145,4 +145,4 @@ def app_diagram_to_text():
 	return jsonify(diagram_to_texts(diag))
 
 if __name__ == '__main__':
-    app.run()
+	app.run()

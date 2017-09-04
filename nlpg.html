@@ -6,9 +6,41 @@
 	<body>
 		<textarea name="sentence" cols="30" rows="10">Tweety can fly because birds can fly but Tweety is a penguin</textarea>
 		<button id="text-to-diagram-btn">Parse</button>
-
+	
+		<script src="/static/js/canvas.js"></script>
+		<script src="/static/js/array.js"></script>
+		<script src="/static/js/graph.js"></script>
+		<script src="/static/js/layout.js"></script>
 		<script>
 			let textarea = document.querySelector('textarea[name=sentence]');
+
+			function createGraph(diagram) {
+				let canvas = document.createElement('canvas');
+				document.body.appendChild(canvas);
+
+				let graph = new Graph(canvas);
+
+				let instances = {
+					claim: {},
+					relation: {}
+				};
+
+				diagram.claims.forEach(claim => {
+					instances.claim[claim.id] = graph.addClaim(claim.id);
+				});
+
+				diagram.relations.forEach(relation => {
+					instances.relation[relation.id]= graph.addRelation(
+						relation.sources.map(source => instances[source.isa][source.id]),
+						instances[relation.target.isa][relation.target.id],
+						relation.type
+					);
+				});
+
+				graph.layout().apply();
+
+        		graph.fitVertically(10);
+			}
 
 			document.getElementById('text-to-diagram-btn').addEventListener('click', e => {
 				let request = fetch('/api/diagram', {
@@ -22,9 +54,15 @@
 					})
 				});
 				
-				request
-					.then(resp => resp.json())
-					.then(json => console.log(json));
+				let data = request.then(resp => resp.json());
+
+				// Log to console
+				data.then(json => console.log(json));
+
+				// Draw diagrams
+				data.then(json => {
+					json.diagrams.forEach(createGraph);
+				});
 			});
 		</script>
 	</body>
