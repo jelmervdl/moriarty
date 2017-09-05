@@ -180,7 +180,7 @@ function Graph(canvas)
 		this.canvas.addEventListener('mouseout', this.onMouseOut.bind(this));
 		this.canvas.addEventListener('dblclick', this.onDoubleClick.bind(this));
 		this.canvas.addEventListener('keydown', this.onKeyDown.bind(this));
-		this.canvas.addEventListener('keyup', this.onKeyDown.bind(this));
+		this.canvas.addEventListener('keyup', this.onKeyUp.bind(this));
 		this.canvas.addEventListener('focus', this.update.bind(this));
 		this.canvas.addEventListener('blur', this.update.bind(this));
 	}
@@ -326,14 +326,17 @@ Graph.prototype = {
 
 	findClaimAtPosition: function(pos) {
 		return this.claims.find(claim => {
-			return pos.x > claim.x
-				&& pos.y > claim.y
-				&& pos.x < claim.x + claim.width
-				&& pos.y < claim.y + claim.height;
+			return pos.x > claim.x + this.style.padding
+				&& pos.y > claim.y + this.style.padding
+				&& pos.x < claim.x + this.style.padding + claim.width
+				&& pos.y < claim.y + this.style.padding + claim.height;
 		});
 	},
 
 	onMouseDown: function(e) {
+		if (e.altKey)
+			return;
+
 		this.wasDragging = false;
 
 		this.dragStartPosition = {
@@ -367,29 +370,19 @@ Graph.prototype = {
 
 	onMouseMove: function(e) {
 		if (this.dragStartPosition === null) {
-			if (this.claims.some(claim => {
-				return e.offsetX > claim.x
-					&& e.offsetY > claim.y
-					&& e.offsetX < claim.x + claim.width
-					&& e.offsetY < claim.y + claim.height;
-			}))
+			if (this.findClaimAtPosition({x: e.offsetX, y: e.offsetY}))
 				this.canvas.style.cursor = 'pointer';
 			else
 				this.canvas.style.cursor = 'default';
 
-			if (e.shiftKey || e.altKey) {
+			if (e.altKey) {
 				this.cursor = {
-					x: e.offsetX,
-					y: e.offsetY,
-					type: e.altKey ? Relation.ATTACK : Relation.SUPPORT
+					x: e.offsetX - this.style.padding,
+					y: e.offsetY - this.style.padding,
+					type: e.shiftKey ? Relation.ATTACK : Relation.SUPPORT
 				};
 				
 				this.update();
-			} else {
-				if (this.cursur)
-					this.update();
-
-				this.cursor = null;
 			}
 		} else {
 			const delta = {
@@ -418,15 +411,15 @@ Graph.prototype = {
 		if (!this.wasDragging) {
 			let claim = this.findClaimAtPosition({x: e.offsetX, y: e.offsetY});
 
-			if (claim) {
-				if (this.selectedClaims.length > 0 && (e.shiftKey || e.altKey)) {
+			if (e.altKey) {
+				if (claim && this.selectedClaims.length > 0) {
 					this.addRelation(
 						this.selectedClaims[0],
 						claim,
-						e.altKey ? Relation.ATTACK : Relation.SUPPORT);
+						e.shiftKey ? Relation.ATTACK : Relation.SUPPORT);
 				}
 			} else {
-				if (this.selectedClaims.length != 0) {
+				if (!claim && this.selectedClaims.length != 0) {
 					this.selectedClaims = [];
 					this.update();
 				}
@@ -528,6 +521,7 @@ Graph.prototype = {
 		switch (e.keyCode) {
 			case 16: // Shift
 			case 18: // Alt
+				this.cursor = null;
 				this.update();
 				break;
 		}
@@ -547,7 +541,6 @@ Graph.prototype = {
 
 	resize: function() {
 		_requestAnimationFrame(() => {
-			this.updateCanvasSize();
 			this.draw();
 		});
 	},
@@ -629,7 +622,9 @@ Graph.prototype = {
 		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
 		// Translate for the padding (simplifies drawing commands immensely)
-		this.context.translate(this.style.padding, this.style.padding);
+		this.context.translate(
+			this.style.padding * this.style.scale,
+			this.style.padding * this.style.scale);
 
 		this.context.strokeStyle = '#000';
 		this.context.fillStyle = 'black';

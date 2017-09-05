@@ -60,6 +60,26 @@
 		<script src="/static/js/layout.js"></script>
 		<script src="/static/js/tab-panel.js"></script>
 		<script>
+			(function(Graph) {
+				let pw, ph = null;
+
+				Graph.prototype.updateCanvasSize = function(e) {
+					const width = this.canvas.offsetWidth;
+					const height = this.canvas.offsetHeight;
+
+					if (pw == width && ph == height)
+						return;
+
+					[pw, ph] = [width, height];
+
+					this.canvas.width = this.style.scale * width;
+					this.canvas.height = this.style.scale * height;
+
+					this.canvas.style.width = '100%';
+					this.canvas.style.height = '100%';
+				};
+			})(Graph);
+
 			let realisationPanel = document.querySelector('.realisations');
 
 			let diagramPanel = document.querySelector('.diagrams');
