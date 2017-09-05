@@ -246,11 +246,13 @@ class diagram(NamedTuple):
 		for root in roots:
 			yield self.as_tree(root)
 
-	def as_tree(self, root):
+	def as_tree(self, root, visited = frozenset()):
 		grouped = dict(support=[], attack=[])
 		for relation in self.relations:
 			if relation.target == root:
-				grouped[relation.type].append(list(self.as_tree(claim) for claim in relation.sources))
+				grouped[relation.type].append(list(
+					self.as_tree(claim, visited | frozenset([claim])) if claim not in visited else argument(claim=claim, supports=[], attacks=[])
+					for claim in relation.sources))
 		return argument(claim=root, supports=grouped['support'], attacks=grouped['attack'])
 
 	@classmethod
