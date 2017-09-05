@@ -60,8 +60,14 @@ customElements.define('x-tab-panel', class extends HTMLElement {
 
 	set selectedTab(selected) {
 		this.tabs.forEach(tab => {
+			if (tab.panel.getAttribute('selected') == 'true')
+				tab.panel.dispatchEvent(new CustomEvent('hide'));
+
 			tab.label.setAttribute('selected', tab == selected);
 			tab.panel.setAttribute('selected', tab == selected);
+
+			if (tab == selected) 
+				tab.panel.dispatchEvent(new CustomEvent('show'));
 		});
 	}
 

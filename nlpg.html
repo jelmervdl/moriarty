@@ -61,16 +61,14 @@
 		<script src="/static/js/tab-panel.js"></script>
 		<script>
 			(function(Graph) {
-				let pw, ph = null;
-
 				Graph.prototype.updateCanvasSize = function(e) {
-					const width = this.canvas.offsetWidth;
-					const height = this.canvas.offsetHeight;
+					const width = this.canvas.parentNode.offsetWidth;
+					const height = this.canvas.parentNode.offsetHeight;
 
-					if (pw == width && ph == height)
+					if (this._pw == width && this._ph == height)
 						return;
 
-					[pw, ph] = [width, height];
+					[this._pw, this._ph] = [width, height];
 
 					this.canvas.width = this.style.scale * width;
 					this.canvas.height = this.style.scale * height;
@@ -104,6 +102,8 @@
 				canvas.height = 600;
 
 				let graph = new Graph(canvas);
+
+				tab.addEventListener('show', graph.draw.bind(graph));
 
 				tab.diagram = graph;
 
@@ -150,9 +150,11 @@
 
 				// Draw diagrams
 				data.then(json => {
-					diagramPanel.clear();
 					json.diagrams.forEach(createDiagram);
 				});
+
+				// But first, clear the current one
+				diagramPanel.clear();
 			});
 
 			document.getElementById('diagram-to-text-btn').addEventListener('click', e => {
@@ -208,9 +210,11 @@
 
 				// // Draw diagrams
 				data.then(json => {
-					realisationPanel.clear();
 					json.texts.forEach(createRealisation);
 				});
+
+				// Clear the current one
+				realisationPanel.clear();
 			});
 		</script>
 	</body>

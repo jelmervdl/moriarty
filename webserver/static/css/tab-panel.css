@@ -12,11 +12,13 @@
 	display: block;
 	border-bottom: 1px solid #ccc;
 	flex: 0;
+	min-height: 2em;
 }
 
 .tab-list > li {
 	display: inline-block;
-	padding: 4px;
+	padding: 0 4px;
+	line-height: 2em;
 	cursor: pointer;
 	-webkit-user-select: none;
 	-moz-user-select: none;
