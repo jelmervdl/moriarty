@@ -15,11 +15,23 @@ def debug(*args, **kwargs):
 
 
 class sparselist(list):
+	"""
+	Like a normal list, except it extends automatically if you try to set an
+	index that does not exist yet. Unset indexes are None. It throws an
+	exception if you try to set an already set index with another value. (In 
+	that sense it is pretty read-only.)
+	You can combine multiple sparselists using the union (or) operator. Note
+	that the index-can-only-be-set-once rule still applies, so this operation
+	only succeeds if there are no overlapping indexes between the two lists.
+	"""
+
 	def __setitem__(self, index, value):
+		assert isinstance(index, int)
 		missing = index - len(self) + 1
 		if missing > 0:
 			self.extend([None] * missing)
-
+		if self[index] is not None:
+			raise Exception('Trying to overwrite already set value in sparselist')
 		list.__setitem__(self, index, value)
 	
 	def __getitem__(self, index):
@@ -30,6 +42,16 @@ class sparselist(list):
 				return list.__getitem__(self, index)
 			except IndexError:
 				return None
+
+	def __or__(self, other):
+		assert isinstance(other, type(self))
+		merged = type(self)(self)
+		if len(merged) < len(other):
+			merged.extend([None] * (len(other) - len(merged)))
+		for n in range(len(other)):
+			if other[n] is not None:
+				merged[n] = other[n]
+		return merged
 
 
 class rule(object):
@@ -70,32 +92,43 @@ class l(terminal):
 		return self.word
 
 
+class NoMatchException(Exception):
+	pass
+
+
 class template(object):
 	def __init__(self, pred, **kwargs):
 		self.pred = pred
 		self.template = kwargs
 
-	def __call__(self, *args):
+	def consume(self, args):
 		try:
-			return self.pred(**{
-				name: (args[token] if isinstance(token, int) else token)
-				for name, token in self.template.items()
-			})
+			kwargs = dict()
+			for name, token in self.template.items():
+				if isinstance(token, int):
+					kwargs[name] = args[token]
+				elif is_consumer(token):
+					kwargs[name] = token.consume(args)
+				else:
+					kwargs[name] = token
+			return self.pred(**kwargs)
 		except IndexError:
 			raise Exception("Not enough arguments for template {!r}: {}".format(self.template, pformat(args)))
 
 	def reverse(self, structure):
 		debug("template.reverse {!r} {!r}".format(self.pred, structure))
 		if type(structure) != self.pred:
-			return False
+			raise NoMatchException()
 
 		flat = sparselist()
 		for name, index in self.template.items():
 			if isinstance(index, int):
 				flat[index] = getattr(structure, name)
+			elif is_reversable(index):
+				flat = flat | index.reverse(getattr(structure, name))
 			else:
 				if getattr(structure, name) != index:
-					return False
+					raise NoMatchException("Property {} does not match ({!r} in structure vs {!r} in template)".format(name, getattr(structure, name), index))
 		return flat
 
 
@@ -103,7 +136,7 @@ class select(object):
 	def __init__(self, index):
 		self.index = index
 
-	def __call__(self, *args):
+	def consume(self, args):
 		return args[self.index]
 
 	def reverse(self, structure):
@@ -115,43 +148,37 @@ class select(object):
 class tlist(object):
 	def __init__(self, head = None, rest = None):
 		if head is None:
-			self.head_index = None
+			self.head_index = []
 		elif isinstance(head, list):
 			self.head_index = head
 		else:
 			self.head_index = [head]
 		self.rest_index = rest
 
-	def __call__(self, *args):
-		if self.head_index is None:
-			return tuple()
-		elif self.rest_index is None:
+	def consume(self, args):
+		if self.rest_index is None:
 			return tuple(args[index] for index in self.head_index)
 		else:
 			return tuple(args[index] for index in self.head_index) + args[self.rest_index]
 
 	def reverse(self, structure):
 		if not isinstance(structure, Sequence):
-			return False
+			raise NoMatchException('structure is not a sequence')
 
 		flat = sparselist()
-		
-		if self.head_index is None:
-			if len(structure) > 0:
-				return False
+
+		if len(structure) < len(self.head_index):
+			raise NoMatchException('head_index is longer than structure')
 		else:
-			if len(structure) < len(self.head_index):
-				return False
-			else:
-				for n, index in enumerate(self.head_index):
-					flat[index] = structure[n]
+			for n, index in enumerate(self.head_index):
+				flat[index] = structure[n]
 
 		if self.rest_index is None:
-			if len(structure) > 1:
-				return False
+			if len(structure) > len(self.head_index):
+				raise NoMatchException('structure is longer while expected end of list')
 		else:
-			if len(structure) == 1:
-				return False
+			if len(structure) <= len(self.head_index):
+				raise NoMatchException('structure is about the length of the head_index while expecting also a tail')
 			else:
 				flat[self.rest_index] = structure[len(self.head_index):]
 
@@ -159,14 +186,14 @@ class tlist(object):
 
 
 class empty(object):
-	def __call__(self, *args):
+	def consume(self, args):
 		return None
 
 	def reverse(self, structure):
 		if structure is None:
 			return []
 		else:
-			return False
+			raise NoMatchException()
 
 
 class ruleset(object):
@@ -189,6 +216,14 @@ def is_literal(obj):
 	return isinstance(obj, terminal)
 
 
+def is_consumer(obj):
+	return hasattr(obj, 'consume')
+
+
+def is_reversable(obj):
+	return hasattr(obj, 'reverse')
+
+
 class ParseException(Exception):
 	pass
 
@@ -206,7 +241,7 @@ class Parser(object):
 		for rule in self.rules[rule_name]:
 			try:
 				for acc, remaining_words in self._parse_rule(rule.tokens, words):
-					yield rule.template(*acc), remaining_words
+					yield rule.template.consume(acc), remaining_words
 			except:
 				raise ParseException("Error while parsing {}<{!r}>".format(rule_name, rule))
 
@@ -228,9 +263,12 @@ class Parser(object):
 	def reverse(self, rule_name, tree):
 		debug("reverse {!r} {!r}".format(rule_name, tree))
 		for rule in self.rules[rule_name]:
-			flat = rule.template.reverse(tree)
-			if flat is not False:
+			try:
+				flat = rule.template.reverse(tree)
+				debug('<{}>.reverse({!r}) returned true, continuing with {!r}'.format(rule_name, rule, flat))
 				yield from self._reverse(rule.tokens, flat)
+			except NoMatchException as e:
+				debug('<{}>.reverse({!r}) failed because {}'.format(rule_name, rule, e))
 
 	def _reverse(self, tokens, flat):
 		assert isinstance(flat, list)
@@ -242,10 +280,12 @@ class Parser(object):
 				raise Exception('Well I did not expect this case? Should I yield nothing now?')
 
 		elif is_literal(tokens[0]):
-			resolution = tokens[0].reverse(flat[0] if len(flat) > 0 else None)
-			if resolution is not False:
+			try:
+				resolution = tokens[0].reverse(flat[0] if len(flat) > 0 else None)
 				for continuation in self._reverse(tokens[1:], flat[1:]):
 					yield [resolution] + continuation
+			except NoMatchException:
+				pass
 		
 		else:
 			for resolution in self.reverse(tokens[0], flat[0]):
