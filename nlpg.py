@@ -1,4 +1,5 @@
 from typing import NamedTuple, List, Set, FrozenSet, Union
+from collections.abc import Sequence
 from pprint import pprint, pformat
 from collections import defaultdict
 from itertools import chain
@@ -37,8 +38,22 @@ class rule(object):
 		self.tokens = tokens
 		self.template = template
 
+	def __repr__(self):
+		return "{!r}".format(self.tokens)
 
-class l(object):
+
+class terminal(object):
+	def test(self, word):
+		return False
+
+	def reverse(self, word):
+		return word
+
+	def consume(self, word):
+		return word
+
+
+class l(terminal):
 	def __init__(self, word):
 		self.word = word
 
@@ -47,6 +62,9 @@ class l(object):
 
 	def test(self, word):
 		return self.word == word
+
+	def consume(self, word):
+		return self.__class__(word)
 
 	def reverse(self, word):
 		return self.word
@@ -96,19 +114,24 @@ class select(object):
 
 class tlist(object):
 	def __init__(self, head = None, rest = None):
-		self.head_index = head
+		if head is None:
+			self.head_index = None
+		elif isinstance(head, list):
+			self.head_index = head
+		else:
+			self.head_index = [head]
 		self.rest_index = rest
 
 	def __call__(self, *args):
 		if self.head_index is None:
-			return []
+			return tuple()
 		elif self.rest_index is None:
-			return [args[self.head_index]]
+			return tuple(args[index] for index in self.head_index)
 		else:
-			return [args[self.head_index]] + args[self.rest_index]
+			return tuple(args[index] for index in self.head_index) + args[self.rest_index]
 
 	def reverse(self, structure):
-		if not isinstance(structure, list):
+		if not isinstance(structure, Sequence):
 			return False
 
 		flat = sparselist()
@@ -117,10 +140,11 @@ class tlist(object):
 			if len(structure) > 0:
 				return False
 		else:
-			if len(structure) == 0:
+			if len(structure) < len(self.head_index):
 				return False
 			else:
-				flat[self.head_index] = structure[0]
+				for n, index in enumerate(self.head_index):
+					flat[index] = structure[n]
 
 		if self.rest_index is None:
 			if len(structure) > 1:
@@ -129,7 +153,7 @@ class tlist(object):
 			if len(structure) == 1:
 				return False
 			else:
-				flat[self.rest_index] = structure[1:]
+				flat[self.rest_index] = structure[len(self.head_index):]
 
 		return flat
 
@@ -162,7 +186,11 @@ class ruleset(object):
 
 
 def is_literal(obj):
-	return isinstance(obj, l)
+	return isinstance(obj, terminal)
+
+
+class ParseException(Exception):
+	pass
 
 
 class Parser(object):
@@ -176,8 +204,11 @@ class Parser(object):
 	
 	def _parse(self, rule_name, words):
 		for rule in self.rules[rule_name]:
-			for acc, remaining_words in self._parse_rule(rule.tokens, words):
-				yield rule.template(*acc), remaining_words
+			try:
+				for acc, remaining_words in self._parse_rule(rule.tokens, words):
+					yield rule.template(*acc), remaining_words
+			except:
+				raise ParseException("Error while parsing {}<{!r}>".format(rule_name, rule))
 
 	def _parse_rule(self, tokens, words):
 		if len(tokens) == 0:
@@ -188,7 +219,7 @@ class Parser(object):
 				return
 			else:
 				for resolution, remaining_words in self._parse_rule(tokens[1:], words[1:]):
-					yield [l(words[0])] + resolution, remaining_words
+					yield [tokens[0].consume(words[0])] + resolution, remaining_words
 		else:
 			for resolution, remaining_words in self._parse(tokens[0], words):
 				for continuation, cont_remaining_words in self._parse_rule(tokens[1:], remaining_words):
@@ -202,6 +233,7 @@ class Parser(object):
 				yield from self._reverse(rule.tokens, flat)
 
 	def _reverse(self, tokens, flat):
+		assert isinstance(flat, list)
 		debug("_reverse {!r} {!r}".format(tokens, flat))
 		if len(tokens) == 0:
 			if len(flat) == 0:
