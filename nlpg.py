@@ -1,4 +1,4 @@
-from typing import NamedTuple, List, Set, FrozenSet, Union
+from typing import NamedTuple, List, Set, FrozenSet, Union, Optional
 from collections.abc import Sequence
 from pprint import pprint, pformat
 from collections import defaultdict
@@ -61,7 +61,7 @@ class rule(object):
 		self.template = template
 
 	def __repr__(self):
-		return "{!r}".format(self.tokens)
+		return "Rule<{}>{!r}".format(self.name, self.tokens)
 
 
 class terminal(object):
@@ -297,7 +297,7 @@ class claim(NamedTuple):
 		id: str
 
 class argument(NamedTuple):
-	claim: 'claim'
+	claim: claim
 	attacks: List[List['argument']]
 	supports: List[List['argument']]
 
@@ -328,7 +328,7 @@ class diagram(NamedTuple):
 		return argument(claim=root, supports=grouped['support'], attacks=grouped['attack'])
 
 	@classmethod
-	def from_tree(cls, tree: 'argument', diagram:'diagram'=None):
+	def from_tree(cls, tree: 'argument', diagram: Optional['diagram'] = None):
 		if diagram is None:
 			diagram = cls(set(), set())
 
