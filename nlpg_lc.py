@@ -1,6 +1,7 @@
 from typing import List, Any, Iterator, NamedTuple
-from nlpg import Parser, rule, terminal, select
+from nlpg import Parser, rule, terminal, l, select
 from pprint import pprint
+from collections import defaultdict
 
 # https://github.com/ssarkar2/LeftCornerParser/blob/master/LCParser.py
 
@@ -22,13 +23,21 @@ def remove_embedded_tokens(rules: List[rule]) -> List[rule]:
 
 			for token in old_rule.tokens:
 				if isinstance(token, terminal):
-					# Make up a name for the terminal rule
-					terminal_name = 't_{}'.format(hash(token))
-					# Create a new rule for the terminal
-					out.append(rule(terminal_name, [token], select(0)))
+					# Make up a name (preferably static/consistent) for the terminal rule
+					if isinstance(token, l):
+						terminal_name = 't_{}'.format(token.word)
+					else:
+						terminal_name = 't_{}'.format(hash(token))
+
+					# Create a new rule for the terminal (if there isnt already one)
+					if not any(rule.name == terminal_name for rule in out):
+						out.append(rule(terminal_name, [token], select(0)))
+
 					# 'Update' the rule that contained to terminal to refer to 
 					# the new terminal rule
 					new_rule_tokens.append(terminal_name)
+				else:
+					new_rule_tokens.append(token)
 
 			# Instead of the original rule add a copy that refers to the terminals
 			# using the terminal rules.
@@ -37,9 +46,74 @@ def remove_embedded_tokens(rules: List[rule]) -> List[rule]:
 	return out
 
 
+def find_nullables(rules: List[rule]) -> List[str]:
+	"""
+	Based on https://github.com/jeffreykegler/kollos/blob/master/notes/misc/loup2.md
+	"""
+	rules_lhs = defaultdict(list)
+	rules_rhs = defaultdict(list)
+
+	# An array of booleans, indexed by symbol ID. The boolean is ON, if the symbol has
+	# been marked "nullable", OFF otherwise.
+	nullable = set()
+
+	for rule in rules:
+		if len(rule.tokens) == 1 and isinstance(rule.tokens[0], l):
+			continue
+
+		rules_lhs[rule.name].append(rule)
+		if len(rule.tokens) == 0:
+			# Initialize the nullable array, by marking as nullable the LHS of every empty rule.
+			nullable.add(rule.name)
+		else:
+			for token in rule.tokens:
+				assert isinstance(token, str), "Expected str as token, found {!r}".format(token)
+				rules_rhs[token].append(rule)
+
+	# Create a "work stack", which will contain those symbols which still need to be
+	# worked on in order to find all nullable symbols. Initialize it by pushing all the
+	# symbols initially marked as nullable in the nullable array.
+	stack = list(nullable)
+
+	# Symbol loop: While symbols remain on the "work stack", do the following:
+	while len(stack) > 0:
+		symbol = stack.pop()
+
+		# For every rule with the work symbol on its RHS, call it the "work rule"
+		for work_rule in rules_rhs[symbol]:
+			# For every rule with the work symbol on its RHS, call it the "work rule"
+			if work_rule.name in nullable:
+				continue
+
+			# For every RHS symbol of the work rule, if it is not marked nullable,
+			# continue with the next rule of the rule loop.
+			if any(token not in nullable for token in work_rule.tokens):
+				continue
+
+			# If we reach this point, the LHS of the work rule is nullable, but is not marked nullable.
+			nullable.add(work_rule.name)
+
+			# Push the LHS of the work rule onto the "work stack".
+			stack.append(work_rule.name)
+
+	return nullable
+
+
+
+def print_chart(chart):
+	for config in chart:
+		print_config(config)
+
+
+def print_config(config):
+	print("Chart#{} (progress: {})".format(id(config), config.index))
+	for n, frame in enumerate(config.stack):
+		print("\t Frame {}: {}".format(n, frame))
+
+
 class Frame(NamedTuple):
 	rule: rule
-	index: int
+	index: int # progress of the token in rule.tokens
 	match: Any
 
 	@property
@@ -53,45 +127,50 @@ class Frame(NamedTuple):
 
 
 class Config(NamedTuple):
+	"""A possible (partial) parse"""
 	stack: List[Frame]
-	index: int
+	index: int # index of the progress word in the sentence
 
 
 class Parse(object):
 	def __init__(self, rules: List[rule], words: List[Any], goal: str):
-		self.chart = None
 		self.rules = remove_embedded_tokens(rules)
+		print("Rules:")
+		pprint(self.rules)
+		
 		self.words = list(words)
 		self.goal = goal
+		self.nullables = find_nullables(self.rules)
+		print("Nullables: {!r}".format(self.nullables))
 
 	def __iter__(self):
-		assert self.chart is None, "Parse object does not support concurrent iteration"
-
-		self.chart = [Config([], -1)]
+		chart = [Config([], 0)]
 		
-		while len(self.chart) > 0:
-			if self._has_found(self.goal):
-				yield self.chart[-1].stack[0].match
-			
-			self.step()
+		while len(chart) > 0:
+			config = chart.pop()
 
-		self.chart = None
+			if config.index == len(self.words) \
+				and len(config.stack) == 1 \
+				and config.stack[0].rule.name == self.goal \
+				and config.stack[0].complete:
+				yield config.stack[0].match
+			else:
+				configs = list(self.step(config))
+				chart.extend(configs)
+				print("Added {} new configs, chart is now {} high".format(len(configs), len(chart)))
+				print_chart(chart)
 
-	def _has_found(self, rule_name: str) -> bool:
-		return any(len(config.stack) > 0
-			  and config.stack[0].rule.name == rule_name
-			  and config.stack[0].complete
-			for config in self.chart)
-
-	def step(self):
-		config = self.chart.pop()
-		self.chart.extend(self._scan(config))
-		self.chart.extend(self._predict(config))
-		self.chart.extend(self._complete(config))
+	def step(self, config):
+		print("-------- Next step ---------")
+		print_config(config)
+		yield from self._advance(config)
+		yield from self._scan(config)
+		yield from self._predict(config)
+		yield from self._complete(config)
 
 	def _scan(self, config: Config) -> Iterator[Config]:
-		if config.index < len(self.words) - 1:
-			word = self.words[config.index + 1]
+		if config.index < len(self.words):
+			word = self.words[config.index]
 			for rule, match in self._find_rules(word):
 				yield Config(config.stack + [Frame(rule, 1, match)], config.index + 1)
 
@@ -112,24 +191,37 @@ class Parse(object):
 		rule, and if this is the case, do so.
 		"""
 		if len(config.stack) > 1:
-			if config.stack[-1].complete:
-				first, second = config.stack[:-3:-1] # last and second-last two elements
-				if not second.complete and first.rule.name == second.rule.tokens[second.index]:
-					# Append the results of the child token to the progress so far
-					match = second.match + [first.match]
+			first = config.stack[-1]
+			if first.complete:
+				for i, second in enumerate(config.stack[:-1]):
+					if not second.complete and first.rule.name == second.rule.tokens[second.index]:
+						print("Completing {!r} with {!r}".format(second.rule, first.rule))
+						# Append the results of the child token to the progress so far
+						match = second.match + [first.match]
 
-					# If this step will complete this rule, consume the result
-					if second.index + 1 == len(second.rule.tokens):
-						match = second.rule.template.consume(match)
-					
-					# Yield a new config where the last two frames, the one with the parent and the child,
-					# are replaced with one where the parent has progressed one step. 
-					yield Config(config.stack[0:-2] + [Frame(second.rule, second.index + 1, match)], config.index)
+						# If this step will complete this rule, consume the result
+						if second.index + 1 == len(second.rule.tokens):
+							print("CONSUME! CONSUME!")
+							match = second.rule.template.consume(match)
+						
+						# Yield a new config where the two frames, the one with the parent and the child,
+						# are replaced with one where the parent has progressed one step.
+						yield Config(config.stack[0:i] + config.stack[i+1:-1] + [Frame(second.rule, second.index + 1, match)], config.index)
+
+	def _advance(self, config: Config) -> Iterator[Config]:
+		if len(config.stack) > 0:
+			frame = config.stack[-1]
+			if not frame.complete:
+				if frame.rule.tokens[frame.index] in self.nullables:
+					print("Advancing nullable {!r} in {!r}".format(frame.rule.tokens[frame.index], frame.rule))
+					yield Config(config.stack[:-1] + [Frame(frame.rule, frame.index + 1, frame.match + [None])], config.index)
+
 
 	def _find_left_corner(self, corner: rule) -> Iterator[rule]:
-		print("Predicting for {}".format(corner))
+		print("Predicting for {!r}".format(corner))
 		for rule in self.rules:
 			if len(rule.tokens) > 0 and rule.tokens[0] == corner.name:
+				print("  Found {!r}".format(rule))
 				yield rule
 
 	def _find_rules(self, word: Any) -> Iterator[rule]:
@@ -144,6 +236,7 @@ class Parse(object):
 class LCParser(Parser):
 	def parse(self, rule_name, words):
 		return Parse(self.rules, words, rule_name)
+
 
 if __name__ == '__main__':
 	from nlpg import ruleset, rule, tlist, template, l, select, empty
@@ -213,16 +306,35 @@ if __name__ == '__main__':
 		rule('attack_marker', [l('except'), l('that')], empty())
 	])
 
+	start = 'extended_claim'
+
 	parser = LCParser(rules)
 	
-	sentence = 'Tweety can fly because Tweety is awesome and because Tweety is a bird and birds can fly but Tweety is a penguin'
+	sentence = 'Tweety can fly because Tweety is a bird' #and because Tweety is a bird and birds can fly but Tweety is a penguin'
+
+	# rules = ruleset([
+	# 	rule('S', ['t_claim', 'support', 'attack'], tlist(head=[0,1,2])),
+	# 	rule('support', [l('because'), 'S'], tlist(head=[0, 1])),
+	# 	rule('support', [], empty()),
+	# 	rule('attack', [l('except'), 'S'], tlist(head=[0, 1])),
+	# 	rule('attack', [], empty()),
+	# 	rule('t_claim', [l('A')], select(0)),
+	# 	rule('t_claim', [l('B')], select(0)),
+	# 	rule('t_claim', [l('C')], select(0)),
+	# ])
+
+	# start = 'S'
+
+	# parser = LCParser(rules)
+	
+	# sentence = 'A because B'
 
 	words = sentence.split(' ')
 
-	trees = list(parser.parse('extended_claim', words))
+	trees = list(parser.parse(start, words))
 
 	pprint(trees)
 
 	for tree in trees:
-		for realisation in parser.reverse('extended_claim', tree):
+		for realisation in parser.reverse(start, tree):
 			print(' '.join(realisation))
