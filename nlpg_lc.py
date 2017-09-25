@@ -169,7 +169,7 @@ class Parse(object):
 		yield from self._complete(config)
 
 	def _scan(self, config: Config) -> Iterator[Config]:
-		if config.index < len(self.words):
+		if config.index < len(self.words) and (len(config.stack) == 0 or not config.stack[-1].complete):
 			word = self.words[config.index]
 			for rule, match in self._find_rules(word):
 				yield Config(config.stack + [Frame(rule, 1, match)], config.index + 1)
