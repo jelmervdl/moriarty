@@ -135,16 +135,13 @@ class Config(NamedTuple):
 class Parse(object):
 	def __init__(self, rules: List[rule], words: List[Any], goal: str):
 		self.rules = remove_embedded_tokens(rules)
-		print("Rules:")
-		pprint(self.rules)
-		
 		self.words = list(words)
 		self.goal = goal
 		self.nullables = find_nullables(self.rules)
-		print("Nullables: {!r}".format(self.nullables))
 
 	def __iter__(self):
 		chart = [Config([], 0)]
+		counter = 0
 		
 		while len(chart) > 0:
 			config = chart.pop()
@@ -157,12 +154,12 @@ class Parse(object):
 			else:
 				configs = list(self.step(config))
 				chart.extend(configs)
-				print("Added {} new configs, chart is now {} high".format(len(configs), len(chart)))
-				print_chart(chart)
+				counter += len(configs)
+		print("Evaluated {} options".format(counter))
 
 	def step(self, config):
-		print("-------- Next step ---------")
-		print_config(config)
+		# print("-------- Next step ---------")
+		# print_config(config)
 		yield from self._advance(config)
 		yield from self._scan(config)
 		yield from self._predict(config)
@@ -195,13 +192,11 @@ class Parse(object):
 			if first.complete:
 				for i, second in enumerate(config.stack[:-1]):
 					if not second.complete and first.rule.name == second.rule.tokens[second.index]:
-						print("Completing {!r} with {!r}".format(second.rule, first.rule))
 						# Append the results of the child token to the progress so far
 						match = second.match + [first.match]
 
 						# If this step will complete this rule, consume the result
 						if second.index + 1 == len(second.rule.tokens):
-							print("CONSUME! CONSUME!")
 							match = second.rule.template.consume(match)
 						
 						# Yield a new config where the two frames, the one with the parent and the child,
@@ -213,19 +208,15 @@ class Parse(object):
 			frame = config.stack[-1]
 			if not frame.complete:
 				if frame.rule.tokens[frame.index] in self.nullables:
-					print("Advancing nullable {!r} in {!r}".format(frame.rule.tokens[frame.index], frame.rule))
 					yield Config(config.stack[:-1] + [Frame(frame.rule, frame.index + 1, frame.match + [None])], config.index)
 
 
 	def _find_left_corner(self, corner: rule) -> Iterator[rule]:
-		print("Predicting for {!r}".format(corner))
 		for rule in self.rules:
 			if len(rule.tokens) > 0 and rule.tokens[0] == corner.name:
-				print("  Found {!r}".format(rule))
 				yield rule
 
 	def _find_rules(self, word: Any) -> Iterator[rule]:
-		print("Detecting {!r}".format(word))
 		for rule in self.rules:
 			if len(rule.tokens) == 1 \
 				and isinstance(rule.tokens[0], terminal) \
