@@ -196,19 +196,18 @@ class Parse(object):
 		"""
 		if len(config.stack) > 1:
 			first = config.stack[-1]
-			if first.complete:
-				for i, second in enumerate(config.stack[:-1]):
-					if not second.complete and first.rule.name == second.rule.tokens[second.index]:
-						# Append the results of the child token to the progress so far
-						match = second.match + [first.match]
+			second = config.stack[-2]
+			if first.complete and not second.complete and first.rule.name == second.rule.tokens[second.index]:
+				# Append the results of the child token to the progress so far
+				match = second.match + [first.match]
 
-						# If this step will complete this rule, consume the result
-						if second.index + 1 == len(second.rule.tokens):
-							match = second.rule.template.consume(match)
-						
-						# Yield a new config where the two frames, the one with the parent and the child,
-						# are replaced with one where the parent has progressed one step.
-						yield Config(config.stack[0:i] + config.stack[i+1:-1] + [Frame(second.rule, second.index + 1, match)], config.index)
+				# If this step will complete this rule, consume the result
+				if second.index + 1 == len(second.rule.tokens):
+					match = second.rule.template.consume(match)
+				
+				# Yield a new config where the two frames, the one with the parent and the child,
+				# are replaced with one where the parent has progressed one step.
+				yield Config(config.stack[:-2] + [Frame(second.rule, second.index + 1, match)], config.index)
 
 	def _advance(self, config: Config) -> Iterator[Config]:
 		if len(config.stack) > 0:
