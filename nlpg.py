@@ -89,6 +89,12 @@ class l(terminal):
 		return self.__class__(word)
 
 	def reverse(self, word):
+		if isinstance(word, self.__class__):
+			if word.word != self.word:
+				raise NoMatchException('Different literal')
+		elif isinstance(word, str):
+			if word != self.word:
+				raise NoMatchException('Different word')
 		return self.word
 
 
