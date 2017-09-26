@@ -1,4 +1,4 @@
-from typing import List, Any, Iterator, NamedTuple
+from typing import List, Any, Iterator, NamedTuple, Optional
 from nlpg import Parser, rule, terminal, l, select
 from pprint import pprint
 from collections import defaultdict
@@ -112,6 +112,13 @@ def print_config(config):
 
 
 class Frame(NamedTuple):
+	"""
+	A frame is a partial or complete rule, to be combined with other
+	frames into a complete parse. Frames live on the stack of a Config
+	(a potential partial parse). And if everything pans out, a Config
+	with a single frame that is complete (the index == len(rule.tokens))
+	the parse is complete.
+	"""
 	rule: rule
 	index: int # progress of the token in rule.tokens
 	match: Any
@@ -210,7 +217,6 @@ class Parse(object):
 				if frame.rule.tokens[frame.index] in self.nullables:
 					yield Config(config.stack[:-1] + [Frame(frame.rule, frame.index + 1, frame.match + [None])], config.index)
 
-
 	def _find_left_corner(self, corner: rule) -> Iterator[rule]:
 		for rule in self.rules:
 			if len(rule.tokens) > 0 and rule.tokens[0] == corner.name:
@@ -301,24 +307,35 @@ if __name__ == '__main__':
 
 	parser = LCParser(rules)
 	
-	sentence = 'Tweety can fly because Tweety is a bird' #and because Tweety is a bird and birds can fly but Tweety is a penguin'
+	sentence = 'Tweety can fly because Tweety is a bird and because Tweety is a bird and birds can fly but Tweety is a penguin'
 
-	# rules = ruleset([
-	# 	rule('S', ['t_claim', 'support', 'attack'], tlist(head=[0,1,2])),
-	# 	rule('support', [l('because'), 'S'], tlist(head=[0, 1])),
-	# 	rule('support', [], empty()),
-	# 	rule('attack', [l('except'), 'S'], tlist(head=[0, 1])),
-	# 	rule('attack', [], empty()),
-	# 	rule('t_claim', [l('A')], select(0)),
-	# 	rule('t_claim', [l('B')], select(0)),
-	# 	rule('t_claim', [l('C')], select(0)),
-	# ])
+	class minarg(NamedTuple):
+		claim: l
+		support: Optional['minarg']
+		attack: Optional['minarg']
 
-	# start = 'S'
+		def __repr__(self):
+			return "({}{}{})".format(
+				self.claim,
+				" because " + repr(self.support) if self.support else "",
+				" except " + repr(self.attack) if self.attack else "")
 
-	# parser = LCParser(rules)
+	rules = ruleset([
+		rule('S', ['t_claim', 'support', 'attack'], template(minarg, claim=0, support=1, attack=2)),
+		rule('support', [l('because'), 'S'], select(1)),
+		rule('support', [], empty()),
+		rule('attack', [l('except'), 'S'], select(1)),
+		rule('attack', [], empty()),
+		rule('t_claim', [l('A')], select(0)),
+		rule('t_claim', [l('B')], select(0)),
+		rule('t_claim', [l('C')], select(0)),
+	])
+
+	start = 'S'
+
+	parser = LCParser(rules)
 	
-	# sentence = 'A because B'
+	sentence = 'A except B because C'
 
 	words = sentence.split(' ')
 
