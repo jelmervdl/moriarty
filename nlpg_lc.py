@@ -210,11 +210,23 @@ class Parse(object):
 				yield Config(config.stack[:-2] + [Frame(second.rule, second.index + 1, match)], config.index)
 
 	def _advance(self, config: Config) -> Iterator[Config]:
+		"""
+		Same as complete, except for nullable rules. It just adds a None to the
+		match and advances the Frame. If it completes it (i.e. the nullable was 
+		the rule's last token) it also consumes the match.
+		"""
 		if len(config.stack) > 0:
 			frame = config.stack[-1]
 			if not frame.complete:
 				if frame.rule.tokens[frame.index] in self.nullables:
-					yield Config(config.stack[:-1] + [Frame(frame.rule, frame.index + 1, frame.match + [None])], config.index)
+					# Append the results of the child token to the progress so far
+					match = frame.match + [None]
+
+					# If this step will complete this rule, consume the result
+					if frame.index + 1 == len(frame.rule.tokens):
+						match = frame.rule.template.consume(match)
+
+					yield Config(config.stack[:-1] + [Frame(frame.rule, frame.index + 1, match)], config.index)
 
 	def _find_left_corner(self, corner: rule) -> Iterator[rule]:
 		for rule in self.rules:
