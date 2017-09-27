@@ -5,6 +5,8 @@ from nlpg import Parser, \
 	empty, tlist, template, select, \
 	claim, argument, relation, diagram
 
+from nlpg_lc import LCParser
+
 from pprint import pprint
 
 rules = ruleset([
@@ -61,7 +63,7 @@ rules = ruleset([
 		select(1))
 ])
 
-parser = Parser(rules)
+parser = LCParser(rules)
 parser.root = 'extended_claim'
 
 
