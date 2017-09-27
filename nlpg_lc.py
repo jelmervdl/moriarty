@@ -162,7 +162,7 @@ class Parse(object):
 				configs = list(self.step(config))
 				chart.extend(configs)
 				counter += len(configs)
-		print("Evaluated {} options".format(counter))
+		# print("Evaluated {} options".format(counter))
 
 	def step(self, config):
 		# print("-------- Next step ---------")
@@ -255,6 +255,7 @@ class LCParser(Parser):
 
 
 if __name__ == '__main__':
+	import nlpg
 	from nlpg import ruleset, rule, tlist, template, l, select, empty
 	from pprint import pprint
 
@@ -269,10 +270,10 @@ if __name__ == '__main__':
 	rules = ruleset([
 		rule('extended_claims',
 			['extended_claim'],
-			tlist(0)),
+			tlist(head=0)),
 		rule('extended_claims',
 			['extended_claim', l('and'), 'extended_claims'],
-			tlist(0, 2)),
+			tlist(head=0, rest=2)),
 		rule('extended_claim',
 			['claim', 'supports', 'attacks'],
 			template(argument, claim=0, supports=1, attacks=2)),
@@ -324,7 +325,9 @@ if __name__ == '__main__':
 
 	start = 'extended_claim'
 
-	parser = LCParser(rules)
+	rd_parser = Parser(rules)
+
+	lc_parser = LCParser(rules)
 	
 	sentence = 'Tweety can fly because Tweety is a bird and because Tweety is a bird and birds can fly but Tweety is a penguin'
 
@@ -339,26 +342,34 @@ if __name__ == '__main__':
 				" because " + repr(self.support) if self.support else "",
 				" except " + repr(self.attack) if self.attack else "")
 
-	rules = ruleset([
-		rule('S', ['t_claim', 'support', 'attack'], template(minarg, claim=0, support=1, attack=2)),
-		rule('support', [l('because'), 'S'], select(1)),
-		rule('support', [], empty()),
-		rule('attack', [l('except'), 'S'], select(1)),
-		rule('attack', [], empty()),
-		rule('t_claim', [l('A')], select(0)),
-		rule('t_claim', [l('B')], select(0)),
-		rule('t_claim', [l('C')], select(0)),
-	])
+	# rules = ruleset([
+	# 	rule('S', ['t_claim', 'support', 'attack'], template(minarg, claim=0, support=1, attack=2)),
+	# 	rule('support', [l('because'), 'S'], select(1)),
+	# 	rule('support', [], empty()),
+	# 	rule('attack', [l('except'), 'S'], select(1)),
+	# 	rule('attack', [], empty()),
+	# 	rule('t_claim', [l('A')], select(0)),
+	# 	rule('t_claim', [l('B')], select(0)),
+	# 	rule('t_claim', [l('C')], select(0)),
+	# ])
 
-	start = 'S'
+	# start = 'S'
 
-	parser = LCParser(rules)
+	# parser = LCParser(rules)
 	
-	sentence = 'A except B because C'
+	# sentence = 'A except B because C'
 
 	words = sentence.split(' ')
 
+	from timeit import timeit
+	print("LC Parser: {}".format(timeit('list(rd_parser.parse(start, words))', number=100, globals={'rd_parser': rd_parser, 'start': start, 'words': words})))
+	print("RD Parser: {}".format(timeit('list(lc_parser.parse(start, words))', number=100, globals={'lc_parser': lc_parser, 'start': start, 'words': words})))
+
+	parser = lc_parser
+
 	trees = list(parser.parse(start, words))
+
+	# nlpg.DEBUG = True
 
 	pprint(trees)
 
