@@ -175,7 +175,8 @@ class Parse(object):
 	def _scan(self, config: Config) -> Iterator[Config]:
 		if config.index < len(self.words) and (len(config.stack) == 0 or not config.stack[-1].complete):
 			word = self.words[config.index]
-			for rule, match in self._find_rules(word):
+			for rule in self._find_rules(word):
+				match = rule.tokens[0].consume(word)
 				yield Config(config.stack + [Frame(rule, 1, match)], config.index + 1)
 
 	def _predict(self, config: Config) -> Iterator[Config]:
@@ -186,7 +187,10 @@ class Parse(object):
 		if len(config.stack) > 0:
 			if config.stack[-1].complete:
 				for rule in self._find_left_corner(config.stack[-1].rule):
-					yield Config(config.stack[0:-1] + [Frame(rule, 1, [config.stack[-1].match])], config.index)
+					match = [config.stack[-1].match]
+					if len(rule.tokens) == 1:
+						match = rule.template.consume(match)
+					yield Config(config.stack[0:-1] + [Frame(rule, 1, match)], config.index)
 
 	def _complete(self, config: Config) -> Iterator[Config]:
 		"""
@@ -238,7 +242,7 @@ class Parse(object):
 			if len(rule.tokens) == 1 \
 				and isinstance(rule.tokens[0], terminal) \
 				and rule.tokens[0].test(word):
-				yield rule, rule.tokens[0].consume(word)
+				yield rule
 
 
 class LCParser(Parser):
