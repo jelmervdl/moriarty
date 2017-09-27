@@ -206,8 +206,11 @@ class Parse(object):
 				match = second.match + [first.match]
 
 				# If this step will complete this rule, consume the result
-				if second.index + 1 == len(second.rule.tokens):
-					match = second.rule.template.consume(match)
+				try:
+					if second.index + 1 == len(second.rule.tokens):
+						match = second.rule.template.consume(match)
+				except:
+					raise Exception("Error while {!r} tries to consume {!r}".format(second.rule, match))
 				
 				# Yield a new config where the two frames, the one with the parent and the child,
 				# are replaced with one where the parent has progressed one step.
