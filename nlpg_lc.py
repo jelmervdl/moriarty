@@ -1,4 +1,4 @@
-from typing import List, Any, Iterator, NamedTuple, Optional
+from typing import List, Dict, Any, Iterator, NamedTuple, Optional
 from nlpg import Parser, rule, terminal, l, select
 from pprint import pprint
 from collections import defaultdict
@@ -46,7 +46,7 @@ def remove_embedded_tokens(rules: List[rule]) -> List[rule]:
 	return out
 
 
-def find_nullables(rules: List[rule]) -> List[str]:
+def find_nullables(rules: List[rule]) -> Dict[str, rule]:
 	"""
 	Based on https://github.com/jeffreykegler/kollos/blob/master/notes/misc/loup2.md
 	"""
@@ -55,7 +55,7 @@ def find_nullables(rules: List[rule]) -> List[str]:
 
 	# An array of booleans, indexed by symbol ID. The boolean is ON, if the symbol has
 	# been marked "nullable", OFF otherwise.
-	nullable = set()
+	nullable = dict()
 
 	for rule in rules:
 		if len(rule.tokens) == 1 and isinstance(rule.tokens[0], l):
@@ -64,7 +64,7 @@ def find_nullables(rules: List[rule]) -> List[str]:
 		rules_lhs[rule.name].append(rule)
 		if len(rule.tokens) == 0:
 			# Initialize the nullable array, by marking as nullable the LHS of every empty rule.
-			nullable.add(rule.name)
+			nullable[rule.name] = rule
 		else:
 			for token in rule.tokens:
 				assert isinstance(token, str), "Expected str as token, found {!r}".format(token)
@@ -91,7 +91,7 @@ def find_nullables(rules: List[rule]) -> List[str]:
 				continue
 
 			# If we reach this point, the LHS of the work rule is nullable, but is not marked nullable.
-			nullable.add(work_rule.name)
+			nullable[work_rule.name] = work_rule
 
 			# Push the LHS of the work rule onto the "work stack".
 			stack.append(work_rule.name)
@@ -225,9 +225,10 @@ class Parse(object):
 		if len(config.stack) > 0:
 			frame = config.stack[-1]
 			if not frame.complete:
-				if frame.rule.tokens[frame.index] in self.nullables:
+				token = frame.rule.tokens[frame.index]
+				if token in self.nullables:
 					# Append the results of the child token to the progress so far
-					match = frame.match + [None]
+					match = frame.match + [self.nullables[token].template.consume([])]
 
 					# If this step will complete this rule, consume the result
 					if frame.index + 1 == len(frame.rule.tokens):
