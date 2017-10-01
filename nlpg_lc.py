@@ -172,6 +172,19 @@ class Parse(object):
 		yield from self._predict(config)
 		yield from self._complete(config)
 
+	def _eat(self, rule: rule, match: List[Any]) -> Any:
+		"""
+		Tests if the match completes the rule, and if so, applies the rule's
+		template to the match to finish it (e.g. converting a list into a
+		structure.) (inappropriately called 'consume', like 'swallow' or 'digest')
+		"""
+		try:
+			if len(rule.tokens) == len(match):
+				match = rule.template.consume(match)
+		except:
+			raise Exception("Error while {!r} tries to eat {!r}".format(rule, match))
+		return match
+
 	def _scan(self, config: Config) -> Iterator[Config]:
 		if config.index < len(self.words) and (len(config.stack) == 0 or not config.stack[-1].complete):
 			word = self.words[config.index]
@@ -187,9 +200,7 @@ class Parse(object):
 		if len(config.stack) > 0:
 			if config.stack[-1].complete:
 				for rule in self._find_left_corner(config.stack[-1].rule):
-					match = [config.stack[-1].match]
-					if len(rule.tokens) == 1:
-						match = rule.template.consume(match)
+					match = self._eat(rule, [config.stack[-1].match])
 					yield Config(config.stack[0:-1] + [Frame(rule, 1, match)], config.index)
 
 	def _complete(self, config: Config) -> Iterator[Config]:
@@ -203,14 +214,7 @@ class Parse(object):
 			second = config.stack[-2]
 			if first.complete and not second.complete and first.rule.name == second.rule.tokens[second.index]:
 				# Append the results of the child token to the progress so far
-				match = second.match + [first.match]
-
-				# If this step will complete this rule, consume the result
-				try:
-					if second.index + 1 == len(second.rule.tokens):
-						match = second.rule.template.consume(match)
-				except:
-					raise Exception("Error while {!r} tries to consume {!r}".format(second.rule, match))
+				match = self._eat(second.rule, second.match + [first.match])
 				
 				# Yield a new config where the two frames, the one with the parent and the child,
 				# are replaced with one where the parent has progressed one step.
@@ -228,12 +232,7 @@ class Parse(object):
 				token = frame.rule.tokens[frame.index]
 				if token in self.nullables:
 					# Append the results of the child token to the progress so far
-					match = frame.match + [self.nullables[token].template.consume([])]
-
-					# If this step will complete this rule, consume the result
-					if frame.index + 1 == len(frame.rule.tokens):
-						match = frame.rule.template.consume(match)
-
+					match = self._eat(frame.rule, frame.match + [self.nullables[token].template.consume([])])
 					yield Config(config.stack[:-1] + [Frame(frame.rule, frame.index + 1, match)], config.index)
 
 	def _find_left_corner(self, corner: rule) -> Iterator[rule]:
