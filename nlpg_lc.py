@@ -151,7 +151,7 @@ class Parse(object):
 
 	def __iter__(self):
 		chart = [Config([], 0)]
-		counter = 0
+		self.counter = 0
 		
 		while len(chart) > 0:
 			config = chart.pop()
@@ -164,12 +164,9 @@ class Parse(object):
 			else:
 				configs = list(self.step(config))
 				chart.extend(configs)
-				counter += len(configs)
-		# print("Evaluated {} options".format(counter))
+				self.counter += len(configs)
 
-	def step(self, config):
-		# print("-------- Next step ---------")
-		# print_config(config)
+	def step(self, config: Config):
 		yield from self._advance(config)
 		yield from self._scan(config)
 		yield from self._predict(config)
