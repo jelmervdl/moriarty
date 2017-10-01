@@ -58,17 +58,20 @@ def find_nullables(rules: List[rule]) -> Dict[str, rule]:
 	nullable = dict()
 
 	for rule in rules:
-		if len(rule.tokens) == 1 and isinstance(rule.tokens[0], l):
-			continue
-
-		rules_lhs[rule.name].append(rule)
-		if len(rule.tokens) == 0:
-			# Initialize the nullable array, by marking as nullable the LHS of every empty rule.
-			nullable[rule.name] = rule
-		else:
-			for token in rule.tokens:
-				assert isinstance(token, str), "Expected str as token, found {!r}".format(token)
-				rules_rhs[token].append(rule)
+		try:
+			if len(rule.tokens) == 1 and isinstance(rule.tokens[0], terminal):
+				continue
+			
+			rules_lhs[rule.name].append(rule)
+			if len(rule.tokens) == 0:
+				# Initialize the nullable array, by marking as nullable the LHS of every empty rule.
+				nullable[rule.name] = rule
+			else:
+				for token in rule.tokens:
+					assert isinstance(token, str), "Expected str as token, found {!r}".format(token)
+					rules_rhs[token].append(rule)
+		except:
+			raise Exception("Error while processing {!r}".format(rule))
 
 	# Create a "work stack", which will contain those symbols which still need to be
 	# worked on in order to find all nullable symbols. Initialize it by pushing all the
