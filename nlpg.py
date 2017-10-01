@@ -217,6 +217,31 @@ class ruleset(object):
 	def __iter__(self):
 		return chain.from_iterable(self.rules.values())
 
+	def lhs(self):
+		return self.rules.keys()
+
+	def rhs(self):
+		def find_references(rules):
+			for rule in rules:
+				for token in rule.tokens:
+					if isinstance(token, str):
+						yield token
+		return frozenset(find_references(self))
+
+	def missing(self):
+		return self.rhs() - self.lhs()
+
+	def unreachable(self):
+		return self.lhs() - self.rhs()
+
+	def markers(self):
+		def find_markers(rules):
+			for rule in rules:
+				for token in rule.tokens:
+					if isinstance(token, l):
+						yield token.word
+		return frozenset(find_markers(self))
+
 
 def is_literal(obj):
 	return isinstance(obj, terminal)
