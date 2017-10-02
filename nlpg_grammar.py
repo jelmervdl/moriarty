@@ -6,8 +6,11 @@ class Text(object):
 	def __init__(self, words):
 		self.words = words
 
+	def __str__(self):
+		return " ".join(self.words)
+
 	def __repr__(self):
-		return "Text('{}')".format(" ".join(self.words))
+		return "Text('{}')".format(str(self))
 
 
 class Claim(NamedTuple):
@@ -52,6 +55,10 @@ class Word(terminal):
 rules = ruleset([
 	rule('sentence',
 		['argument', l('.')],
+		select(0)),
+
+	rule('sentence',
+		['warrant', l('.')],
 		select(0)),
 
 	rule('arguments',
@@ -143,6 +150,10 @@ rules = ruleset([
 	rule('exceptions?',
 		[l('unless'), 'exceptions'],
 		select(1)),
+	rule('exceptions?',
+		[l('except'), l('when'), 'exceptions'],
+		select(2)),
+
 	rule('exceptions',
 		['exception'],
 		tlist(head=0)),
@@ -170,6 +181,7 @@ def tokenize(markers, sentence):
 
 
 if __name__ == '__main__':
+	from nlpg import Parser
 	from nlpg_lc import LCParser
 	from pprint import pprint
 	from sys import exit
@@ -182,7 +194,7 @@ if __name__ == '__main__':
 	print("Markers", end=": ")
 	pprint(rules.markers())
 
-	parser = LCParser(rules)
+	parser = Parser(rules)
 
 	class Test(object):
 		def __init__(self, start, sentence, expected = None):
@@ -205,8 +217,16 @@ if __name__ == '__main__':
 			print(n, end=': ')
 			pprint(tree)
 			parses.append(tree)
-		print("Evaluated {} paths".format(parse.counter))
+
+			for realisation in parser.reverse(start, tree):
+				print(" ".join(map(str, realisation)))
+
+		if hasattr(parse, 'counter'):
+			print("Evaluated {} paths".format(parse.counter))
 		return parses
 
-	parse('Tweety can fly because Tweety is a bird and animals can fly when they have wings unless they are a penguin .')
+	# parse('Tweety can fly because Tweety is a bird and animals can fly when they have wings unless they are a penguin .')
+	parse('The act is unlawful when someone\'s right is violated except when there is a justification .')
+	parse('The act is unlawful because someone\'s right was violated except there is a justification .')
+	parse('A suspect is innocent unless they are found guilty .')
 
