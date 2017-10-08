@@ -1,6 +1,6 @@
 from typing import NamedTuple, List, Optional, Any
-from nlpg import ruleset, rule, tlist, template, l, select, empty, terminal, NoMatchException
-
+from nlpg import ruleset, rule, tlist, template, l, slot, empty, terminal, NoMatchException
+import re
 
 class Text(object):
 	def __init__(self, words):
@@ -25,7 +25,7 @@ class Argument(NamedTuple):
 class Support(NamedTuple):
 	datums: List[Claim]
 	warrant: Optional[Argument]
-	rebuttal: Optional[Argument]
+	undercutter: Optional[Argument]
 
 
 class Warrant(NamedTuple):
@@ -51,131 +51,148 @@ class Word(terminal):
 			raise NoMatchException('Word not a unit')
 		return word
 
+def and_rule(name, single, cc=l('and')):
+	comma = name + '_'
+	return [
+		rule(name, [single], tlist(head=slot(0))),
+		rule(name, [single, cc, single], tlist(head=[slot(0),slot(2)])),
+		rule(name, [comma], slot(0)),
+		rule(comma, [single, l(','), comma], tlist(head=slot(0), rest=slot(2))),
+		rule(comma, [single, l(','), single, l(','), cc, single], tlist(head=[slot(0), slot(2), slot(5)])),
+	]
 
 rules = ruleset([
 	rule('sentence',
 		['argument', l('.')],
-		select(0)),
+		slot(0)),
 
 	rule('sentence',
 		['warrant', l('.')],
-		select(0)),
-
-	rule('arguments',
-		['argument'],
-		tlist(head=0)),
-	rule('arguments',
-		['argument', l('and'), 'arguments'],
-		tlist(head=0, rest=2)),
+		slot(0)),
+	] + and_rule('arguments', 'argument') + [
+	# rule('arguments',
+	# 	['argument'],
+	# 	tlist(head=0)),
+	# rule('arguments',
+	# 	['argument', l('and'), 'arguments'],
+	# 	tlist(head=0, rest=2)),
 
 	rule('argument',
 		['claim', 'supports?'],
-		template(Argument, claim=0, supports=1)),
+		template(Argument, claim=slot(0), supports=slot(1))),
 
 	rule('claim',
 		['word'],
-		template(Claim, text=0)),
+		template(Claim, text=slot(0))),
 
-	rule('claims',
-		['claim'],
-		tlist(head=0)),
-	rule('claims',
-		['claim', l('and'), 'claims'],
-		tlist(head=0, rest=2)),
+	] + and_rule('claims', 'claim') + [
+	# rule('claims',
+	# 	['claim'],
+	# 	tlist(head=0)),
+	# rule('claims',
+	# 	['claim', l('and'), 'claims'],
+	# 	tlist(head=0, rest=2)),
 
 	rule('word',
 		[Word()],
-		select(0)),
+		slot(0)),
 
 	rule('supports?',
 		[],
 		tlist()),
 	rule('supports?',
 		['supports'],
-		select(0)),
+		slot(0)),
 
-	rule('supports',
-		['support'],
-		tlist(head=0)),
-	rule('supports',
-		['support', l('and'), 'supports'],
-		tlist(head=0, rest=2)),
+	] + and_rule('supports', 'support') + [
+	# rule('supports',
+	# 	['support'],
+	# 	tlist(head=0)),
+	# rule('supports',
+	# 	['support', l('and'), 'supports'],
+	# 	tlist(head=0, rest=2)),
 
 	rule('support',
-		[l('because'), 'arguments', 'warrant?', 'rebuttal?'],
-		template(Support, datums=1, warrant=2, rebuttal=3)),
+		[l('because'), 'arguments', 'warrant?', 'undercutter?'],
+		template(Support, datums=slot(1), warrant=slot(2), undercutter=slot(3))),
 
-	rule('rebuttal?',
+	rule('undercutter?',
 		[],
 		empty()),
-	rule('rebuttal?',
+	rule('undercutter?',
 		[l('except'), 'argument'],
-		select(1)),
+		slot(1)),
 
 	rule('warrant?',
 		[],
 		empty()),
 	rule('warrant?',
 		[l('and'), 'warrant'],
-		select(1)),
+		slot(1)),
 
 	rule('warrant',
 		['claim', 'conditions?', 'exceptions?'],
-		template(Warrant, claim=0, conditions=1, exceptions=2)),
+		template(Warrant, claim=slot(0), conditions=slot(1), exceptions=slot(2))),
+
+	# rule('warrant',
+	# 	['special', 'conditions?', 'exceptions?'],
+	# 	template(Warrant, claim=slot(0, 'claim'), conditions=tlist(rest=slot(0, 'conditions')), exceptions=slot(2))),
 
 	rule('conditions?',
 		[],
 		tlist()),
 	rule('conditions?',
 		[l('if'), 'conditions'],
-		select(1)),
+		slot(1)),
 	rule('conditions?',
 		[l('when'), 'conditions'],
-		select(1)),
+		slot(1)),
 
-	rule('conditions',
-		['condition'],
-		tlist(head=0)),
-	rule('conditions',
-		['condition', l('or'), 'conditions'],
-		tlist(head=0, rest=2)),
+	] + and_rule('conditions', 'condition', l('or')) + [
+	# rule('conditions',
+	# 	['condition'],
+	# 	tlist(head=0)),
+	# rule('conditions',
+	# 	['condition', l('or'), 'conditions'],
+	# 	tlist(head=0, rest=2)),
 
 	rule('condition',
 		['claims'],
-		template(WarrantCondition, claims=0)),
+		template(WarrantCondition, claims=slot(0))),
 
 	rule('exceptions?',
 		[],
 		tlist()),
 	rule('exceptions?',
 		[l('unless'), 'exceptions'],
-		select(1)),
+		slot(1)),
 	rule('exceptions?',
 		[l('except'), l('when'), 'exceptions'],
-		select(2)),
+		slot(2)),
 
-	rule('exceptions',
-		['exception'],
-		tlist(head=0)),
-	rule('exceptions',
-		['exception', l('or'), 'exceptions'],
-		tlist(head=0, rest=2)),
+	] + and_rule('exceptions', 'exception', l('or')) + [
+	# rule('exceptions',
+	# 	['exception'],
+	# 	tlist(head=0)),
+	# rule('exceptions',
+	# 	['exception', l('or'), 'exceptions'],
+	# 	tlist(head=0, rest=2)),
 	rule('exception',
 		['claims'],
-		template(WarrantException, claims=0)),
+		template(WarrantException, claims=slot(0))),
 ])
 
 
 def tokenize(markers, sentence):
 	unit = []
-	for word in sentence.split(' '):
-		if word in markers:
+	for token in re.findall(r"[\w']+|[.,!?;]", sentence):
+		if token in markers:
 			if len(unit) > 0:
 				yield Text(unit)
 				unit = []
-			yield word
+			yield token
 		else:
-			unit.append(word)
+			unit.append(token)
 	if len(unit) > 0:
 		yield Text(unit)
 
@@ -225,8 +242,9 @@ if __name__ == '__main__':
 			print("Evaluated {} paths".format(parse.counter))
 		return parses
 
-	# parse('Tweety can fly because Tweety is a bird and animals can fly when they have wings unless they are a penguin .')
+	parse('Tweety can fly because Tweety is a bird and animals can fly when they have wings unless they are a penguin .')
 	parse('The act is unlawful when someone\'s right is violated except when there is a justification .')
 	parse('The act is unlawful because someone\'s right was violated except there is a justification .')
 	parse('A suspect is innocent unless they are found guilty .')
+	parse('Claim A because claim B, claim C, and claim D.')
 

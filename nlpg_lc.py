@@ -1,5 +1,5 @@
 from typing import List, Dict, Any, Iterator, NamedTuple, Optional
-from nlpg import Parser, rule, terminal, l, select
+from nlpg import Parser, rule, terminal, l, slot
 from pprint import pprint
 from collections import defaultdict
 
@@ -31,7 +31,7 @@ def remove_embedded_tokens(rules: List[rule]) -> List[rule]:
 
 					# Create a new rule for the terminal (if there isnt already one)
 					if not any(rule.name == terminal_name for rule in out):
-						out.append(rule(terminal_name, [token], select(0)))
+						out.append(rule(terminal_name, [token], slot(0)))
 
 					# 'Update' the rule that contained to terminal to refer to 
 					# the new terminal rule
@@ -255,7 +255,7 @@ class LCParser(Parser):
 
 if __name__ == '__main__':
 	import nlpg
-	from nlpg import ruleset, rule, tlist, template, l, select, empty
+	from nlpg import ruleset, rule, tlist, template, l, slot, empty
 	from pprint import pprint
 
 	class claim(NamedTuple):
@@ -305,7 +305,7 @@ if __name__ == '__main__':
 			tlist(0, 2)),
 		rule('support',
 			[l('because'), 'extended_claims'],
-			select(1)),
+			slot(1)),
 		rule('attacks',
 			[],
 			tlist()),
@@ -317,7 +317,7 @@ if __name__ == '__main__':
 			tlist(0, 2)),
 		rule('attack',
 			['attack_marker', 'extended_claims'],
-			select(1)),
+			slot(1)),
 		rule('attack_marker', [l('but')], empty()),
 		rule('attack_marker', [l('except'), l('that')], empty())
 	])
@@ -343,13 +343,13 @@ if __name__ == '__main__':
 
 	# rules = ruleset([
 	# 	rule('S', ['t_claim', 'support', 'attack'], template(minarg, claim=0, support=1, attack=2)),
-	# 	rule('support', [l('because'), 'S'], select(1)),
+	# 	rule('support', [l('because'), 'S'], slot(1)),
 	# 	rule('support', [], empty()),
-	# 	rule('attack', [l('except'), 'S'], select(1)),
+	# 	rule('attack', [l('except'), 'S'], slot(1)),
 	# 	rule('attack', [], empty()),
-	# 	rule('t_claim', [l('A')], select(0)),
-	# 	rule('t_claim', [l('B')], select(0)),
-	# 	rule('t_claim', [l('C')], select(0)),
+	# 	rule('t_claim', [l('A')], slot(0)),
+	# 	rule('t_claim', [l('B')], slot(0)),
+	# 	rule('t_claim', [l('C')], slot(0)),
 	# ])
 
 	# start = 'S'

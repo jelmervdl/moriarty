@@ -111,9 +111,7 @@ class template(object):
 		try:
 			kwargs = dict()
 			for name, token in self.template.items():
-				if isinstance(token, int):
-					kwargs[name] = args[token]
-				elif is_consumer(token):
+				if is_consumer(token):
 					kwargs[name] = token.consume(args)
 				else:
 					kwargs[name] = token
@@ -128,9 +126,7 @@ class template(object):
 
 		flat = sparselist()
 		for name, index in self.template.items():
-			if isinstance(index, int):
-				flat[index] = getattr(structure, name)
-			elif is_reversable(index):
+			if is_reversable(index):
 				flat = flat | index.reverse(getattr(structure, name))
 			else:
 				if getattr(structure, name) != index:
@@ -138,7 +134,7 @@ class template(object):
 		return flat
 
 
-class select(object):
+class slot(object):
 	def __init__(self, index):
 		self.index = index
 
@@ -163,10 +159,9 @@ class tlist(object):
 
 	def consume(self, args):
 		if self.rest_index is None:
-			return tuple(args[index] for index in self.head_index)
+			return tuple(index.consume(args) for index in self.head_index)
 		else:
-			return tuple(args[index] for index in self.head_index) + args[self.rest_index]
-
+			return tuple(index.consume(args) for index in self.head_index) + self.rest_index.consume(args)
 	def reverse(self, structure):
 		if not isinstance(structure, Sequence):
 			raise NoMatchException('structure is not a sequence')
@@ -177,7 +172,7 @@ class tlist(object):
 			raise NoMatchException('head_index is longer than structure')
 		else:
 			for n, index in enumerate(self.head_index):
-				flat[index] = structure[n]
+				flat |= index.reverse(structure[n])
 
 		if self.rest_index is None:
 			if len(structure) > len(self.head_index):
@@ -186,7 +181,7 @@ class tlist(object):
 			if len(structure) <= len(self.head_index):
 				raise NoMatchException('structure is about the length of the head_index while expecting also a tail')
 			else:
-				flat[self.rest_index] = structure[len(self.head_index):]
+				flat |= self.rest_index.reverse(structure[len(self.head_index):])
 
 		return flat
 
@@ -392,7 +387,7 @@ def test_list():
 	rules = ruleset([
 		rule('argument',
 			['claim', l('because'), 'reasons'],
-			template(argument, claim=0, reasons=2)),
+			template(argument, claim=slot(0), reasons=slot(2))),
 		rule('claim',
 			[l('A')],
 			template(claim, id='a')),
@@ -404,10 +399,10 @@ def test_list():
 			template(claim, id='c')),
 		rule('reasons',
 			['reason'],
-			tlist(head=0)),
+			tlist(head=slot(0))),
 		rule('reasons',
 			['reason', l('and'), 'reasons'],
-			tlist(head=0, rest=2))
+			tlist(head=slot(0), rest=slot(2)))
 	])
 	
 	parser = Parser(rules)
@@ -434,7 +429,7 @@ def test_optional():
 	rules = ruleset([
 		rule('argument',
 			['claim', 'support'],
-			template(argument, claim=0, support=1)),
+			template(argument, claim=slot(0), support=slot(1))),
 		rule('claim',
 			[l('A')],
 			template(claim, id='a')),
@@ -446,7 +441,7 @@ def test_optional():
 			empty()),
 		rule('support',
 			[l('because'), 'claim'],
-			select(1))
+			slot(1))
 	])
 	
 	parser = Parser(rules)
@@ -473,7 +468,7 @@ def test_recursion():
 	rules = ruleset([
 		rule('argument',
 			['claim', 'support'],
-			template(argument, claim=0, support=1)),
+			template(argument, claim=slot(0), support=slot(1))),
 		rule('claim',
 			[l('A')],
 			template(claim, id='a')),
@@ -488,7 +483,7 @@ def test_recursion():
 			empty()),
 		rule('support',
 			[l('because'), 'argument'],
-			select(1))
+			slot(1))
 	])
 	
 	parser = Parser(rules)
@@ -516,7 +511,7 @@ def test_ambiguity():
 	rules = ruleset([
 		rule('argument',
 			['claim', 'support', 'attack'],
-			template(argument, claim=0, support=1, attack=2)),
+			template(argument, claim=slot(0), support=slot(1), attack=slot(2))),
 		rule('claim',
 			[l('A')],
 			template(claim, id='a')),
@@ -531,13 +526,13 @@ def test_ambiguity():
 			empty()),
 		rule('support',
 			[l('because'), 'argument'],
-			select(1)),
+			slot(1)),
 		rule('attack',
 			[],
 			empty()),
 		rule('attack',
 			[l('except'), 'argument'],
-			select(1))
+			slot(1))
 	])
 	
 	parser = Parser(rules)
@@ -565,13 +560,13 @@ def test_combined():
 	rules = ruleset([
 		rule('extended_claims',
 			['extended_claim'],
-			tlist(0)),
+			tlist(slot(0))),
 		rule('extended_claims',
 			['extended_claim', l('and'), 'extended_claims'],
-			tlist(0, 2)),
+			tlist(slot(0), slot(2))),
 		rule('extended_claim',
 			['claim', 'supports', 'attacks'],
-			template(argument, claim=0, supports=1, attacks=2)),
+			template(argument, claim=slot(0), supports=slot(1), attacks=slot(2))),
 		rule('claim',
 			[l('birds'), l('can'), l('fly')],
 			template(claim, id='b_can_f')),
@@ -595,25 +590,25 @@ def test_combined():
 			tlist()),
 		rule('supports',
 			['support'],
-			tlist(0)),
+			tlist(slot(0))),
 		rule('supports',
 			['support', l('and'), 'supports'],
-			tlist(0, 2)),
+			tlist(slot(0), slot(2))),
 		rule('support',
 			[l('because'), 'extended_claims'],
-			select(1)),
+			slot(1)),
 		rule('attacks',
 			[],
 			tlist()),
 		rule('attacks',
 			['attack'],
-			tlist(0)),
+			tlist(slot(0))),
 		rule('attacks',
 			['attack', l('and'), 'attacks'],
-			tlist(0, 2)),
+			tlist(slot(0), slot(2))),
 		rule('attack',
 			['attack_marker', 'extended_claims'],
-			select(1)),
+			slot(1)),
 		rule('attack_marker', [l('but')], empty()),
 		rule('attack_marker', [l('except'), l('that')], empty())
 	])
@@ -645,24 +640,24 @@ def test_generate():
 	rules = ruleset([
 		rule('argument_r',
 			['claim', 'support', 'attack_r'],
-			template(argument, claim=0, support=1, attack=2)),
+			template(argument, claim=slot(0), support=slot(1), attack=slot(2))),
 		rule('argument_r',
 			['claim', 'attack', 'support_r'],
-			template(argument, claim=0, support=2, attack=1)),
+			template(argument, claim=slot(0), support=slot(2), attack=1)),
 		rule('argument',
 			['claim'],
-			template(argument, claim=0, support=None, attack=None)),
+			template(argument, claim=slot(0), support=None, attack=None)),
 		rule('claim', [l('A')], template(claim, id='a')),
 		rule('claim', [l('B')], template(claim, id='b')),
 		rule('claim', [l('C')], template(claim, id='c')),
 		rule('support', [], empty()),
-		rule('support', [l('because'), 'argument'], select(1)),
+		rule('support', [l('because'), 'argument'], slot(1)),
 		rule('attack', [], empty()),
-		rule('attack', [l('except'), 'argument'], select(1)),
+		rule('attack', [l('except'), 'argument'], slot(1)),
 		rule('support_r', [], empty()),
-		rule('support_r', [l('because'), 'argument_r'], select(1)),
+		rule('support_r', [l('because'), 'argument_r'], slot(1)),
 		rule('attack_r', [], empty()),
-		rule('attack_r', [l('except'), 'argument_r'], select(1)),
+		rule('attack_r', [l('except'), 'argument_r'], slot(1)),
 	])
 	
 	parser = Parser(rules)
@@ -709,13 +704,13 @@ def test_boxes_and_arrows():
 	rules = ruleset([
 		rule('extended_claims',
 			['extended_claim'],
-			tlist(0)),
+			tlist(slot(0))),
 		rule('extended_claims',
 			['extended_claim', l('and'), 'extended_claims'],
-			tlist(0, 2)),
+			tlist(slot(0), slot(2))),
 		rule('extended_claim',
 			['claim', 'supports', 'attacks'],
-			template(argument, claim=0, supports=1, attacks=2)),
+			template(argument, claim=slot(0), supports=slot(1), attacks=slot(2))),
 		rule('claim',
 			[l('birds'), l('can'), l('fly')],
 			template(claim, id='b_can_f')),
@@ -739,25 +734,25 @@ def test_boxes_and_arrows():
 			tlist()),
 		rule('supports',
 			['support'],
-			tlist(0)),
+			tlist(slot(0))),
 		rule('supports',
 			['support', l('and'), 'supports'],
-			tlist(0, 2)),
+			tlist(slot(0), slot(2))),
 		rule('support',
 			[l('because'), 'extended_claims'],
-			select(1)),
+			slot(1)),
 		rule('attacks',
 			[],
 			tlist()),
 		rule('attacks',
 			['attack'],
-			tlist(0)),
+			tlist(slot(0))),
 		rule('attacks',
 			['attack', l('and'), 'attacks'],
-			tlist(0, 2)),
+			tlist(slot(0), slot(2))),
 		rule('attack',
 			[l('but'), 'extended_claims'],
-			select(1))
+			slot(1))
 	])
 
 	parser = Parser(rules)
@@ -772,22 +767,22 @@ def test_boxes_and_arrows():
 
 	for n, tree in enumerate(trees):
 		print("Tree {}:".format(n + 1))
-		diagram = diagram.from_tree(tree)
-		for tree_ in diagram.as_trees():
+		diag = diagram.from_tree(tree)
+		for tree_ in diag.as_trees():
 			if tree is not tree_:
 				print("oh no they are different?")
 
 
 if __name__ == '__main__':
 	DEBUG=False
-	# test_list()
-	# test_optional()
-	# test_recursion()
-	# test_ambiguity()
+	test_list()
+	test_optional()
+	test_recursion()
+	test_ambiguity()
 	test_combined()
-	# test_generate()
-	# test_boxes_and_arrows()
-	# test_sparselist()
+	test_generate()
+	test_boxes_and_arrows()
+	test_sparselist()
 
 
 # for n, parsed in enumerate(parse(rules['extended_claim'][0], words)):
