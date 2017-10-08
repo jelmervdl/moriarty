@@ -4,6 +4,7 @@ from pprint import pprint, pformat
 from collections import defaultdict
 from itertools import chain
 from functools import reduce
+from operator import add
 
 
 DEBUG = False
@@ -12,6 +13,20 @@ DEBUG = False
 def debug(*args, **kwargs):
 	if DEBUG:
 		print("DEBUG:", *args, **kwargs)
+
+
+class sparseobject(object):
+	def __init__(self, **kwargs):
+		self.__dict__ = kwargs
+
+	def __or__(self, other):
+		assert isinstance(other, type(self))
+		collisions = self.__dict__.keys() & other.__dict__.keys()
+		if len(collisions) > 0:
+			raise Exception('Trying to overwrite already set key in sparseobject: ' + repr(collisions))
+		merged = type(self)(**self.__dict__)
+		merged.__dict__.update(other.__dict__)
+		return merged
 
 
 class sparselist(list):
@@ -31,7 +46,10 @@ class sparselist(list):
 		if missing > 0:
 			self.extend([None] * missing)
 		if self[index] is not None:
-			raise Exception('Trying to overwrite already set value in sparselist')
+			if isinstance(self[index], sparseobject) and isinstance(value, sparseobject):
+				value = self[index] | value
+			else:
+				raise Exception('Trying to overwrite already set value in sparselist')
 		list.__setitem__(self, index, value)
 	
 	def __getitem__(self, index):
@@ -121,7 +139,7 @@ class template(object):
 
 	def reverse(self, structure):
 		debug("template.reverse {!r} {!r}".format(self.pred, structure))
-		if type(structure) != self.pred:
+		if type(structure) != self.pred: # and not isinstance(structure, sparseobject):
 			raise NoMatchException()
 
 		flat = sparselist()
@@ -135,13 +153,19 @@ class template(object):
 
 
 class slot(object):
-	def __init__(self, index):
+	def __init__(self, index, attribute = None):
 		self.index = index
+		self.attribute = attribute
 
 	def consume(self, args):
-		return args[self.index]
+		val = args[self.index]
+		if self.attribute is not None:
+			val = getattr(val, self.attribute)
+		return val
 
 	def reverse(self, structure):
+		if self.attribute is not None:
+			structure = sparseobject(**{self.attribute: structure})
 		flat = sparselist()
 		flat[self.index] = structure
 		return flat
@@ -155,13 +179,16 @@ class tlist(object):
 			self.head_index = head
 		else:
 			self.head_index = [head]
-		self.rest_index = rest
+		if rest is None:
+			self.rest_index = []
+		elif isinstance(rest, list):
+			self.rest_index = rest
+		else:
+			self.rest_index = []
 
 	def consume(self, args):
-		if self.rest_index is None:
-			return tuple(index.consume(args) for index in self.head_index)
-		else:
-			return tuple(index.consume(args) for index in self.head_index) + self.rest_index.consume(args)
+		return tuple(index.consume(args) for index in self.head_index) + reduce(add, (index.consume(args) for index in self.rest_index), tuple())
+
 	def reverse(self, structure):
 		if not isinstance(structure, Sequence):
 			raise NoMatchException('structure is not a sequence')
@@ -174,14 +201,15 @@ class tlist(object):
 			for n, index in enumerate(self.head_index):
 				flat |= index.reverse(structure[n])
 
-		if self.rest_index is None:
+		if len(self.rest_index) == 0:
 			if len(structure) > len(self.head_index):
 				raise NoMatchException('structure is longer while expected end of list')
 		else:
 			if len(structure) <= len(self.head_index):
 				raise NoMatchException('structure is about the length of the head_index while expecting also a tail')
 			else:
-				flat |= self.rest_index.reverse(structure[len(self.head_index):])
+				for index in self.rest_index:
+					flat |= index.reverse(structure[len(self.head_index):])
 
 		return flat
 
@@ -773,16 +801,59 @@ def test_boxes_and_arrows():
 				print("oh no they are different?")
 
 
+def test_reverse_nesting():
+	class Claim(NamedTuple):
+		id: str
+
+	class Warrant(NamedTuple):
+		claim: Claim
+		conditions: List[str]
+
+	rules = ruleset([
+		rule('warrant',
+			['claim', 'conditions?'],
+			template(Warrant, claim=slot(0), conditions=slot(1))),
+		rule('warrant',
+			['special', 'conditions?'],
+			template(Warrant, claim=slot(0, 'claim'), conditions=tlist(rest=[slot(0, 'conditions'), slot(1)]))),
+		rule('conditions?',
+			[],
+			tlist()),
+		rule('claim',
+			[l('claim')],
+			template(Claim, id='A')),
+		rule('special',
+			[l('special')],
+			template(Warrant, claim=Claim('B'), conditions=('B1', 'B2')))
+	])
+
+	parser = Parser(rules)
+	
+	sentence = 'special'
+
+	words = sentence.split(' ')
+
+	trees = list(parser.parse('warrant', words))
+
+	pprint(trees)
+	
+	for tree in trees:
+		for realisation in parser.reverse('warrant', tree):
+			print(realisation)
+
+
+
 if __name__ == '__main__':
 	DEBUG=False
-	test_list()
-	test_optional()
-	test_recursion()
-	test_ambiguity()
-	test_combined()
-	test_generate()
-	test_boxes_and_arrows()
-	test_sparselist()
+	# test_list()
+	# test_optional()
+	# test_recursion()
+	# test_ambiguity()
+	# test_combined()
+	# test_generate()
+	# test_boxes_and_arrows()
+	# test_sparselist()
+	test_reverse_nesting()
 
 
 # for n, parsed in enumerate(parse(rules['extended_claim'][0], words)):
