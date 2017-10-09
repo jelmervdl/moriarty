@@ -57,7 +57,7 @@ def and_rule(name, single, cc=l('and')):
 		rule(name, [single], tlist(head=slot(0))),
 		rule(name, [single, cc, single], tlist(head=[slot(0),slot(2)])),
 		rule(name, [comma], slot(0)),
-		rule(comma, [single, l(','), comma], tlist(head=slot(0), rest=slot(2))),
+		rule(comma, [single, l(','), comma], tlist(head=slot(0), tail=slot(2))),
 		rule(comma, [single, l(','), single, l(','), cc, single], tlist(head=[slot(0), slot(2), slot(5)])),
 	]
 

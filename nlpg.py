@@ -157,6 +157,12 @@ class slot(object):
 		self.index = index
 		self.attribute = attribute
 
+	def __repr__(self):
+		if self.attribute:
+			return '${}.{}'.format(self.index, self.attribute)
+		else:
+			return '${}'.format(self.index)
+
 	def consume(self, args):
 		val = args[self.index]
 		if self.attribute is not None:
@@ -172,22 +178,30 @@ class slot(object):
 
 
 class tlist(object):
-	def __init__(self, head = None, rest = None):
+	def __init__(self, head = None, tail = None):
 		if head is None:
-			self.head_index = []
+			self.head = []
 		elif isinstance(head, list):
-			self.head_index = head
+			self.head = head
 		else:
-			self.head_index = [head]
-		if rest is None:
-			self.rest_index = []
-		elif isinstance(rest, list):
-			self.rest_index = rest
+			self.head = [head]
+		if tail is None:
+			self.tail = []
+		elif isinstance(tail, list):
+			self.tail = tail
 		else:
-			self.rest_index = []
+			self.tail = [tail]
+
+	def __repr__(self):
+		args = []
+		if self.head:
+			args.append('head={!r}'.format(self.head))
+		if self.tail:
+			args.append('tail={!r}'.format(self.tail))
+		return 'tlist({})'.format(', '.join(args))
 
 	def consume(self, args):
-		return tuple(index.consume(args) for index in self.head_index) + reduce(add, (index.consume(args) for index in self.rest_index), tuple())
+		return tuple(index.consume(args) for index in self.head) + reduce(add, (index.consume(args) for index in self.tail), tuple())
 
 	def reverse(self, structure):
 		if not isinstance(structure, Sequence):
@@ -195,21 +209,21 @@ class tlist(object):
 
 		flat = sparselist()
 
-		if len(structure) < len(self.head_index):
-			raise NoMatchException('head_index is longer than structure')
+		if len(structure) < len(self.head):
+			raise NoMatchException('head is longer than structure')
 		else:
-			for n, index in enumerate(self.head_index):
+			for n, index in enumerate(self.head):
 				flat |= index.reverse(structure[n])
 
-		if len(self.rest_index) == 0:
-			if len(structure) > len(self.head_index):
+		if len(self.tail) == 0:
+			if len(structure) > len(self.head):
 				raise NoMatchException('structure is longer while expected end of list')
 		else:
-			if len(structure) <= len(self.head_index):
-				raise NoMatchException('structure is about the length of the head_index while expecting also a tail')
+			if len(structure) <= len(self.head):
+				raise NoMatchException('structure is about the length of the head while expecting also a tail')
 			else:
-				for index in self.rest_index:
-					flat |= index.reverse(structure[len(self.head_index):])
+				for index in self.tail:
+					flat |= index.reverse(structure[len(self.head):])
 
 		return flat
 
@@ -430,7 +444,7 @@ def test_list():
 			tlist(head=slot(0))),
 		rule('reasons',
 			['reason', l('and'), 'reasons'],
-			tlist(head=slot(0), rest=slot(2)))
+			tlist(head=slot(0), tail=slot(2)))
 	])
 	
 	parser = Parser(rules)
@@ -815,7 +829,7 @@ def test_reverse_nesting():
 			template(Warrant, claim=slot(0), conditions=slot(1))),
 		rule('warrant',
 			['special', 'conditions?'],
-			template(Warrant, claim=slot(0, 'claim'), conditions=tlist(rest=[slot(0, 'conditions'), slot(1)]))),
+			template(Warrant, claim=slot(0, 'claim'), conditions=tlist(tail=[slot(0, 'conditions'), slot(1)]))),
 		rule('conditions?',
 			[],
 			tlist()),

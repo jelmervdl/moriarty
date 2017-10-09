@@ -272,7 +272,7 @@ if __name__ == '__main__':
 			tlist(head=0)),
 		rule('extended_claims',
 			['extended_claim', l('and'), 'extended_claims'],
-			tlist(head=0, rest=2)),
+			tlist(head=0, tail=2)),
 		rule('extended_claim',
 			['claim', 'supports', 'attacks'],
 			template(argument, claim=0, supports=1, attacks=2)),

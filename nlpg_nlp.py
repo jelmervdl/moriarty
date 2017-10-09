@@ -86,7 +86,7 @@ rules = ruleset([
 		tlist(head=[0, 1])),
 	rule('vp(s)',
 		['vbz', 'np(s)'],
-		tlist(head=[0], rest=1)),
+		tlist(head=[0], tail=1)),
 	rule('vp(p)',
 		['v(p)'],
 		tlist(0)),
