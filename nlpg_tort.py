@@ -4,8 +4,9 @@ from pprint import pprint
 
 sentences = ' '.join([
 	'A person must repair the damage \
-		when they commit a tortious act against another person,\
-		that can be attributed to him,\
+		when they committed a tortious act,\
+		against another person, \
+		that can be attributed to him, \
 		and that this other person has suffered as a result thereof.',
 	'They committed a tortious act \
 		if there was a violation of someone else\'s right \
@@ -27,8 +28,8 @@ parses = list(parser.parse('sentences', tokens))
 
 pprint(parses)
 
-for parse in parses:
-	for n, realisation in enumerate(parser.reverse('sentences', parse)):
-		print("{}: {}".format(n, ' '.join(map(str, realisation))))
+# for parse in parses:
+# 	for n, realisation in enumerate(parser.reverse('sentences', parse)):
+# 		print("{}: {}".format(n, ' '.join(map(str, realisation))))
 
 
