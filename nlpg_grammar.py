@@ -30,14 +30,14 @@ class Support(NamedTuple):
 
 class Warrant(NamedTuple):
 	claim: Claim
-	conditions: List['WarrantCondition']
-	exceptions: List['WarrantException']
+	conditions: List['WarrantCondition'] # in Disjunctive Normal Form
+	exceptions: List['WarrantException'] # idem.
 
 class WarrantCondition(NamedTuple):
-	claims: List[Claim]
+	claims: List[Claim] # Conjunctive
 
 class WarrantException(NamedTuple):
-	claims: List[Claim]
+	claims: List[Claim] # Conjunctive
 
 class Word(terminal):
 	def test(self, word):
@@ -62,6 +62,14 @@ def and_rule(name, single, cc=l('and')):
 	]
 
 rules = ruleset([
+	rule('sentences',
+		['sentence', 'sentences'],
+		tlist(head=slot(0), tail=slot(1))),
+
+	rule('sentences',
+		['sentence'],
+		tlist(head=slot(0))),
+
 	rule('sentence',
 		['argument', l('.')],
 		slot(0)),
@@ -69,14 +77,9 @@ rules = ruleset([
 	rule('sentence',
 		['warrant', l('.')],
 		slot(0)),
+	
 	] + and_rule('arguments', 'argument') + [
-	# rule('arguments',
-	# 	['argument'],
-	# 	tlist(head=0)),
-	# rule('arguments',
-	# 	['argument', l('and'), 'arguments'],
-	# 	tlist(head=0, rest=2)),
-
+	
 	rule('argument',
 		['claim', 'supports?'],
 		template(Argument, claim=slot(0), supports=slot(1))),
@@ -86,13 +89,7 @@ rules = ruleset([
 		template(Claim, text=slot(0))),
 
 	] + and_rule('claims', 'claim') + [
-	# rule('claims',
-	# 	['claim'],
-	# 	tlist(head=0)),
-	# rule('claims',
-	# 	['claim', l('and'), 'claims'],
-	# 	tlist(head=0, rest=2)),
-
+	
 	rule('word',
 		[Word()],
 		slot(0)),
@@ -105,13 +102,7 @@ rules = ruleset([
 		slot(0)),
 
 	] + and_rule('supports', 'support') + [
-	# rule('supports',
-	# 	['support'],
-	# 	tlist(head=0)),
-	# rule('supports',
-	# 	['support', l('and'), 'supports'],
-	# 	tlist(head=0, rest=2)),
-
+	
 	rule('support',
 		[l('because'), 'arguments', 'warrant?', 'undercutter?'],
 		template(Support, datums=slot(1), warrant=slot(2), undercutter=slot(3))),
@@ -134,10 +125,6 @@ rules = ruleset([
 		['claim', 'conditions?', 'exceptions?'],
 		template(Warrant, claim=slot(0), conditions=slot(1), exceptions=slot(2))),
 
-	# rule('warrant',
-	# 	['special', 'conditions?', 'exceptions?'],
-	# 	template(Warrant, claim=slot(0, 'claim'), conditions=tlist(rest=slot(0, 'conditions')), exceptions=slot(2))),
-
 	rule('conditions?',
 		[],
 		tlist()),
@@ -149,13 +136,7 @@ rules = ruleset([
 		slot(1)),
 
 	] + and_rule('conditions', 'condition', l('or')) + [
-	# rule('conditions',
-	# 	['condition'],
-	# 	tlist(head=0)),
-	# rule('conditions',
-	# 	['condition', l('or'), 'conditions'],
-	# 	tlist(head=0, rest=2)),
-
+	
 	rule('condition',
 		['claims'],
 		template(WarrantCondition, claims=slot(0))),
@@ -171,12 +152,7 @@ rules = ruleset([
 		slot(2)),
 
 	] + and_rule('exceptions', 'exception', l('or')) + [
-	# rule('exceptions',
-	# 	['exception'],
-	# 	tlist(head=0)),
-	# rule('exceptions',
-	# 	['exception', l('or'), 'exceptions'],
-	# 	tlist(head=0, rest=2)),
+	
 	rule('exception',
 		['claims'],
 		template(WarrantException, claims=slot(0))),
@@ -185,7 +161,7 @@ rules = ruleset([
 
 def tokenize(markers, sentence):
 	unit = []
-	for token in re.findall(r"[\w']+|[.,!?;]", sentence):
+	for token in re.findall(r"[\w'/]+|[.,!?;]", sentence):
 		if token in markers:
 			if len(unit) > 0:
 				yield Text(unit)
