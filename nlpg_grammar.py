@@ -52,11 +52,11 @@ class Support(NamedTuple):
 class Warrant(NamedTuple):
 	claim: Claim
 	conditions: List['WarrantCondition'] # in Disjunctive Normal Form
-	exceptions: List['WarrantException'] # idem.
 
 
 class WarrantCondition(NamedTuple):
 	claims: List[Claim] # Conjunctive
+	exceptions: List['WarrantException'] # idem.
 
 	def map(self, func):
 		return type(self)(tuple(map(func, self.claims)))
@@ -152,40 +152,70 @@ rules = ruleset([
 		slot(1)),
 
 	rule('warrant',
-		['claim', 'conditions?', 'exceptions?'],
-		template(Warrant, claim=slot(0), conditions=slot(1), exceptions=slot(2))),
+		['claim', 'conditions?'],
+		template(Warrant, claim=slot(0), conditions=slot(1))),
+
+	rule('warrant',
+		['claim', 'exceptions'],
+		template(Warrant,
+			claim=slot(0),
+			conditions=tlist(head=[
+				template(WarrantCondition,
+					claims=None,
+					exceptions=slot(1)
+				)
+			])
+		)
+	),
 
 	rule('conditions?',
 		[],
 		tlist()),
 	rule('conditions?',
-		[l('if'), 'conditions'],
-		slot(1)),
-	rule('conditions?',
-		[l('when'), 'conditions'],
-		slot(1)),
-
+		['conditions'],
+		slot(0)),
+	
 	] + and_rule('conditions', 'condition', l('or')) + [
 	
 	rule('condition',
-		['claims'],
-		template(WarrantCondition, claims=slot(0))),
+		['condition_marker', 'claims', 'exceptions?'],
+		template(WarrantCondition, claims=slot(1), exceptions=slot(2))),
+
+	rule('condition_marker',
+		[l('if')],
+		empty()),
+
+	rule('condition_marker',
+		[l('when')],
+		empty()),
 
 	rule('exceptions?',
 		[],
 		tlist()),
-	rule('exceptions?',
-		[l('unless'), 'exceptions'],
-		slot(1)),
-	rule('exceptions?',
-		[l('except'), l('when'), 'exceptions'],
-		slot(2)),
 
-	] + and_rule('exceptions', 'exception', l('or')) + [
+	rule('exceptions?',
+		['exceptions'],
+		slot(0)),
+
+	rule('exceptions',
+		[l('unless'), 'unmarked_exceptions'],
+		slot(1)),
 	
-	rule('exception',
+	] + and_rule('unmarked_exceptions', 'unmarked_exception', l('or')) + [
+	
+	rule('unmarked_exception',
 		['claims'],
 		template(WarrantException, claims=slot(0))),
+
+	rule('exceptions',
+		[l('except'), 'marked_exceptions'],
+		slot(1)),
+
+	] + and_rule('marked_exceptions', 'marked_exception', l('or')) + [
+
+	rule('marked_exception',
+		['condition_marker', 'claims'],
+		template(WarrantException, claims=slot(1))),
 ])
 
 
@@ -336,10 +366,21 @@ if __name__ == '__main__':
 			print("Evaluated {} paths".format(parse.counter))
 		return parses
 
-	parse('Tweety can fly because Tweety is a bird and animals can fly when they have wings unless they are a penguin .')
-	parse('The act is unlawful when someone\'s right is violated except when there is a justification .')
-	parse('The act is unlawful because someone\'s right was violated except there is a justification .')
-	parse('A suspect is innocent unless they are found guilty .')
-	parse('Claim A because claim B, claim C, and claim D.')
-	parse('the man who bested the king and took the throne or married the princess must reign the country.')
+	# parse('Tweety can fly because Tweety is a bird and animals can fly when they have wings unless they are a penguin .')
+	# parse('The act is unlawful when someone\'s right is violated except when there is a justification .')
+	# parse('The act is unlawful because someone\'s right was violated except there is a justification .')
+	# parse('A suspect is innocent unless they are found guilty .')
+	# parse('Claim A because claim B, claim C, and claim D.')
+	# parse('the man who bested the king and took the throne or married the princess must reign the country.')
+	# parse('A because B because C because D except E.')
+
+	# parse('The ball is red when the material of the ball is red or when the light shining on it is red.')
+	# parse('The ball is red if the ball looks red unless the light shining on it is red or if an expert says the ball is red except when the expert is not trustworthy or when the expert was misunderstood.')
+
+	# Exception:
+	parse('This ball is red because it looks red and balls are red when they look red except when the light is red.')
+
+	# Undercutter :)
+	parse('This ball is red because it looks red and balls are red when they look red except the light is red.')
+
 

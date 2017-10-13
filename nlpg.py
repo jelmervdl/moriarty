@@ -18,10 +18,10 @@ def debug(*args, **kwargs):
 def unique_generator(f):
 	@wraps(f)
 	def filter(*args, **kwargs):
-		seen = set()
+		seen = list()
 		for el in f(*args, **kwargs):
 			if el not in seen:
-				seen.add(el)
+				seen.append(el)
 				yield el
 	return filter
 
