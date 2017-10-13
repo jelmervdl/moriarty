@@ -4,7 +4,7 @@ import re
 
 class Text(object):
 	def __init__(self, words):
-		self.words = words
+		self.words = tuple(words)
 
 	def __str__(self):
 		return " ".join(self.words)
@@ -12,9 +12,30 @@ class Text(object):
 	def __repr__(self):
 		return "Text('{}')".format(str(self))
 
+	def __eq__(self, other):
+		return type(self) == type(other) and self.words == other.words
 
-class Claim(NamedTuple):
-	text: Text
+	def __add__(self, other):
+		return type(self)(self.words + other.words)
+
+	def __sub__(self, other):
+		if len(self.words) < len(other.words) or not all(self.words[n] == other.words[n] for n in range(len(other.words))):
+			raise Exception("{!r} does not have prefix {!r}".format(self, other))
+		return type(self)(self.words[len(other.words):])
+
+
+class Claim(object):
+	def __init__(self, text):
+		self.text = text
+
+	def __repr__(self):
+		return "Claim('{}')".format(str(self.text))
+
+	def __eq__(self, other):
+		return type(self) == type(other) and self.text == other.text
+
+	def map(self, func):
+		return type(self)(func(self.text))
 
 
 class Argument(NamedTuple):
@@ -33,11 +54,20 @@ class Warrant(NamedTuple):
 	conditions: List['WarrantCondition'] # in Disjunctive Normal Form
 	exceptions: List['WarrantException'] # idem.
 
+
 class WarrantCondition(NamedTuple):
 	claims: List[Claim] # Conjunctive
 
+	def map(self, func):
+		return type(self)(tuple(map(func, self.claims)))
+
+
 class WarrantException(NamedTuple):
 	claims: List[Claim] # Conjunctive
+
+	def map(self, func):
+		return type(self)(tuple(map(func, self.claims)))
+
 
 class Word(terminal):
 	def test(self, word):
@@ -159,6 +189,94 @@ rules = ruleset([
 ])
 
 
+class Action(Claim):
+	subject: Text
+	verb: Text
+	object: Claim
+
+	def __init__(self, subject, verb, object):
+		self.subject = subject
+		self.verb = verb
+		self.object = object
+		super().__init__(text=subject + verb + object.text)
+		
+
+from functools import partial
+from itertools import takewhile
+from nlpg import NoMatchException, sparselist
+
+
+class prepend(object):
+	def __init__(self, subject, object):
+		self.subject = subject
+		self.object = object
+
+	def consume(self, args):
+		return self._prepend(self.subject.consume(args), self.object.consume(args))
+
+	def reverse(self, structure):
+		all_texts = []
+		self._apply(partial(self._find_text, all_texts), structure)
+
+		word_tuples = zip(*(text.words for text in all_texts))
+		prefix_tuples = takewhile(lambda x: all(x[0] == y for y in x), word_tuples)
+		
+		subject = Text(x[0] for x in prefix_tuples)
+		object = self._apply(partial(self._remove, subject), structure)
+
+		flat = sparselist()
+		flat |= self.subject.reverse(subject)
+		flat |= self.object.reverse(object)
+
+		return flat
+
+	def _find_text(self, list, object):
+		if isinstance(object, Text):
+			list.append(object)
+		else:
+			self._apply(partial(self._find_text, list), object)
+	
+	def _prepend(self, subject, object):
+		if isinstance(object, Text):
+			return subject + object
+		else:
+			return self._apply(partial(self._prepend, subject), object)
+
+	def _remove(self, subject, object):
+		if isinstance(object, Text):
+			return object - subject
+		else:
+			return self._apply(partial(self._remove, subject), object)		
+
+	def _apply(self, func, object):
+		if hasattr(object, 'map'):
+			return object.map(func)
+		elif isinstance(object, tuple):
+			return tuple(map(func, object))
+		elif isinstance(object, list):
+			return map(func, object)
+		else:
+			raise Exception("I can't prepend to {!r}".format(object))
+
+
+rules += ruleset([
+	rule('warrant',
+		['subject', l('who'), 'conditions', l('must'), 'claim', 'exceptions?'],
+		template(Warrant,
+			claim=template(Action, subject=slot(0), verb=Text(['must']), object=slot(4)),
+			conditions=prepend(slot(0), slot(2)),
+			exceptions=slot(5))),
+
+	rule('claim',
+		['subject', l('must'), 'claim'],
+		template(Action, subject=slot(0), verb=Text(['must']), object=slot(2))),
+
+	rule('subject',
+		['word'],
+		slot(0)),
+])
+
+
 def tokenize(markers, sentence):
 	unit = []
 	for token in re.findall(r"[\w'/]+|[.,!?;]", sentence):
@@ -223,4 +341,5 @@ if __name__ == '__main__':
 	parse('The act is unlawful because someone\'s right was violated except there is a justification .')
 	parse('A suspect is innocent unless they are found guilty .')
 	parse('Claim A because claim B, claim C, and claim D.')
+	parse('the man who bested the king and took the throne or married the princess must reign the country.')
 

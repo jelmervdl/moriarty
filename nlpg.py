@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from pprint import pprint, pformat
 from collections import defaultdict
 from itertools import chain
-from functools import reduce
+from functools import reduce, wraps
 from operator import add
 
 
@@ -13,6 +13,17 @@ DEBUG = False
 def debug(*args, **kwargs):
 	if DEBUG:
 		print("DEBUG:", *args, **kwargs)
+
+
+def unique_generator(f):
+	@wraps(f)
+	def filter(*args, **kwargs):
+		seen = set()
+		for el in f(*args, **kwargs):
+			if el not in seen:
+				seen.add(el)
+				yield el
+	return filter
 
 
 class sparseobject(object):
@@ -46,10 +57,12 @@ class sparselist(list):
 		if missing > 0:
 			self.extend([None] * missing)
 		if self[index] is not None:
-			if isinstance(self[index], sparseobject) and isinstance(value, sparseobject):
+			if self[index] == value:
+				pass
+			elif isinstance(self[index], sparseobject) and isinstance(value, sparseobject):
 				value = self[index] | value
 			else:
-				raise Exception('Trying to overwrite already set value in sparselist')
+				raise Exception('Trying to overwrite already set value at index {} in sparselist: {!r} = {!r}'.format(index, self[index], value))
 		list.__setitem__(self, index, value)
 	
 	def __getitem__(self, index):
@@ -139,7 +152,7 @@ class template(object):
 
 	def reverse(self, structure):
 		debug("template.reverse {!r} {!r}".format(self.pred, structure))
-		if type(structure) != self.pred: # and not isinstance(structure, sparseobject):
+		if not isinstance(structure, self.pred):
 			raise NoMatchException()
 
 		flat = sparselist()
@@ -254,6 +267,9 @@ class ruleset(object):
 	def __iter__(self):
 		return chain.from_iterable(self.rules.values())
 
+	def __add__(self, other):
+		return type(self)(chain(self, other))
+
 	def lhs(self):
 		return self.rules.keys()
 
@@ -300,6 +316,7 @@ class Parser(object):
 	def __init__(self, rules):
 		self.rules = rules
 
+	# @unique_generator
 	def parse(self, rule_name, words):
 		for resolution, remaining_words in self._parse(rule_name, words):
 			if len(remaining_words) == 0:
@@ -328,6 +345,7 @@ class Parser(object):
 				for continuation, cont_remaining_words in self._parse_rule(tokens[1:], remaining_words):
 					yield [resolution] + continuation, cont_remaining_words
 
+	# @unique_generator
 	def reverse(self, rule_name, tree):
 		debug("reverse {!r} {!r}".format(rule_name, tree))
 		for rule in self.rules[rule_name]:
