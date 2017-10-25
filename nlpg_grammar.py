@@ -45,7 +45,7 @@ class Argument(NamedTuple):
 
 class Support(NamedTuple):
 	datums: List[Claim]
-	warrant: Optional[Argument]
+	warrant: Optional['Warrant']
 	undercutter: Optional[Argument]
 
 
@@ -319,6 +319,20 @@ def tokenize(markers, sentence):
 			unit.append(token)
 	if len(unit) > 0:
 		yield Text(unit)
+
+
+def parse(sentence, start = 'sentences'):
+	from nlpg import Parser
+	parser = Parser(rules)
+	tokens = tokenize(rules.markers(), sentence)
+	return parser.parse(start, tokens)
+
+
+def reverse(tree, start = 'sentences'):
+	from nlpg import Parser
+	parser = Parser(rules)
+	for realisation in parser.reverse(start, tree):
+		yield " ".join(map(str, realisation))
 
 
 if __name__ == '__main__':

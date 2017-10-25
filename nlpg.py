@@ -318,7 +318,7 @@ class Parser(object):
 
 	# @unique_generator
 	def parse(self, rule_name, words):
-		for resolution, remaining_words in self._parse(rule_name, words):
+		for resolution, remaining_words in self._parse(rule_name, list(words)):
 			if len(remaining_words) == 0:
 				yield resolution
 	

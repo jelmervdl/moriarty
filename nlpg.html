@@ -83,9 +83,6 @@
 			let diagramPanel = document.querySelector('.diagrams');
 
 			function createRealisation(text, n) {
-				if (Array.isArray(text))
-					text = text.join(" ");
-				
 				let tab = realisationPanel.createTab('Realisation ' + (n + 1).toString());
 				let textarea = document.createElement('textarea');
 				textarea.value = text;
@@ -113,7 +110,7 @@
 				};
 
 				diagram.claims.forEach(claim => {
-					instances.claim[claim.id] = graph.addClaim(claim.id);
+					instances.claim[claim.id] = graph.addClaim(claim.text);
 				});
 
 				diagram.relations.forEach(relation => {
@@ -127,7 +124,7 @@
 				graph.layout().apply();
 			}
 
-			createRealisation('Tweety can fly because birds can fly but Tweety is a penguin', 0);
+			createRealisation('Tweety can fly because birds can fly except Tweety is a penguin.', 0);
 
 			document.getElementById('text-to-diagram-btn').addEventListener('click', e => {
 				let sentence = realisationPanel.selectedTab.querySelector('textarea').value;
@@ -139,7 +136,7 @@
 						'Content-Type': 'application/json'
 					},
 					body: JSON.stringify({
-						'text': sentence.split(/\s/)
+						'text': sentence
 					})
 				});
 				
@@ -158,8 +155,25 @@
 			});
 
 			document.getElementById('diagram-to-text-btn').addEventListener('click', e => {
-				function id(claim) {
-					return {isa: 'claim', id: claim.text.join("\n")};
+				let sequence = 0;
+
+				function id(obj) {
+					if (!('id' in obj))
+						obj.id = sequence++;
+					return obj.id;
+				}
+
+				function ref(obj) {
+					let type = null;
+
+					if (obj instanceof Claim)
+						type = 'claim';
+					else if (obj instanceof Relation)
+						type = 'relation';
+					else
+						throw new Error('Unknown type');
+
+					return {isa: type, id: id(obj)};
 				}
 
 				let diagram = diagramPanel.selectedTab.diagram;
@@ -168,7 +182,11 @@
 					isa: 'diagram',
 					claims: diagram.claims
 						.filter(claim => !claim.data.compound)
-						.map(id),
+						.map(claim => ({
+							isa: 'claim',
+							id: id(claim),
+							text: claim.text.join("\n")
+						})),
 					relations: diagram.relations.reduce((acc, relation) => {
 						if (relation.claim.data.compound)
 							return acc;
@@ -178,14 +196,15 @@
 						let sources = relation.data.merged
 							? diagram.relations
 								.filter(rel => rel.target == relation.claim)
-								.map(rel => id(rel.claim))
-							: [id(relation.claim)];
+								.map(rel => ref(rel.claim))
+							: [ref(relation.claim)];
 
 						return acc.concat([
 							{
 								isa: 'relation',
+								id: id(relation),
 								sources: sources,
-								target: id(relation.target),
+								target: ref(relation.target),
 								type: relation.type
 							}
 						]);
