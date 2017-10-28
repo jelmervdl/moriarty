@@ -137,11 +137,17 @@ class Diagram(object):
 	def from_arguments(cls, arguments: List[Argument]) -> 'Diagram':
 		diagram = cls()
 		for argument in arguments:
-			diagram.add_argument(argument)
+			if isinstance(argument, Argument):
+				diagram.add_argument(argument)
+			elif isinstance(argument, Warrant):
+				diagram.add_warrant(argument)
+			else:
+				raise Exception("unknown type")
 		return diagram
 
 	def to_arguments(self) -> List[Argument]:
-		#todo: split up the argument into multiple arguments
+		# TODO: split up the argument into multiple arguments
+		# TODO: the root can be either an argument or a warrant!
 		yield tuple(self.to_argument(claim) for claim in self.find_roots())
 	
 	def to_argument(self, claim):
