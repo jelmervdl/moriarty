@@ -251,9 +251,9 @@ rules = ruleset([
 
 
 class Action(Claim):
-	# subject: Text
-	# verb: Text
-	# object: Claim
+	subject: Text
+	verb: Text
+	object: Claim
 
 	def __init__(self, subject, verb, object):
 		self.subject = subject
