@@ -33,6 +33,7 @@
 			.text-panel, .diagram-panel {
 				flex: 1 1;
 				display: flex;
+				overflow: auto;
 			}
 
 			.text-panel > *, .diagram-panel > * {
@@ -76,7 +77,7 @@
 					this.canvas.style.width = '100%';
 					this.canvas.style.height = '100%';
 				};
-			})(Graph);
+			})//(Graph);
 
 			let realisationPanel = document.querySelector('.realisations');
 
