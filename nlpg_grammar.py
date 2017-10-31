@@ -38,63 +38,32 @@ class Claim(object):
 		return type(self)(func(self.text))
 
 
-# class Argument(NamedTuple):
-# 	claim: Claim
-# 	supports: List['Support']
-Argument = NamedTuple('Argument', [
-	('claim', Claim),
-	('supports', List['Support'])
-])
+class Argument(NamedTuple):
+	claim: Claim
+	supports: List['Support']
 
-# class Support(NamedTuple):
-# 	datums: List[Claim]
-# 	warrant: Optional['Warrant']
-# 	undercutter: Optional[Argument]
-Support = NamedTuple('Support', [
-	('datums', List[Claim]),
-	('warrant', Optional['Warrant']),
-	('undercutter', Optional[Argument])
-])
 
-# class Warrant(NamedTuple):
-# 	claim: Claim
-# 	conditions: List['WarrantCondition'] # in Disjunctive Normal Form
-Warrant = NamedTuple('Warrant', [
-	('claim', Claim),
-	('conditions', List['WarrantCondition'])
-])
+class Support(NamedTuple):
+	datums: List[Claim]
+	warrant: Optional['Warrant']
+	undercutter: Optional[Argument]
 
-# class WarrantCondition(NamedTuple):
-# 	claims: List[Claim] # Conjunctive
-# 	exceptions: List['WarrantException'] # idem.
-class WarrantCondition(object):
-	__slots__ = ('claims', 'exceptions')
 
-	def __init__(self, claims, exceptions):
-		self.claims = claims
-		self.exceptions = exceptions
+class Warrant(NamedTuple):
+	claim: Claim
+	conditions: List['WarrantCondition'] # in Disjunctive Normal Form
 
-	def __hash__(self):
-		return hash((self.claims, self.exceptions))
 
-	def __eq__(self, other):
-		return self.claims == other.claims and self.exceptions == other.exceptions
+class WarrantCondition(NamedTuple):
+	claims: List[Claim] # Conjunctive
+	exceptions: List['WarrantException'] # idem.
 
 	def map(self, func):
 		return type(self)(tuple(map(func, self.claims)))
 
 
-class WarrantException(object):
-	# claims: List[Claim] # Conjunctive
-
-	def __init__(self, claims):
-		self.claims = claims
-
-	def __hash__(self):
-		return hash(self.claims)
-
-	def __eq__(self, other):
-		return self.claims == other.claims
+class WarrantException(NamedTuple):
+	claims: List[Claim] # Conjunctive
 
 	def map(self, func):
 		return type(self)(tuple(map(func, self.claims)))
