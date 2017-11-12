@@ -184,6 +184,9 @@
 					else
 						throw new Error('Unknown type');
 
+					if (obj.data.compound)
+						throw new Error('Trying to refer to implementation-artifact compound claim');
+
 					return {isa: type, id: id(obj)};
 				}
 
@@ -202,21 +205,13 @@
 						if (relation.claim.data.compound)
 							return acc;
 
-						// Combined relation originating from multiple sources.
-						// Find the sources, add them to this relation's target
-						let sources = relation.data.merged
-							? diagram.relations
-								.filter(rel => rel.target == relation.claim)
-								.map(rel => ref(rel.claim))
-							: [ref(relation.claim)];
-
 						return acc.concat([
 							{
 								isa: 'relation',
 								id: id(relation),
-								sources: sources,
-								target: ref(relation.target),
-								type: relation.type
+								sources: relation.realSources.map(ref),
+								target: ref(relation.realTarget),
+								type: relation.realType
 							}
 						]);
 					}, [])

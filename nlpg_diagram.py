@@ -37,6 +37,23 @@ class Diagram(object):
 			'id' : node['id']
 		}
 
+	def errors(self):
+		for id, relation in self.relations.items():
+			if relation['target']['isa'] == 'relation':
+				if relation['target']['id'] not in self.relations:
+					yield "Relation {}'s target refers to non-existing relation {}".format(id, relation['target']['id'])
+			elif relation['target']['isa'] == 'claim':
+				if relation['target']['id'] not in self.claims:
+					yield "Relation {}'s target refers to non-existing claim {}".format(id, relation['target']['id'])
+			else:
+				yield "Relation {}'s target is of unknown type {}".format(id, relation['target']['isa'])
+
+			for n, source in enumerate(relation['sources']):
+				if source['isa'] != 'claim':
+					yield "Relation {}'s {}th source is not a claim".format(id, n + 1)
+				if source['id'] not in self.claims:
+					yield "Relation {}'s {}th source refers to non-existing claim {}".format(id, n + 1, source['id'])
+	
 	def find_roots(self):
 		# The root claims have no outgoing relations. I.e. they are never
 		# the source of any relation.
@@ -200,6 +217,11 @@ class Diagram(object):
 		for relation in obj['relations']:
 			assert relation['isa'] == 'relation'
 			diagram.relations[relation['id']] = relation
+
+		errors = list(diagram.errors())
+		
+		if len(errors) > 0:
+			raise Exception("Could not load diagram from object:\n{}".format("\n".join(errors)))
 
 		return diagram
 

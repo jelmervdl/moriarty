@@ -86,6 +86,24 @@ Relation.prototype = {
 			return relation !== this;
 		}, this);
 	},
+
+	get realSources() {
+		return this.data.merged
+			? this.graph.relations.filter(rel => rel.target === this.claim).map(rel => rel.claim)
+			: [this.claim];
+	},
+
+	get realTarget() {
+		return this.target.data.compound
+			? this.graph.relations.find(r => r.claim === this.target).target
+			: this.target;
+	},
+
+	get realType() {
+		return this.target.data.compound
+			? this.graph.relations.find(r => r.claim === this.target).type
+			: this.type;
+	},
 	
 	get x() {
 		return this.claim.x + (this.target.x - this.claim.x) / 2;
