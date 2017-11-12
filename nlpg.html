@@ -232,15 +232,22 @@
 						'diagram': json
 					})
 				});
-				
+
 				let data = request.then(resp => resp.json());
 
-				// // Log to console
+				// Log to console
 				data.then(json => console.log(json));
 
-				// // Draw diagrams
+				// If there is an error, print it
 				data.then(json => {
-					json.texts.forEach(createRealisation);
+					if (json.error)
+						alert(json.error);
+				});
+
+				// If there are realisations, print realisation
+				data.then(json => {
+					if (json.texts)
+						json.texts.forEach(createRealisation);
 				});
 
 				// Clear the current one
