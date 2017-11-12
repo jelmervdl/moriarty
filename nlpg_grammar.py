@@ -321,6 +321,15 @@ def tokenize(markers, sentence):
 		yield Text(unit)
 
 
+def concatenate(tokens):
+	string = ""
+	for token in tokens:
+		if len(string) > 0 and (not len(token) == 1 or token.isalpha()):
+			string += " "
+		string += token
+	return string
+
+
 def parse(sentence, start = 'sentences'):
 	from nlpg import Parser
 	parser = Parser(rules)
@@ -332,7 +341,7 @@ def reverse(tree, start = 'sentences'):
 	from nlpg import Parser
 	parser = Parser(rules)
 	for realisation in parser.reverse(start, tree):
-		yield " ".join(map(str, realisation))
+		yield concatenate(map(str, realisation))
 
 
 if __name__ == '__main__':
