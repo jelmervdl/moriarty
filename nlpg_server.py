@@ -5,13 +5,11 @@ from nlpg_diagram import Diagram
 from pprint import pprint
 
 def text_to_diagrams(text):
-	pprint(text)
 	for arguments in parse(text):
 		yield Diagram.from_arguments(arguments).to_object()
 
 
 def diagram_to_texts(diagram):
-	pprint(diagram)
 	for tree in Diagram.from_object(diagram).to_arguments():
 		for realisation in reverse(tree):
 			yield realisation
