@@ -90,14 +90,14 @@ jQuery(function($) {
 
         var claims = {}, relations = {};
 
-        parse.claims.forEach(function(claim) {
+        parse.data.claims.forEach(function(claim) {
             claims[claim.id] = graph.addClaim(claim.text, {assumption: claim.assumption, scope: claim.scope});
         });
 
         // Make sure we first do all relations targeting claims, and only then
         // the ones targeting relations, so that the targets of the last group
         // already exists.
-        parse.relations
+        parse.data.relations
             .sort(function(a, b) {
                 var as = a.target.cls == 'claim' ? 0 : 1;
                 var bs = b.target.cls == 'claim' ? 0 : 1;
@@ -152,7 +152,22 @@ jQuery(function($) {
             $button.attr('data-clipboard-text', graph.toString());
         });
 
-        return $el;
+        let $trace = $('<div class="collapse trace">')
+            .append($('<ol>')
+                .append($.map(parse.trace, function(step) {
+                    return $('<li>').text(step);
+                })));           
+
+        let $traceBtn = $('<button class="btn btn-default btn-xs trace-btn trace-toggle-button"></button>')
+            .prop('title', 'Toggle trace')
+            .append('<span class="glyphicon glyphicon-sort-by-attributes"></span>')
+            .appendTo($el);
+
+        $traceBtn.on('click', e => {
+            $trace.collapse('toggle');
+        });
+
+        return $('<div>').append([$el, $trace]);
     }
 
     function listInstances(parse) {
@@ -199,8 +214,6 @@ jQuery(function($) {
                                     .addClass('list-group-item')
                                     .append(networkifyParse(parse))
                                     // .append(listInstances(parse))
-                                    // .append($('<ul>')
-                                    //     .append(stringifyParse(parse)));
                             }))
                         );
                         break;

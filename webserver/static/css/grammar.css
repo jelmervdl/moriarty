@@ -25,18 +25,11 @@ ul.attacks li:before {
 
 .network {
 	/*width: 100%;*/
-	height: 400px;
+	/*height: 400px;*/
     margin: 0 -28px;
     overflow-x: auto;
     overflow-y: hidden;
-}
-
-.list-group-item:first-child .network {
-    margin-top: -23px;
-}
-
-.list-group-item:last-child .network {
-    margin-bottom: -23px;
+    position: relative;
 }
 
 .network canvas {
@@ -54,8 +47,14 @@ ul.attacks li:before {
 
 .network .graph-copy-button {
     position: absolute;
-    top: 0;
-    right: 0;
+    top: 15px;
+    right: 15px;
+}
+
+.network .trace-toggle-button {
+    position: absolute;
+    top: 45px;
+    right: 15px;
 }
 
 .instance-list {

@@ -86,6 +86,24 @@ Relation.prototype = {
 			return relation !== this;
 		}, this);
 	},
+
+	get realSources() {
+		return this.data.merged
+			? this.graph.relations.filter(rel => rel.target === this.claim).map(rel => rel.claim)
+			: [this.claim];
+	},
+
+	get realTarget() {
+		return this.target.data.compound
+			? this.graph.relations.find(r => r.claim === this.target).target
+			: this.target;
+	},
+
+	get realType() {
+		return this.target.data.compound
+			? this.graph.relations.find(r => r.claim === this.target).type
+			: this.type;
+	},
 	
 	get x() {
 		return this.claim.x + (this.target.x - this.claim.x) / 2;
@@ -165,6 +183,7 @@ function Graph(canvas)
 	this.selectedClaims = [];
 	this.dragStartPosition = null;
 	this.wasDragging = false;
+	this.cursor = null;
 
 	this.listeners = {
 		'draw': [],
@@ -172,11 +191,14 @@ function Graph(canvas)
 	};
 
 	if ('addEventListener' in this.canvas) {
+		this.canvas.tabIndex = -1;
 		this.canvas.addEventListener('mousedown', this.onMouseDown.bind(this));
 		this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
 		this.canvas.addEventListener('mouseup', this.onMouseUp.bind(this));
+		this.canvas.addEventListener('mouseout', this.onMouseOut.bind(this));
 		this.canvas.addEventListener('dblclick', this.onDoubleClick.bind(this));
 		this.canvas.addEventListener('keydown', this.onKeyDown.bind(this));
+		this.canvas.addEventListener('keyup', this.onKeyUp.bind(this));
 		this.canvas.addEventListener('focus', this.update.bind(this));
 		this.canvas.addEventListener('blur', this.update.bind(this));
 	}
@@ -254,7 +276,7 @@ Graph.prototype = {
 			}
 			else if (claim.length > 1) {
 				// We need a compound statement to merge stuff
-				var compound = this.addClaim('&', {compound: true});
+				let compound = this.addClaim('&', {compound: true});
 
 				claim.forEach(function(claim) {
 					this.addRelation(claim, compound, null, data);
@@ -320,7 +342,19 @@ Graph.prototype = {
 		return this.relations.filter(test);
 	},
 
+	findClaimAtPosition: function(pos) {
+		return this.claims.find(claim => {
+			return pos.x > claim.x + this.style.padding
+				&& pos.y > claim.y + this.style.padding
+				&& pos.x < claim.x + this.style.padding + claim.width
+				&& pos.y < claim.y + this.style.padding + claim.height;
+		});
+	},
+
 	onMouseDown: function(e) {
+		if (e.altKey)
+			return;
+
 		this.wasDragging = false;
 
 		this.dragStartPosition = {
@@ -328,12 +362,7 @@ Graph.prototype = {
 			y: e.offsetY
 		};
 
-		var claim = this.claims.find(claim => {
-			return e.offsetX > claim.x
-				&& e.offsetY > claim.y
-				&& e.offsetX < claim.x + claim.width
-				&& e.offsetY < claim.y + claim.height;
-		});
+		let claim = this.findClaimAtPosition({x: e.offsetX, y: e.offsetY});
 
 		if (claim && !this.selectedClaims.includes(claim)) {
 			if (e.shiftKey)
@@ -346,36 +375,33 @@ Graph.prototype = {
 	},
 
 	onDoubleClick: function(e) {
-		/*
-		var claim = this.claims.find(function(claim) {
-			return e.clientX > claim.x - claim.width / 2
-				&& e.clientY > claim.y - claim.height / 2
-				&& e.clientX < claim.x + claim.width / 2
-				&& e.clientY < claim.y + claim.height / 2;
-		});
+		let claim = this.findClaimAtPosition({x: e.offsetX, y: e.offsetY});
 
-		if (!claim)
+		if (claim)
 			return;
 
-		if (this.input.style.display != 'hidden')
-			this.input.blur();
+		let text = prompt('ID');
 
-		input.value = claim.text;
-		input.
-		*/
+		claim = this.addClaim(text);
+		claim.setPosition(e.offsetX, e.offsetY);
 	},
 
 	onMouseMove: function(e) {
 		if (this.dragStartPosition === null) {
-			if (this.claims.some(claim => {
-				return e.offsetX > claim.x
-					&& e.offsetY > claim.y
-					&& e.offsetX < claim.x + claim.width
-					&& e.offsetY < claim.y + claim.height;
-			}))
+			if (this.findClaimAtPosition({x: e.offsetX, y: e.offsetY}))
 				this.canvas.style.cursor = 'pointer';
 			else
-				this.canvas.style.cursor = 'default';	
+				this.canvas.style.cursor = 'default';
+
+			if (e.altKey) {
+				this.cursor = {
+					x: e.offsetX - this.style.padding,
+					y: e.offsetY - this.style.padding,
+					type: e.shiftKey ? Relation.ATTACK : Relation.SUPPORT
+				};
+				
+				this.update();
+			}
 		} else {
 			const delta = {
 				x: e.offsetX - this.dragStartPosition.x,
@@ -401,15 +427,17 @@ Graph.prototype = {
 		this.canvas.style.cursor = 'default';
 
 		if (!this.wasDragging) {
-			let claim = this.claims.find(claim => {
-				return e.offsetX > claim.x
-					&& e.offsetY > claim.y
-					&& e.offsetX < claim.x + claim.width
-					&& e.offsetY < claim.y + claim.height;
-			});
+			let claim = this.findClaimAtPosition({x: e.offsetX, y: e.offsetY});
 
-			if (!claim) {
-				if (this.selectedClaims.length != 0) {
+			if (e.altKey) {
+				if (claim && this.selectedClaims.length > 0) {
+					this.addRelation(
+						this.selectedClaims[0],
+						claim,
+						e.shiftKey ? Relation.ATTACK : Relation.SUPPORT);
+				}
+			} else {
+				if (!claim && this.selectedClaims.length != 0) {
 					this.selectedClaims = [];
 					this.update();
 				}
@@ -429,8 +457,15 @@ Graph.prototype = {
 		this.dragStartPosition = null;
 	},
 
+	onMouseOut: function(e) {
+		if (this.cursor) {
+			this.cursor = null;
+			this.update();
+		}
+	},
+
 	onKeyDown: function(e) {
-		var stepSize = 2 * this.style.scale;
+		const stepSize = 2 * this.style.scale;
 
 		switch (e.keyCode) {
 			case 8: // Backspace
@@ -492,6 +527,21 @@ Graph.prototype = {
 				e.preventDefault();
 				this.update();
 				break;
+
+			case 16: // Shift
+			case 18: // Alt
+				this.update();
+				break;
+		}
+	},
+
+	onKeyUp: function(e) {
+		switch (e.keyCode) {
+			case 16: // Shift
+			case 18: // Alt
+				this.cursor = null;
+				this.update();
+				break;
 		}
 	},
 
@@ -509,7 +559,6 @@ Graph.prototype = {
 
 	resize: function() {
 		_requestAnimationFrame(() => {
-			this.updateCanvasSize();
 			this.draw();
 		});
 	},
@@ -591,7 +640,9 @@ Graph.prototype = {
 		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
 		// Translate for the padding (simplifies drawing commands immensely)
-		this.context.translate(this.style.padding, this.style.padding);
+		this.context.translate(
+			this.style.padding * this.style.scale,
+			this.style.padding * this.style.scale);
 
 		this.context.strokeStyle = '#000';
 		this.context.fillStyle = 'black';
@@ -602,6 +653,8 @@ Graph.prototype = {
 		this.drawClaims();
 
 		this.drawSelection();
+
+		this.drawCursor();
 		
 		this.fire('draw');
 		
@@ -678,10 +731,8 @@ Graph.prototype = {
 
 	drawRelations: function()
 	{
-		var ctx = this.context,
-			scale = this.style.scale,
-			relationColor = this.style.relation.color,
-			arrowRadius = this.style.relation.size;
+		let ctx = this.context,
+			relationColor = this.style.relation.color;
 
 		// Draw all the relation arrows
 		this.relations.forEach(relation => {
@@ -694,59 +745,81 @@ Graph.prototype = {
 
 			var t = this.offsetPosition(relation.claim, relation.target);
 
-			ctx.lineWidth = scale * 1;
-
-			ctx.beginPath();
-			ctx.moveTo(scale * s.x, scale * s.y);
-
 			ctx.strokeStyle = relationColor(relation);
 
-			// To almost the target (but a bit less)
-			var angle = Math.atan2(
-				t.y - s.y,
-				t.x - s.x);
-
-			switch (relation.type) {
-				case Relation.SUPPORT:
-					ctx.lineTo(
-						scale * t.x - scale * arrowRadius * Math.cos(angle),
-						scale * t.y - scale * arrowRadius * Math.sin(angle));
-					ctx.stroke();
-
-					ctx.lineWidth = scale * 2;
-					
-					ctx.arrow(scale * arrowRadius, 
-						scale * s.x,
-						scale * s.y,
-						scale * t.x,
-						scale * t.y);
-					ctx.fill();
-					break;
-
-				case Relation.ATTACK:
-					ctx.lineTo(
-						scale * t.x - scale * arrowRadius * Math.cos(angle),
-						scale * t.y - scale * arrowRadius * Math.sin(angle));
-					ctx.stroke();
-
-					ctx.lineWidth = scale * 2;
-
-					ctx.cross(0.75 * scale * arrowRadius, 
-						scale * s.x,
-						scale * s.y,
-						scale * t.x,
-						scale * t.y);
-					ctx.stroke();
-					break;
-
-				default:
-					ctx.lineTo(
-						scale * t.x,
-						scale * t.y);
-					ctx.stroke();
-					break;
-			}
+			this.drawRelationLine(s, t, relation.type);
 		});
+	},
+
+	drawRelationLine: function(s, t, type)
+	{
+		let ctx = this.context,
+			scale = this.style.scale,
+			arrowRadius = this.style.relation.size;
+
+		ctx.lineWidth = scale * 1;
+
+		ctx.beginPath();
+		ctx.moveTo(scale * s.x, scale * s.y);
+
+		// To almost the target (but a bit less)
+		let angle = Math.atan2(
+			t.y - s.y,
+			t.x - s.x);
+
+		switch (type) {
+			case Relation.SUPPORT:
+				ctx.lineTo(
+					scale * t.x - scale * arrowRadius * Math.cos(angle),
+					scale * t.y - scale * arrowRadius * Math.sin(angle));
+				ctx.stroke();
+
+				ctx.lineWidth = scale * 2;
+				
+				ctx.arrow(scale * arrowRadius, 
+					scale * s.x,
+					scale * s.y,
+					scale * t.x,
+					scale * t.y);
+				ctx.fill();
+				break;
+
+			case Relation.ATTACK:
+				ctx.lineTo(
+					scale * t.x - scale * arrowRadius * Math.cos(angle),
+					scale * t.y - scale * arrowRadius * Math.sin(angle));
+				ctx.stroke();
+
+				ctx.lineWidth = scale * 2;
+
+				ctx.cross(0.75 * scale * arrowRadius, 
+					scale * s.x,
+					scale * s.y,
+					scale * t.x,
+					scale * t.y);
+				ctx.stroke();
+				break;
+
+			default:
+				ctx.lineTo(
+					scale * t.x,
+					scale * t.y);
+				ctx.stroke();
+				break;
+		}
+	},
+
+	drawCursor: function()
+	{
+		if (!this.cursor || this.selectedClaims.length === 0)
+			return;
+
+		let ctx = this.context,
+			relationColor = this.style.relation.color;
+
+		let claim = this.selectedClaims[0];
+
+		this.drawRelationLine(claim.center, this.cursor, this.cursor.type);
 	},
 
 	offsetPosition: function(sourceBox, targetBox) {

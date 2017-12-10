@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>NLPG/HASL</title>
+		<style>
+			html, body {
+				height: 100%;
+				margin: 0;
+				padding: 0;
+				overflow: hidden;
+				font: 12px/16px sans-serif;
+			}
+
+			body {
+				display: flex;
+				flex-direction: column;
+			}
+
+			.toolbar {
+				display: block;
+				flex: 0;
+				padding: 4px;
+				background: #ccc;
+				border-bottom: 1px solid #333;
+			}
+
+			.container {
+				flex: 1;
+				display: flex;
+				flex-direction: row;
+			}
+			
+			.text-panel, .diagram-panel {
+				flex: 1 1;
+				display: flex;
+				overflow: auto;
+			}
+
+			.text-panel > *, .diagram-panel > * {
+				flex: 1 1;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="toolbar">
+			<button id="text-to-diagram-btn"><strong>Comprehend</strong> text as diagram</button>
+			<button id="diagram-to-text-btn"><strong>Formulate</strong> diagram as text</button>
+		</div>
+		<div class="container">
+			<div class="text-panel">
+				<x-tab-panel class="realisations"></x-tab-panel>
+			</div>
+			<div class="diagram-panel">
+				<x-tab-panel class="diagrams"></x-tab-panel>
+			</div>
+		</div>
+	
+		<script src="/static/js/canvas.js"></script>
+		<script src="/static/js/array.js"></script>
+		<script src="/static/js/graph.js"></script>
+		<script src="/static/js/layout.js"></script>
+		<script src="/static/js/tab-panel.js"></script>
+		<script>
+			(function(Graph) {
+				Graph.prototype.updateCanvasSize = function(e) {
+					const width = this.canvas.parentNode.offsetWidth;
+					const height = this.canvas.parentNode.offsetHeight;
+
+					if (this._pw == width && this._ph == height)
+						return;
+
+					[this._pw, this._ph] = [width, height];
+
+					this.canvas.width = this.style.scale * width;
+					this.canvas.height = this.style.scale * height;
+
+					this.canvas.style.width = '100%';
+					this.canvas.style.height = '100%';
+				};
+			})//(Graph);
+
+			let realisationPanel = document.querySelector('.realisations');
+
+			let diagramPanel = document.querySelector('.diagrams');
+
+			function createRealisation(text, n) {
+				let tab = realisationPanel.createTab('Realisation ' + (n + 1).toString());
+				let textarea = document.createElement('textarea');
+				textarea.value = text;
+				tab.appendChild(textarea);
+			}
+
+			function createDiagram(diagram, n) {
+				let tab = diagramPanel.createTab('Parse ' + (n + 1).toString());
+
+				let canvas = document.createElement('canvas');
+				tab.appendChild(canvas);
+
+				canvas.width = 600;
+				canvas.height = 600;
+
+				let graph = new Graph(canvas);
+
+				tab.addEventListener('show', graph.draw.bind(graph));
+
+				tab.diagram = graph;
+
+				let instances = {
+					claim: {},
+					relation: {}
+				};
+
+				diagram.claims.forEach(claim => {
+					instances.claim[claim.id] = graph.addClaim(claim.text);
+				});
+
+				diagram.relations.forEach(relation => {
+					instances.relation[relation.id]= graph.addRelation(
+						relation.sources.map(source => instances[source.isa][source.id]),
+						instances[relation.target.isa][relation.target.id],
+						relation.type
+					);
+				});
+
+				graph.layout().apply();
+			}
+
+			// createRealisation('Tweety can fly because birds can fly except Tweety is a penguin.', 0);
+
+			const tort = [
+				'A person must repair the damage when they committed a tortious act, against another person, that can be attributed to him, and that this other person has suffered as a result thereof.',
+				'They committed a tortious act if there was a violation of someone else\'s right, if an act/omission in violation of a duty imposed by law, or if of what according to unwritten law has to be regarded as proper social conduct unless there was a justification for this behaviour.',
+				'A tortious act can be attributed to the tortfeasor if it results from his fault or if it results from a cause for which he is accountable by virtue of law/generally accepted principles.'
+			].join(' ');
+
+			createRealisation(tort, 0);
+
+			createRealisation('Tweety can fly because he is a bird and birds can fly when they have wings except when they are penguins.', 1);
+
+			document.getElementById('text-to-diagram-btn').addEventListener('click', e => {
+				let sentence = realisationPanel.selectedTab.querySelector('textarea').value;
+
+				let request = fetch('/api/diagram', {
+					method: 'POST',
+					headers: {
+						'Accept': 'application/json',
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						'text': sentence
+					})
+				});
+				
+				let data = request.then(resp => resp.json());
+
+				// Log to console
+				data.then(json => console.log(json));
+
+				// Draw diagrams
+				data.then(json => {
+					json.diagrams.forEach(createDiagram);
+				});
+
+				// But first, clear the current one
+				diagramPanel.clear();
+			});
+
+			document.getElementById('diagram-to-text-btn').addEventListener('click', e => {
+				let sequence = 0;
+
+				function id(obj) {
+					if (!('id' in obj))
+						obj.id = sequence++;
+					return obj.id;
+				}
+
+				function ref(obj) {
+					let type = null;
+
+					if (obj instanceof Claim)
+						type = 'claim';
+					else if (obj instanceof Relation)
+						type = 'relation';
+					else
+						throw new Error('Unknown type');
+
+					if (obj.data.compound)
+						throw new Error('Trying to refer to implementation-artifact compound claim');
+
+					return {isa: type, id: id(obj)};
+				}
+
+				let diagram = diagramPanel.selectedTab.diagram;
+
+				let json = {
+					isa: 'diagram',
+					claims: diagram.claims
+						.filter(claim => !claim.data.compound)
+						.map(claim => ({
+							isa: 'claim',
+							id: id(claim),
+							text: claim.text.join("\n")
+						})),
+					relations: diagram.relations.reduce((acc, relation) => {
+						if (relation.claim.data.compound)
+							return acc;
+
+						return acc.concat([
+							{
+								isa: 'relation',
+								id: id(relation),
+								sources: relation.realSources.map(ref),
+								target: ref(relation.realTarget),
+								type: relation.realType
+							}
+						]);
+					}, [])
+				};
+
+				let request = fetch('/api/text', {
+					method: 'POST',
+					headers: {
+						'Accept': 'application/json',
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						'diagram': json
+					})
+				});
+
+				let data = request.then(resp => resp.json());
+
+				// Log to console
+				data.then(json => console.log(json));
+
+				// If there is an error, print it
+				data.then(json => {
+					if (json.error)
+						alert(json.error);
+				});
+
+				// If there are realisations, print realisation
+				data.then(json => {
+					if (json.texts)
+						json.texts.forEach(createRealisation);
+				});
+
+				// Clear the current one
+				realisationPanel.clear();
+			});
+		</script>
+	</body>
+</html>

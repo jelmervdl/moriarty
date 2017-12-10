@@ -200,9 +200,9 @@ class Relation(object):
     def __init__(self, sources: Set['Claim'], target: Union['Claim', 'Relation'], type: str, assumption: bool = False):
         from grammar.shared.claim import Claim
         
-        assert all(isinstance(o, Claim) for o in sources)
-        assert isinstance(target, Claim) or isinstance(target, Relation)
-        assert type in (self.ATTACK, self.SUPPORT, self.CONDITION)
+        assert all(isinstance(o, Claim) for o in sources), 'All relations sources have to be claims'
+        assert isinstance(target, Claim) or isinstance(target, Relation), 'Relation target has to be a claim or a relation'
+        assert type in (self.ATTACK, self.SUPPORT, self.CONDITION), 'Relation type has to be attack, support or condition'
 
         self.sources = set(sources)
         self.target = target
