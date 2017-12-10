@@ -90,12 +90,12 @@ class Rule:
 
     def __repr__(self, with_cursor_at: int = None) -> str:
         if with_cursor_at is not None:
-            return "{} --> {} ● {}".format(
+            return "{} ⇒ {} ● {}".format(
                 self.name,
                 " ".join(map(repr, self.symbols[:with_cursor_at])),
                 " ".join(map(repr, self.symbols[with_cursor_at:])))
         else:
-            return "{} --> {}".format(self.name, " ".join(map(repr, self.symbols)))
+            return "{} ⇒ {}".format(self.name, " ".join(map(repr, self.symbols)))
 
     def consume(self, state: 'State'):
         return self
