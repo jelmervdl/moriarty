@@ -102,7 +102,10 @@ class Rule:
 
     def finish(self, state: 'State', data: List[Any]) -> Any:
         log("!!! Finishing {} with data {} and reference {}!".format(self.name, state.data, state.reference))
-        return self.callback(state, data)
+        try:
+            return self.callback(state, data)
+        except Exception as e:
+            raise Exception('Error while trying to finish the rule {!r}'.format(self)) from e
 
 
 class RuleInstance:
@@ -125,15 +128,16 @@ class State:
         self.reference = reference
         self.parent = parent
         self.data = []  # type: List[Any]
+        self.trace = []
         self.error = None
 
     def __repr__(self) -> str:
         return "{rule}, from: {ref} (data:{data!r}, parent:\n{parent!r})".format(rule=self.rule.__repr__(self.expect), ref=self.reference, data=self.data, parent=self.parent)
 
-    def nextState(self, data) -> 'State':
+    def nextState(self, data, trace) -> 'State':
         state = State(self.rule, self.expect + 1, self.reference, parent=self)
-        state.data = self.data[:]
-        state.data.append(data)
+        state.data = self.data + [data]
+        state.trace = trace + self.trace
         return state
 
     def consumeTerminal(self, inp: str, token_pos: int) -> Optional['State']:
@@ -141,7 +145,10 @@ class State:
             self.rule.symbols) > self.expect else '>END<'))
         if len(self.rule.symbols) > self.expect and self.rule.symbols[self.expect].test(inp, position=token_pos, state=self):
             log("Terminal consumed")
-            return self.nextState(self.rule.symbols[self.expect].finish(inp, self))
+            try:
+                return self.nextState(self.rule.symbols[self.expect].finish(inp, self), ['Consume terminal {!r} with {!r}'.format(inp, self.rule.symbols[self.expect])])
+            except Exception as e:
+                raise Exception('Exception while trying to consume {!r} with {!r}'.format(inp, self.rule.symbols[self.expect])) from e
         else:
             return None
 
@@ -150,46 +157,43 @@ class State:
         if len(self.rule.symbols) > self.expect \
                 and isinstance(self.rule.symbols[self.expect], RuleRef) \
                 and self.rule.symbols[self.expect].name == inp.name:
-            return self.nextState(inp.consume(self))
+            return self.nextState(inp.consume(self), ['{!r}: Consume non-terminal {!r}'.format(self.rule.__repr__(self.expect), inp)])
         else:
             return None
 
     def process(self, location, table: List[List['State']], rules: List[Rule], added_rules: List[Rule]) -> None:
         if self.expect == len(self.rule.symbols):
             # We have a completed rule
-            try:
-                self.data = self.rule.finish(self, self.data)
+            self.data = self.rule.finish(self, self.data)
+            self.trace.insert(0, 'Finish rule {!r}'.format(self.rule))
 
-                w = 0
-                # We need a while here because the empty rule will modify table[reference] when location == reference
-                while w < len(table[self.reference]):
-                    state = table[self.reference][w]
-                    next_state = state.consumeNonTerminal(self.rule)
-                    if next_state is not None:
-                        next_state.data[-1] = self.data
-                        table[location].append(next_state)
-                    w += 1
+            w = 0
+            # We need a while here because the empty rule will modify table[reference] when location == reference
+            while w < len(table[self.reference]):
+                state = table[self.reference][w]
+                next_state = state.consumeNonTerminal(self.rule)
+                if next_state is not None:
+                    next_state.data[-1] = self.data
+                    next_state.trace = self.trace + next_state.trace
+                    table[location].append(next_state)
+                w += 1
 
-                    # --- The comment below is OUTDATED. It's left so that future
-                    # editors know not to try and do that.
+                # --- The comment below is OUTDATED. It's left so that future
+                # editors know not to try and do that.
 
-                    # Remove this rule from "addedRules" so that another one can be
-                    # added if some future added rule requires it.
-                    # Note: I can be optimized by someone clever and not-lazy. Somehow
-                    # queue rules so that everything that this completion "spawns" can
-                    # affect the rest of the rules yet-to-be-added-to-the-table.
-                    # Maybe.
+                # Remove this rule from "addedRules" so that another one can be
+                # added if some future added rule requires it.
+                # Note: I can be optimized by someone clever and not-lazy. Somehow
+                # queue rules so that everything that this completion "spawns" can
+                # affect the rest of the rules yet-to-be-added-to-the-table.
+                # Maybe.
 
-                    # I repeat, this is a *bad* idea.
+                # I repeat, this is a *bad* idea.
 
-                    # var i = addedRules.indexOf(this.rule);
-                    # if (i !== -1) {
-                    #     addedRules.splice(i, 1);
-                    # }
-            except Exception as e:
-                log("apparently {} could not be parsed here: {}".format(self.rule, e))
-                self.error = e
-                pass
+                # var i = addedRules.indexOf(this.rule);
+                # if (i !== -1) {
+                #     addedRules.splice(i, 1);
+                # }
         else:
             # in case I missed an older nullable's sweep, update yourself. See
             # above context for why this makes sense
@@ -201,6 +205,7 @@ class State:
                     x = self.consumeNonTerminal(state.rule)
                     if x is not None:
                         x.data[-1] = state.data
+                        x.trace = state.trace + x.trace
                         table[location].append(x)
 
             # I'm not done, but I can predict something
@@ -307,7 +312,7 @@ class Parser:
 
     def finish(self) -> List[List[Any]]:
         # Return the possible parsings
-        return [state.data for state in self.table[-1] if
+        return [dict(data=state.data, trace=list(reversed(state.trace))) for state in self.table[-1] if
                 state.rule.name == self.start
                 and state.expect == len(state.rule.symbols)
                 and state.reference == 0

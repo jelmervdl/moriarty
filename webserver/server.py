@@ -71,7 +71,6 @@ class JSONEncoder(flask.json.JSONEncoder):
             )
         elif isinstance(o, claim.Claim):
             op = context.find_claim(o)
-            print(repr(op))
             return dict(cls='claim', id=op.id,
                 text=ucfirst(op.text(context)),
                 assumption=op.assumption,
@@ -160,7 +159,7 @@ def api_parse_sentence():
         return jsonify(reply)
     except Exception as error:
         traceback.print_exc()
-        reply['error'] = str(error)
+        reply['error'] = "{}: {!s}\n{}".format(error.__class__.__name__, error, traceback.format_exc())
         response = jsonify(reply)
         response.status_code = 400
         return response
