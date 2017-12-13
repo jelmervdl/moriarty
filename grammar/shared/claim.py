@@ -18,7 +18,10 @@ class Scope(object):
         self.id = self.counter.next()
 
     def __repr__(self):
-        return "${}".format(self.id)
+        return "Scope#{}".format(self.id)
+
+    def __str__(self):
+        return "{}".format(self.id)
 
 
 class Claim(object):
@@ -83,12 +86,12 @@ class Claim(object):
             verb=self.verb,
             object=self.object.text(argument) if 'text' in dir(self.object) else str(self.object))
 
-    def clone(self, cls=None, **kwargs):
+    def update(self, cls=None, **kwargs):
         if cls is None:
             cls = self.__class__
         defaults = {
             'id': self.id,
-            'subject': self.subject,
+            'subject': self.subject.update(scope=kwargs['scope']) if 'scope' in kwargs else self.subject,
             'verb': self.verb,
             'object': self.object,
             'assumption': self.assumption
@@ -96,7 +99,7 @@ class Claim(object):
         return cls(**{**defaults, **kwargs})
 
     def assume(self, cls=None, **kwargs):
-        return self.clone(cls=cls, id=self.counter.next(), assumption=True, **kwargs)
+        return self.update(cls=cls, id=self.counter.next(), assumption=True, **kwargs)
 
     @classmethod
     def from_rule(cls, state, data):

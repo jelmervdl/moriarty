@@ -2,6 +2,7 @@ import re
 import traceback
 from typing import List
 from functools import reduce
+from pprint import pprint
 
 import flask
 
@@ -155,7 +156,6 @@ def api_parse_sentence():
         p = parser.Parser(grammar, 'ARGUMENT')
         parses = p.parse(tokens)
         reply['parses'] = parses
-        # reply['states'] = p.table
         return jsonify(reply)
     except Exception as error:
         traceback.print_exc()

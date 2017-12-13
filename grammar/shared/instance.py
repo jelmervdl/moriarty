@@ -87,12 +87,13 @@ class Instance(object):
     def replace(self, other: 'Instance') -> 'Instance':
         return self.update(other.name, other.noun, other.pronoun)
 
-    def update(self, name: str = None, noun: str = None, pronoun: str = None) -> 'Instance':
+    def update(self, name: str = None, noun: str = None, pronoun: str = None, scope = None) -> 'Instance':
         return Instance(
             name=name if name is not None else self.name,
             noun=noun if noun is not None else self.noun,
             pronoun=pronoun if pronoun is not None else self.pronoun,
-            origin=self)
+            origin=self,
+            scope=scope if scope is not None else self.scope)
 
     @classmethod
     def from_pronoun_rule(cls, state, data):
@@ -111,12 +112,13 @@ class Instance(object):
 
 
 class InstanceGroup(object):
-    def __init__(self, instances = None, noun = None, pronoun = None, scope: 'Scope' = None):
+    def __init__(self, instances = None, noun = None, pronoun = None, origin: 'InstanceGroup' = None, scope: 'Scope' = None):
         assert instances is None or len(instances) > 1, "A group of one"
         self.id = counter.next()
         self.instances = instances
         self.noun = noun
         self.pronoun = pronoun
+        self.origin = origin
         self.scope = scope
 
     def __repr__(self):
@@ -132,20 +134,23 @@ class InstanceGroup(object):
         else:
             return "(anonymous group of instances #{})".format(self.id)
 
+    def text(self, argument: Argument):
+        return argument.get_instance(self).__str__()
+
     @property
     def grammatical_number(self):
         return 'plural'
 
-    def is_same(self, other: 'Instance', argument: Argument) -> bool:
+    def is_same(self, other: 'InstanceGroup', argument: Argument) -> bool:
         return argument.get_instance(self) == argument.get_instance(other)
 
-    def could_be(self, other: 'Instance') -> bool:
+    def could_be(self, other: 'InstanceGroup') -> bool:
         if not isinstance(other, self.__class__):
             return False
         elif self.scope != other.scope:
             return False
         elif self.pronoun == 'all':
-            return other.pronoun == 'they'
+            return other.pronoun in ('all', 'they',)
         elif self.instances:
             if other.instances:
                 return all(any(instance.could_be(other_instance) for other_instance in other.instances) for instance in self.instances)
@@ -155,9 +160,34 @@ class InstanceGroup(object):
             return self.noun == other.noun \
                 or other.noun is None and other.pronoun in ('they',)
         elif self.pronoun:
+            print("Here {} vs {}: {!r}".format(self.pronoun, other.pronoun, self.pronoun == other.pronoun))
             return self.pronoun == other.pronoun
         else:
             return False
+
+    def replaces(self, instance: 'InstanceGroup') -> bool:
+        """
+        Test whether this instance is an updated version of the supplied instance.
+        :param instance: the supposed origin of this instance
+        :return: whether this instance is a more accurate version of the supplied instance
+        """
+        previous = self.origin
+        while previous is not None:
+            if previous == instance:
+                return True
+            previous = previous.origin
+        return False
+
+    def replace(self, other: 'InstanceGroup') -> 'InstanceGroup':
+        return self.update(other.instances, other.noun, other.pronoun)
+
+    def update(self, instances = None, noun: str = None, pronoun: str = None, scope = None) -> 'InstanceGroup':
+        return InstanceGroup(
+            instances=instances if instances is not None else self.instances,
+            noun=noun if noun is not None else self.noun,
+            pronoun=pronoun if pronoun is not None else self.pronoun,
+            origin=self,
+            scope=scope if scope is not None else self.scope)
 
     @classmethod
     def from_pronoun_rule(cls, state, data):

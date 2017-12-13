@@ -52,12 +52,12 @@ class GeneralClaim(Claim):
 
     @classmethod
     def from_claim(cls, claim: 'SpecificClaim', scope: 'Scope', conj: str = None) -> 'GeneralClaim':
-        return claim.clone(cls=cls, scope=scope, conj=conj)
+        return claim.update(cls=cls, scope=scope, conj=conj)
 
 
 def undetermined_claim(state, data):
     scope = Scope()
-    conditions = set(claim.clone(scope=scope) for claim in data[2].local)
+    conditions = set(claim.update(scope=scope) for claim in data[2].local)
     claim = GeneralClaim.from_claim(data[0].local, scope=scope, conj=data[1].local)
     relation = Relation(conditions, claim, Relation.CONDITION)
     return data[0] + data[2] + Interpretation(
@@ -76,13 +76,14 @@ def expanded_general_claim(state, data):
     assert len(data[0].argument.relations) == 1
     
     claim = data[0].local
-    conditions = set(claim.clone(scope=data[0].local.scope) for claim in data[2].local)
+    conditions = set(claim.update(scope=data[0].local.scope) for claim in data[2].local)
     remaining_claims = set(data[0].argument.claims.keys()) ^ {claim}
     relation = Relation(remaining_claims | conditions , claim, Relation.CONDITION)
     return data[0] + data[2] + Interpretation(
         argument=Argument(
             claims={condition: {condition} for condition in conditions},
-            relations={relation}
+            relations={relation},
+            instances={condition.subject: {condition.subject} for condition in conditions}
         ),
         local=claim)
 

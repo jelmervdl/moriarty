@@ -44,7 +44,7 @@ class Argument(object):
         assert isinstance(other, self.__class__)
         
         instances = self.__merge_instances(other)
-        assert len(instances) >= max(len(self.instances), len(other.instances))
+        # assert len(instances) >= max(len(self.instances), len(other.instances))
 
         claims = self.__merge_claims(other, self.__class__(instances=instances))
         assert len(claims) >= max(len(self.claims), len(other.claims))
@@ -94,7 +94,7 @@ class Argument(object):
     def with_scope(self, scope: 'Scope') -> 'Argument':
         claims = OrderedDict()
         for claim, occurrences in self.claims.items():
-            scoped_claim = claim.clone(scope=scope)
+            scoped_claim = claim.update(scope=scope)
             claims[scoped_claim] = {scoped_claim} | occurrences
         return self.__class__(claims, self.relations, self.instances)
 

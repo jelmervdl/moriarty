@@ -12,9 +12,9 @@ class SpecificBlob(SpecificClaim):
         self.literals = literals
         super().__init__(subject, verb, object, **kwargs)
 
-    def clone(self, cls=None, **kwargs):
+    def update(self, cls=None, **kwargs):
         kwargs['literals'] = self.literals
-        return super().clone(cls, **kwargs)
+        return super().update(cls, **kwargs)
 
     def text(self, argument):
         return " ".join(self.literals)
@@ -25,9 +25,9 @@ class GeneralBlob(GeneralClaim):
         self.literals = literals
         super().__init__(subject, verb, object, **kwargs)
 
-    def clone(self, cls=None, **kwargs):
+    def update(self, cls=None, **kwargs):
         kwargs['literals'] = self.literals
-        return super().clone(cls, **kwargs)
+        return super().update(cls, **kwargs)
 
     def text(self, argument):
         return " ".join(self.literals)

@@ -1,3 +1,5 @@
+from collections import OrderedDict
+from typing import List
 from parser import Rule, RuleRef, Literal
 from argumentation import Argument, Relation
 from interpretation import Interpretation, Expression
@@ -11,20 +13,31 @@ from grammar.shared.conditional import GeneralClaim, find_conditions
 
 
 class PartialRelation(object):
-    def __init__(self, relation_type, specifics=None, conditional=None):
+    def __init__(self, relation_type, specifics: List['SpecificClaim'] = None, conditional = None):
         # assert all(o.__class__.__name__ == 'SpecificClaim' for o in specifics)
-        assert conditional is None or isinstance(conditional, GeneralClaim)
+        assert conditional is None or isinstance(conditional, GeneralClaim), "Expected the conditional to be a GeneralClaim, got a {} instead".format(conditional.__class__.__name__)
+        assert specifics is None or all(isinstance(specific, SpecificClaim) for specific in specifics)
         self.type = relation_type
         self.specifics = specifics
         self.conditional = conditional
 
     def instantiate(self, claim, context):
-        # assert claim.__class__.__name__ == 'SpecificClaim'
         relation = Relation(sources={}, target=claim, type=self.type)
         argument = Argument(relations={relation})
-
+        
         if self.specifics is not None:
-            relation.sources.update(self.specifics)
+            instances = OrderedDict()
+            claims = OrderedDict()
+            for specific in self.specifics:
+                # If we're connecting to a scoped statement, make sure we have the right scope
+                if claim.scope and specific.scope != claim.scope:
+                    scoped_specific = specific.update(scope=claim.scope)
+                    relation.sources.add(scoped_specific)
+                    instances[scoped_specific.subject] = {scoped_specific.subject, specific.subject}
+                    claims[scoped_specific] = {scoped_specific, specific}
+                else:
+                    relation.sources.add(specific)
+            argument = argument | Argument(instances=instances, claims=claims)
 
         if self.conditional is not None:
             argument = argument | Argument(relations={Relation([self.conditional], relation, Relation.SUPPORT)})
@@ -50,7 +63,8 @@ class PartialRelation(object):
             Make a general assumption in the trend of 'When Tweety can fly
             because she is a bird, anything that is a bird can fly.'
             """
-            subject = Instance(pronoun='something')
+            scope = Scope()
+            subject = Instance(pronoun='something', scope=scope)
             
             if self.type == Relation.SUPPORT:
                 object = claim.object
@@ -59,12 +73,12 @@ class PartialRelation(object):
             else:
                 assert False, "Can't deal with this kind of relation"
 
-            conditional = GeneralClaim(subject, claim.verb, object, scope=Scope(), assumption=True)
+            conditional = GeneralClaim(subject, claim.verb, object, scope=scope, assumption=True)
             assumptions = []
             
             for specific in self.specifics:
                 if claim.subject.could_be(specific.subject):
-                    assumptions.append(specific.clone(id=None, subject=conditional.subject, scope=conditional.scope))
+                    assumptions.append(specific.update(id=None, subject=conditional.subject, scope=scope))
 
             if len(assumptions) > 0:
                 argument = argument | Argument(
