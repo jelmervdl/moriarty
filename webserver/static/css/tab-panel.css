@@ -52,6 +52,7 @@
 	margin:0;
 	border:0;
 	padding: 4px;
+	font-size: 14px;
 }
 
 .panel-container > div > textarea:focus,

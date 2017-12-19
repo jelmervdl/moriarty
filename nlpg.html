@@ -36,8 +36,19 @@
 				overflow: auto;
 			}
 
+			.text-panel {
+				border-right: 1px solid #ccc;
+			}
+
 			.text-panel > *, .diagram-panel > * {
 				flex: 1 1;
+	
+				/* Form the :host one */
+				display: flex;
+				flex-wrap: wrap;
+				flex-direction: column;
+				align-content: stretch;
+
 			}
 		</style>
 	</head>
@@ -54,7 +65,7 @@
 				<x-tab-panel class="diagrams"></x-tab-panel>
 			</div>
 		</div>
-	
+		<script src="https://unpkg.com/@webcomponents/custom-elements@1.0.6/custom-elements.min.js"></script>
 		<script src="/static/js/canvas.js"></script>
 		<script src="/static/js/array.js"></script>
 		<script src="/static/js/graph.js"></script>

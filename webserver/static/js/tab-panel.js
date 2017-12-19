@@ -6,7 +6,10 @@ customElements.define('x-tab-panel', class extends HTMLElement {
 	constructor() {
 		super();
 
-		this.shadow = this.attachShadow({mode: 'open'});
+		if (this.attachShadow)
+			this.shadow = this.attachShadow({mode: 'open'});
+		else
+			this.shadow = this;
 
 		let stylesheet = document.createElement('link');
 		stylesheet.rel = 'stylesheet';
