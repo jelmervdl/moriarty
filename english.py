@@ -700,5 +700,7 @@ def join(elements):
     strings = list(map(str, elements))
     if len(elements) > 1:
         return "{} and {}".format(", ".join(strings[:-1]), strings[-1])
-    else:
+    elif len(elements) == 1:
         return strings[0]
+    else:
+        return ''
