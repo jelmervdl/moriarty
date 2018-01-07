@@ -26,6 +26,18 @@ class Action(object):
     def __repr__(self):
         return "Action({!r} {!r})".format(self.verb, self.object)
 
+
+    def text(self, argument):
+        if self.object and hasattr(self.object, 'text'):
+            return "{!s} {!s}".format(self.verb, self.object.text(argument))
+        else:
+            return str(self)
+
+    def is_same(self, other, argument):
+        return isinstance(other, Action) \
+            and self.verb == other.verb \
+            and (self.object.is_same(other.object, argument) if hasattr(self.object, 'is_same') else self.object == other.object)
+
     @property
     def singular(self):
         return self

@@ -19,9 +19,17 @@ class PrepositionPhrase(object):
     
     def __str__(self):
         return "{!s} {!s}".format(self.preposition, self.object)
-        
+
     def __repr__(self):
         return "PP({!r} {!r})".format(self.preposition, self.object)
+
+    def text(self, argument):
+        return "{!s} {!s}".format(self.preposition, self.object.text(argument) if hasattr(self.object, 'text') else self.object)
+
+    def is_same(self, other, argument):
+        return isinstance(other, PrepositionPhrase) \
+            and self.preposition == other.preposition \
+            and (self.object.is_same(other.object, argument) if hasattr(self.object, 'is_same') else self.object == other.object)
 
     @property
     def singular(self):

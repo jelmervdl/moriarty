@@ -46,6 +46,19 @@ class Noun(object):
         return isinstance(other, self.__class__) \
             and self.is_same(other)
 
+    def __str__(self):
+        noun = english.pluralize(self.literal) if self.is_plural else self.literal
+        return " ".join(map(str, self.adjectives + (noun,) + self.prep_phrase))
+
+    def __repr__(self):
+        return "Noun({}, {})".format(" ".join(map(str, self.adjectives + (self.literal,) + self.prep_phrase)), self.grammatical_number)
+
+    def text(self, argument):
+        if len(self.prep_phrase) > 0 and hasattr(self.prep_phrase[0], 'text'):
+            return " ".join(map(str, self.adjectives + (noun,) + (self.prep_phrase[0].text(argument),)))
+        else:
+            return str(self)
+
     def with_adjective(self, adjective):
         return self.__class__(self.literal, is_plural=self.is_plural, adjectives=(adjective,) + self.adjectives, prep_phrase=self.prep_phrase)
 
@@ -73,14 +86,6 @@ class Noun(object):
                 or other.prep_phrase is None \
                 or self.prep_phrase == other.prep_phrase \
             )
-
-    def __str__(self):
-        noun = english.pluralize(self.literal) if self.is_plural else self.literal
-        return " ".join(map(str, self.adjectives + (noun,) + self.prep_phrase))
-
-    def __repr__(self):
-        return "Noun({}, {})".format(" ".join(map(str, self.adjectives + (self.literal,) + self.prep_phrase)), self.grammatical_number)
-
 
 @memoize
 def grammar(**kwargs):

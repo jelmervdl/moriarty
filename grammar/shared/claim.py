@@ -53,6 +53,9 @@ class Claim(object):
         return "{subject!s} {verb!s} {object!s}".format(**self.__dict__)
 
     def is_same(self, other: 'Claim', argument: Argument) -> bool:
+        if not isinstance(other, Claim):
+            return False
+
         if self.id == other.id:
             return True
 
@@ -68,7 +71,7 @@ class Claim(object):
         elif self.subject != other.subject:
             return False
 
-        if isinstance(self.object, instance.Instance) and isinstance(other.object, instance.Instance):
+        if hasattr(self.object, 'is_same'):
             if not self.object.is_same(other.object, argument):
                 return False
         elif self.object != other.object:
@@ -82,9 +85,9 @@ class Claim(object):
 
     def text(self, argument: Argument) -> str:
         return "{subject!s} {verb!s} {object!s}".format(
-            subject=self.subject.text(argument) if 'text' in dir(self.subject) else str(self.subject),
+            subject=self.subject.text(argument) if hasattr(self.subject, 'text') else str(self.subject),
             verb=self.verb,
-            object=self.object.text(argument) if 'text' in dir(self.object) else str(self.object))
+            object=self.object.text(argument) if hasattr(self.object, 'text') else str(self.object))
 
     def update(self, cls=None, **kwargs):
         if cls is None:
