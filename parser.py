@@ -295,11 +295,9 @@ class Parser:
 
             # Are there duplicates?
             t = self.table[self.current + token_pos + 1] 
-            for i in range(len(t)):
-                for j in range(i + 1, len(t)):
-                    if t[i] == t[j]:
-                        print("{} {}".format(i, j))
-                        print("Same trace... duplicate?")
+            for i, left in enumerate(t):
+                for right in t[i+1:]:
+                    if left == right:
                         t[i] = None
                         break
             self.table[self.current + token_pos + 1] = list(filter(lambda s: s is not None, t))
