@@ -51,4 +51,4 @@ def app_diagram_to_text():
 	return jsonify(texts=texts)
 
 if __name__ == '__main__':
-	app.run()
+	app.run(port=5001)
