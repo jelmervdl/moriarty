@@ -13,7 +13,7 @@ class SpecificClaim(Claim):
     """
     def __init__(self, subject, verb, object, **kwargs):
         assert isinstance(subject, instance.Instance) \
-            or isinstance(subject, instance.InstanceGroup), \
+            or isinstance(subject, instance.GroupInstance), \
             "Subject of a specific claim is not an instance?"
         super().__init__(subject, verb, object, **kwargs)
 

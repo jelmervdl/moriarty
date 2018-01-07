@@ -49,7 +49,7 @@ class Instance(object):
         return argument.get_instance(self) == argument.get_instance(other)
 
     def could_be(self, other: 'Instance') -> bool:
-        if isinstance(other, InstanceGroup):
+        if isinstance(other, GroupInstance):
             return False
         elif self.scope != other.scope:
             return False
@@ -113,8 +113,8 @@ class Instance(object):
         return data[1] + Interpretation(argument=Argument(instances={instance: {instance}}), local=instance)
 
 
-class InstanceGroup(object):
-    def __init__(self, instances = None, noun = None, pronoun = None, origin: 'InstanceGroup' = None, scope: 'Scope' = None):
+class GroupInstance(object):
+    def __init__(self, instances = None, noun = None, pronoun = None, origin: 'GroupInstance' = None, scope: 'Scope' = None):
         assert instances is None or len(instances) > 1, "A group of one"
         self.id = counter.next()
         self.instances = instances
@@ -124,7 +124,7 @@ class InstanceGroup(object):
         self.scope = scope
 
     def __repr__(self):
-        return "InstanceGroup(id={id!r} instances={instances!r} noun={noun!r} pronoun={pronoun!r} scope={scope!r})".format(**self.__dict__)
+        return "GroupInstance(id={id!r} instances={instances!r} noun={noun!r} pronoun={pronoun!r} scope={scope!r})".format(**self.__dict__)
 
     def __str__(self):
         if self.instances:
@@ -143,10 +143,10 @@ class InstanceGroup(object):
     def grammatical_number(self):
         return 'plural'
 
-    def is_same(self, other: 'InstanceGroup', argument: Argument) -> bool:
+    def is_same(self, other: 'GroupInstance', argument: Argument) -> bool:
         return argument.get_instance(self) == argument.get_instance(other)
 
-    def could_be(self, other: 'InstanceGroup') -> bool:
+    def could_be(self, other: 'GroupInstance') -> bool:
         if not isinstance(other, self.__class__):
             return False
         elif self.scope != other.scope:
@@ -162,12 +162,11 @@ class InstanceGroup(object):
             return self.noun == other.noun \
                 or other.noun is None and other.pronoun in ('they',)
         elif self.pronoun:
-            print("Here {} vs {}: {!r}".format(self.pronoun, other.pronoun, self.pronoun == other.pronoun))
             return self.pronoun == other.pronoun
         else:
             return False
 
-    def replaces(self, instance: 'InstanceGroup') -> bool:
+    def replaces(self, instance: 'GroupInstance') -> bool:
         """
         Test whether this instance is an updated version of the supplied instance.
         :param instance: the supposed origin of this instance
@@ -180,11 +179,11 @@ class InstanceGroup(object):
             previous = previous.origin
         return False
 
-    def replace(self, other: 'InstanceGroup') -> 'InstanceGroup':
+    def replace(self, other: 'GroupInstance') -> 'GroupInstance':
         return self.update(other.instances, other.noun, other.pronoun)
 
-    def update(self, instances = None, noun: str = None, pronoun: str = None, scope = None) -> 'InstanceGroup':
-        return InstanceGroup(
+    def update(self, instances = None, noun: str = None, pronoun: str = None, scope = None) -> 'GroupInstance':
+        return GroupInstance(
             instances=instances if instances is not None else self.instances,
             noun=noun if noun is not None else self.noun,
             pronoun=pronoun if pronoun is not None else self.pronoun,
@@ -208,34 +207,90 @@ class InstanceGroup(object):
         return data[1] + Interpretation(local=instance, argument=Argument(instances={instance: {instance}}))
 
 
+class DumbInstance(Instance):
+    def is_same(self, other: 'Instance', argument: Argument) -> bool:
+        return self == other
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def __eq__(self, other):
+        return str(self) == str(other)
+
+    def could_be(self, other: 'Instance') -> bool:
+        return False
+
+    def __str__(self):
+        if self.name is not None:
+            return "{}".format(self.name)
+        elif self.noun is not None:
+            return "the {}".format(self.noun)
+        elif self.pronoun is not None:
+            return "{}".format(self.pronoun)
+        else:
+            return "#{}".format(self.id)
+
+
+class DumbGroupInstance(GroupInstance):
+    def is_same(self, other: 'GroupInstance', argument: Argument) -> bool:
+        return self == other
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def __eq__(self, other):
+        return str(self) == str(other)
+
+    def could_be(self, other: 'GroupInstance') -> bool:
+        return False
+
+    def __str__(self):
+        if self.instances:
+            return "{}".format(english.join(self.instances))
+        elif self.noun:
+            return "the {}".format(self.noun.plural)
+        elif self.pronoun:
+            return "{}".format(self.pronoun)
+        else:
+            return "(anonymous group of instances #{})".format(self.id)
+
 @memoize
-def grammar(**kwargs):
+def grammar(anaphora=True, **kwargs):
+    if anaphora:
+        singular = Instance
+        plural = GroupInstance
+    else:
+        singular = DumbInstance
+        plural = DumbGroupInstance
+
+    print("anaphora is {!r} and {!r}".format(singular, plural))
+
     return name.grammar(**kwargs) | noun.grammar(**kwargs) | pronoun.grammar(**kwargs) | {
         # Singular
         Rule("INSTANCE", [RuleRef("PRONOUN")],
-            Instance.from_pronoun_rule),
+            singular.from_pronoun_rule),
 
         Rule("INSTANCE", [RuleRef("NAME")],
-            Instance.from_name_rule),
+            singular.from_name_rule),
 
         Rule("INSTANCE", [Expression(r"[Tt]he"), RuleRef("NOUN")],
-            Instance.from_noun_rule),
+            singular.from_noun_rule),
 
         Rule("INSTANCE", [Expression(r"[Hh]is|[Hh]er|[Tt]heir"), RuleRef("NOUN")],
-            Instance.from_noun_rule),
+            singular.from_noun_rule),
 
         # Plural
         Rule("INSTANCES", [RuleRef("PRONOUNS")],
-            InstanceGroup.from_pronoun_rule),
+            plural.from_pronoun_rule),
 
         Rule("INSTANCES", [RuleRef("NAMES")],
-            InstanceGroup.from_names_rule),
+            plural.from_names_rule),
 
         Rule("INSTANCES", [Expression(r"[Tt]he"), RuleRef("NOUNS")],
-            InstanceGroup.from_noun_rule),
+            plural.from_noun_rule),
 
         Rule("INSTANCES", [Expression(r"[Hh]is|[Hh]er|[Tt]heir"), RuleRef("NOUNS")],
-            InstanceGroup.from_noun_rule),
+            plural.from_noun_rule),
 
         # Shortcuts
         Rule("INSTANCE*", [RuleRef("INSTANCE")], passthru),

@@ -21,7 +21,7 @@ class Argument(object):
         assert isinstance(relations, set)
         assert isinstance(instances, dict)
 
-        assert all(instance.__class__.__name__ in ('Instance', 'InstanceGroup') for instance in instances)
+        assert all(instance.__class__.__name__.endswith('Instance') for instance in instances)
 
         self.claims = claims
         self.relations = relations
@@ -72,8 +72,8 @@ class Argument(object):
                 for b in claims.keys():
                     if a.scope == b.scope \
                         and a.object.__class__.__name__ == 'Negation' \
-                        and a.subject.__class__.__name__ == 'Instance' \
-                        and b.subject.__class__.__name__ == 'Instance' \
+                        and a.subject.__class__.__name__.endswith('Instance') \
+                        and b.subject.__class__.__name__.endswith('Instance') \
                         and a_subj == argument.find_instance(b.subject) \
                         and a.verb == b.verb \
                         and a.object.object == b.object:

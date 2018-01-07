@@ -1,8 +1,8 @@
 from typing import Set
 from itertools import chain
-from parser import Rule, RuleRef, Literal
+from parser import Rule, RuleRef, Literal, passthru
 from grammar.shared.claim import Claim, Scope
-from grammar.shared.instance import Instance, InstanceGroup
+from grammar.shared.instance import Instance, GroupInstance
 from grammar.shared.specific import SpecificClaim
 from grammar.shared.prototype import Prototype
 from grammar.shared.verb import VerbParser, Verb
@@ -106,7 +106,7 @@ def general_claim_singular(state, data):
 
 def general_claim_plural(state, data):
     scope = Scope()
-    subj = InstanceGroup(pronoun='all', scope=scope)
+    subj = GroupInstance(pronoun='all', scope=scope)
     condition = SpecificClaim(subj, Verb('are'), data[0].local.plural, scope=scope)
     claim = GeneralClaim(subj, data[1].local, data[2].local, scope=scope)
     relation = Relation({condition}, claim, Relation.CONDITION)
@@ -136,7 +136,7 @@ def grammar(**kwargs):
             expanded_general_claim),
 
         Rule('CONDITIONAL_CLAIM', [RuleRef('GENERAL_CLAIM')],
-            lambda state, data: data[0]),
+            passthru),
 
         # an A is a B
         Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPE'), VerbParser('is|has|was'), RuleRef('CATEGORY')],

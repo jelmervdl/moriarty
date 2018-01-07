@@ -129,10 +129,33 @@ for sentence_file in sentence_files:
 #     print("  " + str(rule))
 # print()
 
+def simple_grammar():
+    options = dict(assumptions=False, anaphora__bug=False)
+    return specific.grammar(**options) \
+        | conditional.grammar(**options) \
+        | negation.grammar(**options) \
+        | simple.grammar(**options)
+
+
+def recursive_grammar():
+    options = {}
+    return specific.grammar(**options) \
+        | conditional.grammar(**options) \
+        | negation.grammar(**options) \
+        | recursive.grammar(**options)
+
+
+def recursive_fallback_grammar():
+    options = {}
+    return specific.grammar(**options) \
+        | conditional.grammar(**options) \
+        | negation.grammar(**options) \
+        | blob.grammar(**options)
+
 grammars = {
-    'simple': specific.grammar() | conditional.grammar() | negation.grammar() | simple.grammar(),
-    'recursive': specific.grammar() | conditional.grammar() | negation.grammar() | recursive.grammar(),
-    'recursive_fallback': specific.grammar() | conditional.grammar() | negation.grammar() | blob.grammar(),
+    'simple': simple_grammar(),
+    'recursive': recursive_grammar(),
+    'recursive_fallback': recursive_fallback_grammar(),
 }
 
 
