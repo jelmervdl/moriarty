@@ -1,8 +1,8 @@
 import re
 from parser import Rule, passthru
-from interpretation import Expression
+from grammar.shared.keywords import Expression
 
 
 grammar = {
-    Rule("ADJECTIVE", [Expression(r"(?!the)")], passthru)
+    Rule("ADJECTIVE", [Expression(r".*")], passthru)
 }

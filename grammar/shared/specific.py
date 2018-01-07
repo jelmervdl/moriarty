@@ -22,6 +22,8 @@ grammar = instance.grammar | category.grammar | prototype.grammar | action.gramm
         SpecificClaim.from_rule),
     Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), VerbParser(r'is|has|was'), RuleRef('PROTOTYPE')],
         SpecificClaim.from_rule),
+    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), VerbParser(r'is|has|was'), RuleRef('INSTANCE*')],
+        SpecificClaim.from_rule),
 
     Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), VerbParser(r'has|was'), RuleRef('ACTION_PP')],
         SpecificClaim.from_rule),
