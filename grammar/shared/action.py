@@ -7,7 +7,6 @@ class Action(object):
     def __init__(self, verb, object=None):
         self.verb = verb
         self.object = object
-        print("CREATED {!r}".format(self))
 
     def __hash__(self):
         return hash(self.verb) + hash(self.object)
