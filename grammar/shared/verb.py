@@ -20,6 +20,10 @@ class Verb(object):
     def __repr__(self):
         return "Verb({})".format(self.literal)
 
+    @property
+    def passive(self):
+        return self.__class__('be ' + self.literal)
+
     def for_subject(self, subject):
         if self.literal in ('are', 'is'):
             if subject.grammatical_number == 'plural':
@@ -52,5 +56,7 @@ class VerbParser(Symbol):
 
 
 grammar = {
-    Rule("VERB_INF", [VerbParser(r'^\w+([^e]ed|ing|able)$', negate=True)], passthru)
+    Rule("VERB_INF", [VerbParser(r'^\w+([^e]ed|ing|able)$', negate=True)], passthru),
+    Rule("VERB_PP", [VerbParser(r'^\w+([^e]ed)$', negate=False)], passthru),
+    Rule("VERB_BE", [VerbParser(r'be', negate=False)], passthru),
 }

@@ -21,8 +21,8 @@ class Prototype(object):
             if self.article:
                 article = self.article
             else:
-                article = indefinite_article(self.noun.literal)
-            return "{} {}".format(article, self.noun.literal)
+                article = indefinite_article(str(self.noun))
+            return "{} {!s}".format(article, self.noun)
         else:
             if self.article:
                 return "{} {!s}".format(self.article, self.noun.plural)
@@ -55,5 +55,8 @@ grammar = noun.grammar | {
         lambda state, data: data[0] + Interpretation(local=Prototype(data[0].local))),
 
     Rule("PROTOTYPES", [Expression(r'all|most|many|some'), RuleRef("NOUNS")],
-        lambda state, data: data[0] + Interpretation(local=Prototype(data[1].local, article=data[0].local)))
+        lambda state, data: data[0] + Interpretation(local=Prototype(data[1].local, article=data[0].local))),
+
+    Rule("PROTOTYPE*", [RuleRef("PROTOTYPE")], passthru),
+    Rule("PROTOTYPE*", [RuleRef("PROTOTYPES")], passthru),
 }

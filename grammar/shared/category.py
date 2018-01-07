@@ -13,7 +13,7 @@ class Category(object):
         return isinstance(other, self.__class__) and self.literal == other.literal
     
     def __str__(self):
-        return self.literal
+        return "{}".format(self.literal)
 
     def __repr__(self):
         return "Category({!r})".format(self.literal)

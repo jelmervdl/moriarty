@@ -232,5 +232,10 @@ grammar = name.grammar | noun.grammar | pronoun.grammar | {
 
     Rule("INSTANCES", [Expression(r"[Hh]is|[Hh]er|[Tt]heir"), RuleRef("NOUNS")],
         InstanceGroup.from_noun_rule),
+
+    # Shortcuts
+    Rule("INSTANCE*", [RuleRef("INSTANCE")], passthru),
+
+    Rule("INSTANCE*", [RuleRef("INSTANCES")], passthru),
 }
 
