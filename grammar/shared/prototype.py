@@ -2,6 +2,7 @@ from parser import Rule, RuleRef, Literal, passthru
 from grammar.shared import noun
 from english import indefinite_article
 from interpretation import Interpretation, Expression
+from decorators import memoize
 
 class Prototype(object):
     def __init__(self, noun, article=None):
@@ -47,16 +48,18 @@ class Prototype(object):
         return self._transform('plural')
 
 
-grammar = noun.grammar | {
-    Rule("PROTOTYPE", [Expression(r'every|an?'), RuleRef("NOUN")],
-        lambda state, data: data[1] + Interpretation(local=Prototype(data[1].local, article=data[0].local))),
+@memoize
+def grammar(**kwargs):
+    return noun.grammar(**kwargs) | {
+        Rule("PROTOTYPE", [Expression(r'every|an?'), RuleRef("NOUN")],
+            lambda state, data: data[1] + Interpretation(local=Prototype(data[1].local, article=data[0].local))),
 
-    Rule("PROTOTYPES", [RuleRef("NOUNS")],
-        lambda state, data: data[0] + Interpretation(local=Prototype(data[0].local))),
+        Rule("PROTOTYPES", [RuleRef("NOUNS")],
+            lambda state, data: data[0] + Interpretation(local=Prototype(data[0].local))),
 
-    Rule("PROTOTYPES", [Expression(r'all|most|many|some'), RuleRef("NOUNS")],
-        lambda state, data: data[0] + Interpretation(local=Prototype(data[1].local, article=data[0].local))),
+        Rule("PROTOTYPES", [Expression(r'all|most|many|some'), RuleRef("NOUNS")],
+            lambda state, data: data[0] + Interpretation(local=Prototype(data[1].local, article=data[0].local))),
 
-    Rule("PROTOTYPE*", [RuleRef("PROTOTYPE")], passthru),
-    Rule("PROTOTYPE*", [RuleRef("PROTOTYPES")], passthru),
-}
+        Rule("PROTOTYPE*", [RuleRef("PROTOTYPE")], passthru),
+        Rule("PROTOTYPE*", [RuleRef("PROTOTYPES")], passthru),
+    }

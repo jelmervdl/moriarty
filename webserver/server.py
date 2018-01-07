@@ -130,11 +130,17 @@ for sentence_file in sentence_files:
 # print()
 
 grammars = {
-    'simple': specific.grammar | conditional.grammar | negation.grammar | simple.grammar,
-    'recursive': specific.grammar | conditional.grammar | negation.grammar | recursive.grammar,
-    'recursive_fallback': specific.grammar | conditional.grammar | negation.grammar | blob.grammar,
+    'simple': specific.grammar() | conditional.grammar() | negation.grammar() | simple.grammar(),
+    'recursive': specific.grammar() | conditional.grammar() | negation.grammar() | recursive.grammar(),
+    'recursive_fallback': specific.grammar() | conditional.grammar() | negation.grammar() | blob.grammar(),
 }
 
+
+for name, grammar in grammars.items():
+    print("{}:".format(name))
+    for rule in sorted(grammar, key=lambda rule: rule.name):
+        print("  " + str(rule))
+print()
 
 @app.route('/')
 def hello():

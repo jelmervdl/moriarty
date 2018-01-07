@@ -1,6 +1,7 @@
 from grammar.shared import prototype, verb
 from interpretation import Interpretation, Symbol
 from parser import Rule, RuleRef, passthru
+from decorators import memoize
 
 
 class PrepositionPhrase(object):
@@ -81,15 +82,17 @@ class PrepositionSymbol(Symbol):
         return literal in prepositions
 
 
-grammar = {
-    Rule('PREPOSITION', [PrepositionSymbol()], passthru),
+@memoize
+def grammar(**kwargs): 
+    return {
+        Rule('PREPOSITION', [PrepositionSymbol()], passthru),
 
-    Rule('PP', [RuleRef('PREPOSITION'), RuleRef('INSTANCE*')],
-        lambda state, data: data[1] + Interpretation(local=PrepositionPhrase(data[0].local, data[1].local))),
+        Rule('PP', [RuleRef('PREPOSITION'), RuleRef('INSTANCE*')],
+            lambda state, data: data[1] + Interpretation(local=PrepositionPhrase(data[0].local, data[1].local))),
 
-    Rule('PP', [RuleRef('PREPOSITION'), RuleRef('PROTOTYPE*')],
-        lambda state, data: data[1] + Interpretation(local=PrepositionPhrase(data[0].local, data[1].local))),
+        Rule('PP', [RuleRef('PREPOSITION'), RuleRef('PROTOTYPE*')],
+            lambda state, data: data[1] + Interpretation(local=PrepositionPhrase(data[0].local, data[1].local))),
 
-    Rule('PP', [RuleRef('PREPOSITION'), RuleRef('CATEGORY')],
-        lambda state, data: data[1] + Interpretation(local=PrepositionPhrase(data[0].local, data[1].local))),
-}
+        Rule('PP', [RuleRef('PREPOSITION'), RuleRef('CATEGORY')],
+            lambda state, data: data[1] + Interpretation(local=PrepositionPhrase(data[0].local, data[1].local))),
+    }

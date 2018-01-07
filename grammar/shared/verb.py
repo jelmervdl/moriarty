@@ -1,6 +1,7 @@
 from parser import Rule, Symbol, State, passthru
 from interpretation import Interpretation
 import re
+from decorators import memoize
 
 
 class Verb(object):
@@ -55,8 +56,10 @@ class VerbParser(Symbol):
         return Interpretation(local=Verb(literal))
 
 
-grammar = {
-    Rule("VERB_INF", [VerbParser(r'^\w+([^e]ed|ing|able)$', negate=True)], passthru),
-    Rule("VERB_PP", [VerbParser(r'^\w+([^e]ed)$', negate=False)], passthru),
-    Rule("VERB_BE", [VerbParser(r'be', negate=False)], passthru),
-}
+@memoize
+def grammar(**kwargs):
+    return {
+        Rule("VERB_INF", [VerbParser(r'^\w+([^e]ed|ing|able)$', negate=True)], passthru),
+        Rule("VERB_PP", [VerbParser(r'^\w+([^e]ed)$', negate=False)], passthru),
+        Rule("VERB_BE", [VerbParser(r'be', negate=False)], passthru),
+    }

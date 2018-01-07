@@ -1,6 +1,7 @@
 from grammar.shared import category, prototype, verb
 from parser import Rule, RuleRef
 from interpretation import Interpretation, Expression
+from decorators import memoize
 
 
 class Negation(object):
@@ -30,16 +31,18 @@ class Negation(object):
         return data[1] + Interpretation(local=neg)
 
 
-grammar = category.grammar | prototype.grammar | verb.grammar | {
-    Rule('CATEGORY', [Expression('not?'), RuleRef('CATEGORY')],
-        Negation.from_rule),
+@memoize
+def grammar(**kwargs):
+    return category.grammar(**kwargs) | prototype.grammar(**kwargs) | verb.grammar(**kwargs) | {
+        Rule('CATEGORY', [Expression('not?'), RuleRef('CATEGORY')],
+            Negation.from_rule),
 
-    Rule('PROTOTYPE', [Expression('not'), RuleRef('PROTOTYPE')],
-        Negation.from_rule),
+        Rule('PROTOTYPE', [Expression('not'), RuleRef('PROTOTYPE')],
+            Negation.from_rule),
 
-    Rule('PROTOTYPES', [Expression('not'), RuleRef('PROTOTYPES')],
-        Negation.from_rule),
+        Rule('PROTOTYPES', [Expression('not'), RuleRef('PROTOTYPES')],
+            Negation.from_rule),
 
-    Rule('VERB_INF', [Expression('not'), RuleRef('VERB_INF')],
-        Negation.from_rule)
-}
+        Rule('VERB_INF', [Expression('not'), RuleRef('VERB_INF')],
+            Negation.from_rule)
+    }

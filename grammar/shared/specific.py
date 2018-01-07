@@ -2,6 +2,7 @@ from grammar.shared import instance, category, prototype, verb, action
 from grammar.shared.claim import Claim
 from grammar.shared.verb import VerbParser
 from parser import Rule, RuleRef
+from decorators import memoize
 
 
 class SpecificClaim(Claim):
@@ -17,25 +18,27 @@ class SpecificClaim(Claim):
         super().__init__(subject, verb, object, **kwargs)
 
 
-grammar = instance.grammar | category.grammar | prototype.grammar | action.grammar | verb.grammar | {
-    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), VerbParser(r'is|has|was'), RuleRef('CATEGORY')],
-        SpecificClaim.from_rule),
-    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), VerbParser(r'is|has|was'), RuleRef('PROTOTYPE')],
-        SpecificClaim.from_rule),
-    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), VerbParser(r'is|has|was'), RuleRef('INSTANCE*')],
-        SpecificClaim.from_rule),
+@memoize
+def grammar(**kwargs):
+    return instance.grammar(**kwargs) | category.grammar(**kwargs) | prototype.grammar(**kwargs) | action.grammar(**kwargs) | verb.grammar(**kwargs) | {
+        Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), VerbParser(r'is|has|was'), RuleRef('CATEGORY')],
+            SpecificClaim.from_rule),
+        Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), VerbParser(r'is|has|was'), RuleRef('PROTOTYPE')],
+            SpecificClaim.from_rule),
+        Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), VerbParser(r'is|has|was'), RuleRef('INSTANCE*')],
+            SpecificClaim.from_rule),
 
-    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), VerbParser(r'has|was'), RuleRef('ACTION_PP')],
-        SpecificClaim.from_rule),
+        Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), VerbParser(r'has|was'), RuleRef('ACTION_PP')],
+            SpecificClaim.from_rule),
 
-    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCES'), VerbParser('are|have'), RuleRef('CATEGORY')],
-        SpecificClaim.from_rule),
-    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCES'), VerbParser('are|have'), RuleRef('PROTOTYPE')],
-        SpecificClaim.from_rule),
+        Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCES'), VerbParser('are|have'), RuleRef('CATEGORY')],
+            SpecificClaim.from_rule),
+        Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCES'), VerbParser('are|have'), RuleRef('PROTOTYPE')],
+            SpecificClaim.from_rule),
 
-    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), VerbParser('can|may|must|should'), RuleRef('ACTION_INF')],
-        SpecificClaim.from_rule),
+        Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCE'), VerbParser('can|may|must|should'), RuleRef('ACTION_INF')],
+            SpecificClaim.from_rule),
 
-    Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCES'), VerbParser('can|may|must|should'), RuleRef('ACTION_INF')],
-        SpecificClaim.from_rule),
-}
+        Rule('SPECIFIC_CLAIM', [RuleRef('INSTANCES'), VerbParser('can|may|must|should'), RuleRef('ACTION_INF')],
+            SpecificClaim.from_rule),
+    }

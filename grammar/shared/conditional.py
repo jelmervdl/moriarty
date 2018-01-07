@@ -11,6 +11,7 @@ from grammar.macros import and_rules
 from argumentation import Argument, Relation
 from interpretation import Expression, Interpretation
 import english
+from decorators import memoize
 
 
 def find_conditions(claim, argument):
@@ -118,11 +119,13 @@ def general_claim_plural(state, data):
         local=claim)
 
 
-grammar = pronoun.grammar \
-    | category.grammar \
-    | prototype.grammar \
-    | verb.grammar \
-    | specific.grammar \
+@memoize
+def grammar(**kwargs):
+    return pronoun.grammar(**kwargs) \
+    | category.grammar(**kwargs) \
+    | prototype.grammar(**kwargs) \
+    | verb.grammar(**kwargs) \
+    | specific.grammar(**kwargs) \
     | and_rules('SPECIFIC_CLAIMS', 'SPECIFIC_CLAIM', accept_singular=True) \
     | {
         # x is an A when x is a B

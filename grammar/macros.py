@@ -2,8 +2,10 @@ from typing import Set, Optional
 from parser import Rule, Literal, RuleRef
 from interpretation import Interpretation
 from datastructures import OrderedSet
+from decorators import memoize
 
 
+@memoize
 def and_rules(name: str, singleton: str, accept_singular: bool = False, first_singleton: Optional[str] = None, last_singleton: Optional[str] = None) -> Set[Rule]:
     """
     Creates a mini-grammar of rules that are needed to parse 'A and B',

@@ -1,6 +1,7 @@
 from grammar.shared import prototype, verb
 from interpretation import Interpretation
 from parser import Rule, RuleRef
+from decorators import memoize
 
 
 class Action(object):
@@ -34,25 +35,27 @@ class Action(object):
         return self
 
 
-grammar = prototype.grammar | verb.grammar | {
-    Rule('ACTION_INF', [RuleRef('VERB_INF')],
-        lambda state, data: Interpretation(local=Action(data[0].local))),
+@memoize
+def grammar(**kwargs):
+    return prototype.grammar(**kwargs) | verb.grammar(**kwargs) | {
+        Rule('ACTION_INF', [RuleRef('VERB_INF')],
+            lambda state, data: Interpretation(local=Action(data[0].local))),
 
-    Rule('ACTION_INF', [RuleRef('VERB_INF'), RuleRef('PROTOTYPE*')],
-        lambda state, data: Interpretation(local=Action(data[0].local, data[1].local))),
+        Rule('ACTION_INF', [RuleRef('VERB_INF'), RuleRef('PROTOTYPE*')],
+            lambda state, data: Interpretation(local=Action(data[0].local, data[1].local))),
 
-    Rule('ACTION_INF', [RuleRef('VERB_INF'), RuleRef('INSTANCE*')],
-        lambda state, data: data[1] + Interpretation(local=Action(data[0].local, data[1].local))),
+        Rule('ACTION_INF', [RuleRef('VERB_INF'), RuleRef('INSTANCE*')],
+            lambda state, data: data[1] + Interpretation(local=Action(data[0].local, data[1].local))),
 
-    Rule('ACTION_INF', [RuleRef('VERB_INF'), RuleRef('CATEGORY')],
-        lambda state, data: data[1] + Interpretation(local=Action(data[0].local, data[1].local))),
+        Rule('ACTION_INF', [RuleRef('VERB_INF'), RuleRef('CATEGORY')],
+            lambda state, data: data[1] + Interpretation(local=Action(data[0].local, data[1].local))),
 
-    Rule('ACTION_INF', [RuleRef('VERB_BE'), RuleRef('ACTION_PP')],
-        lambda state, data: data[1] + Interpretation(local=Action(data[1].local.verb.passive, data[1].local.object))),
-    
-    Rule('ACTION_PP', [RuleRef('VERB_PP'), RuleRef('INSTANCE*')],
-        lambda state, data: data[1] + Interpretation(local=Action(data[0].local, data[1].local))),
+        Rule('ACTION_INF', [RuleRef('VERB_BE'), RuleRef('ACTION_PP')],
+            lambda state, data: data[1] + Interpretation(local=Action(data[1].local.verb.passive, data[1].local.object))),
+        
+        Rule('ACTION_PP', [RuleRef('VERB_PP'), RuleRef('INSTANCE*')],
+            lambda state, data: data[1] + Interpretation(local=Action(data[0].local, data[1].local))),
 
-    Rule('ACTION_PP', [RuleRef('VERB_PP'), RuleRef('PROTOTYPE*')],
-        lambda state, data: Interpretation(local=Action(data[0].local, data[1].local))),
-}
+        Rule('ACTION_PP', [RuleRef('VERB_PP'), RuleRef('PROTOTYPE*')],
+            lambda state, data: Interpretation(local=Action(data[0].local, data[1].local))),
+    }

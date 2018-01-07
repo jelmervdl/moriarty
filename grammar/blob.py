@@ -5,6 +5,7 @@ from grammar.shared.conditional import GeneralClaim
 from grammar.shared.specific import SpecificClaim
 from grammar.shared.instance import Instance
 from grammar import recursive
+from decorators import memoize
 
 
 class SpecificBlob(SpecificClaim):
@@ -51,7 +52,9 @@ def blob_conditional_claim(state, data):
     return Interpretation(argument=argument, local=claim)
 
 
-grammar = recursive.grammar | {
+@memoize
+def grammar(**kwargs):
+    return recursive.grammar(**kwargs) | {
     Rule('SPECIFIC_CLAIM', [RuleRef('BLOB')], blob_specific_claim),
     
     Rule('CONDITIONAL_CLAIM', [RuleRef('BLOB')], blob_conditional_claim),

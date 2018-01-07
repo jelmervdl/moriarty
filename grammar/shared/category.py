@@ -2,6 +2,7 @@ from parser import Rule, State, passthru
 from grammar.shared.keywords import Expression
 from interpretation import Symbol, Interpretation
 import english
+from decorators import memoize
 
 class Category(object):
     def __init__(self, literal):
@@ -35,7 +36,9 @@ convert verbs to adjectives using -ed and -able. So we'll just accept
 anything today :)
 """
 
-grammar = {
-    Rule("CATEGORY", [Expression(r'.+')],
-        lambda state, data: data[0] + Interpretation(local=Category(data[0].local)))
-}
+@memoize
+def grammar(**kwargs):
+    return {
+        Rule("CATEGORY", [Expression(r'.+')],
+            lambda state, data: data[0] + Interpretation(local=Category(data[0].local)))
+    }

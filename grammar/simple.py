@@ -3,6 +3,7 @@ from argumentation import Argument, Relation
 from interpretation import Interpretation, Expression
 from grammar.macros import and_rules
 from grammar.shared.specific import SpecificClaim
+from decorators import memoize
 
 
 def relation(type, claim, specifics, general=None):
@@ -36,7 +37,9 @@ def warrant_relation(interpretation):
     raise Exception('Could not find relation between support relation and warrant')
 
 
-grammar = and_rules('SPECIFIC_CLAIMS', 'SPECIFIC_CLAIM', accept_singular=True) \
+@memoize
+def grammar(**kwargs):
+    return and_rules('SPECIFIC_CLAIMS', 'SPECIFIC_CLAIM', accept_singular=True) \
     | and_rules('SPECIFIC_CLAIMS_CONDITIONAL_FIRST', 'SPECIFIC_CLAIM', first_singleton='CONDITIONAL_CLAIM') \
     | and_rules('SPECIFIC_CLAIMS_CONDITIONAL_LAST', 'SPECIFIC_CLAIM', last_singleton='CONDITIONAL_CLAIM') \
     | {

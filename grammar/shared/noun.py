@@ -4,6 +4,7 @@ from grammar.shared.keywords import keywords
 from parser import Rule, RuleRef, Symbol, passthru
 from interpretation import Interpretation
 import english
+from decorators import memoize
 
 
 class NounParser(Symbol):
@@ -78,27 +79,29 @@ class Noun(object):
         return "Noun({}, {})".format(" ".join(map(str, self.adjectives + (self.literal,) + self.prep_phrase)), self.grammatical_number)
 
 
-grammar = adjective.grammar | preposition.grammar | {
-    # Raw nouns
-    Rule("NOUN^", [NounParser(is_plural=False)], passthru),
+@memoize
+def grammar(**kwargs):
+    return adjective.grammar(**kwargs) | preposition.grammar(**kwargs) | {
+        # Raw nouns
+        Rule("NOUN^", [NounParser(is_plural=False)], passthru),
 
-    Rule("NOUNS^", [NounParser(is_plural=True)], passthru),
+        Rule("NOUNS^", [NounParser(is_plural=True)], passthru),
 
-    # Nouns without prepositions
-    Rule("NOUN", [RuleRef('NOUN^')], passthru),
+        # Nouns without prepositions
+        Rule("NOUN", [RuleRef('NOUN^')], passthru),
 
-    Rule("NOUNS", [RuleRef('NOUNS^')], passthru),
+        Rule("NOUNS", [RuleRef('NOUNS^')], passthru),
 
-    # Nouns with prepositions (the car of (the owner of the building))
-    Rule("NOUN", [RuleRef('NOUN^'), RuleRef('PP')],
-        lambda state, data: data[1] + Interpretation(local=data[0].local.with_preposition_phrase(data[1].local))),
+        # Nouns with prepositions (the car of (the owner of the building))
+        Rule("NOUN", [RuleRef('NOUN^'), RuleRef('PP')],
+            lambda state, data: data[1] + Interpretation(local=data[0].local.with_preposition_phrase(data[1].local))),
 
-    Rule("NOUNS", [RuleRef('NOUNS^'), RuleRef('PP')],
-        lambda state, data: data[1] + Interpretation(local=data[0].local.with_preposition_phrase(data[1].local))),
-    
-    Rule("NOUN", [RuleRef('ADJECTIVE'), RuleRef('NOUN')],
-        lambda state, data: Interpretation(local=data[1].local.with_adjective(data[0].local))),
+        Rule("NOUNS", [RuleRef('NOUNS^'), RuleRef('PP')],
+            lambda state, data: data[1] + Interpretation(local=data[0].local.with_preposition_phrase(data[1].local))),
+        
+        Rule("NOUN", [RuleRef('ADJECTIVE'), RuleRef('NOUN')],
+            lambda state, data: Interpretation(local=data[1].local.with_adjective(data[0].local))),
 
-    Rule("NOUNS", [RuleRef('ADJECTIVE'), RuleRef('NOUNS')],
-        lambda state, data: Interpretation(local=data[1].local.with_adjective(data[0].local))),
-}
+        Rule("NOUNS", [RuleRef('ADJECTIVE'), RuleRef('NOUNS')],
+            lambda state, data: Interpretation(local=data[1].local.with_adjective(data[0].local))),
+    }

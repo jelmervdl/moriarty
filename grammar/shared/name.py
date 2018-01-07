@@ -1,6 +1,7 @@
 from parser import Rule, RuleRef, State, passthru
 from interpretation import Literal, Symbol, Interpretation
 from grammar.macros import and_rules
+from decorators import memoize
 
 
 class NameParser(Symbol):
@@ -8,5 +9,8 @@ class NameParser(Symbol):
         return literal[0].isupper()
 
 
-grammar = and_rules('NAMES', 'NAME', accept_singular=False) \
-    | { Rule("NAME", [NameParser()], passthru) }
+@memoize
+def grammar(**kwargs):
+    return and_rules('NAMES', 'NAME', accept_singular=False) | {
+        Rule("NAME", [NameParser()], passthru)
+    }

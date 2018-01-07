@@ -4,6 +4,8 @@ from argumentation import Argument
 from interpretation import Interpretation, Literal, Expression
 from datastructures import Sequence
 import english
+from decorators import memoize
+
 
 counter = Sequence()
 
@@ -206,36 +208,38 @@ class InstanceGroup(object):
         return data[1] + Interpretation(local=instance, argument=Argument(instances={instance: {instance}}))
 
 
-grammar = name.grammar | noun.grammar | pronoun.grammar | {
-    # Singular
-    Rule("INSTANCE", [RuleRef("PRONOUN")],
-        Instance.from_pronoun_rule),
+@memoize
+def grammar(**kwargs):
+    return name.grammar(**kwargs) | noun.grammar(**kwargs) | pronoun.grammar(**kwargs) | {
+        # Singular
+        Rule("INSTANCE", [RuleRef("PRONOUN")],
+            Instance.from_pronoun_rule),
 
-    Rule("INSTANCE", [RuleRef("NAME")],
-        Instance.from_name_rule),
+        Rule("INSTANCE", [RuleRef("NAME")],
+            Instance.from_name_rule),
 
-    Rule("INSTANCE", [Expression(r"[Tt]he"), RuleRef("NOUN")],
-        Instance.from_noun_rule),
+        Rule("INSTANCE", [Expression(r"[Tt]he"), RuleRef("NOUN")],
+            Instance.from_noun_rule),
 
-    Rule("INSTANCE", [Expression(r"[Hh]is|[Hh]er|[Tt]heir"), RuleRef("NOUN")],
-        Instance.from_noun_rule),
+        Rule("INSTANCE", [Expression(r"[Hh]is|[Hh]er|[Tt]heir"), RuleRef("NOUN")],
+            Instance.from_noun_rule),
 
-    # Plural
-    Rule("INSTANCES", [RuleRef("PRONOUNS")],
-        InstanceGroup.from_pronoun_rule),
+        # Plural
+        Rule("INSTANCES", [RuleRef("PRONOUNS")],
+            InstanceGroup.from_pronoun_rule),
 
-    Rule("INSTANCES", [RuleRef("NAMES")],
-        InstanceGroup.from_names_rule),
+        Rule("INSTANCES", [RuleRef("NAMES")],
+            InstanceGroup.from_names_rule),
 
-    Rule("INSTANCES", [Expression(r"[Tt]he"), RuleRef("NOUNS")],
-        InstanceGroup.from_noun_rule),
+        Rule("INSTANCES", [Expression(r"[Tt]he"), RuleRef("NOUNS")],
+            InstanceGroup.from_noun_rule),
 
-    Rule("INSTANCES", [Expression(r"[Hh]is|[Hh]er|[Tt]heir"), RuleRef("NOUNS")],
-        InstanceGroup.from_noun_rule),
+        Rule("INSTANCES", [Expression(r"[Hh]is|[Hh]er|[Tt]heir"), RuleRef("NOUNS")],
+            InstanceGroup.from_noun_rule),
 
-    # Shortcuts
-    Rule("INSTANCE*", [RuleRef("INSTANCE")], passthru),
+        # Shortcuts
+        Rule("INSTANCE*", [RuleRef("INSTANCE")], passthru),
 
-    Rule("INSTANCE*", [RuleRef("INSTANCES")], passthru),
-}
+        Rule("INSTANCE*", [RuleRef("INSTANCES")], passthru),
+    }
 
