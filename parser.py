@@ -133,6 +133,12 @@ class State:
     def __repr__(self) -> str:
         return "{rule}, from: {ref} (data:{data!r})".format(rule=self.rule.__repr__(self.expect), ref=self.reference, data=self.data)
 
+    def __eq__(self, other) -> bool:
+        return self.rule == other.rule \
+            and self.expect == other.expect \
+            and self.reference == other.reference \
+            and self.trace == other.trace
+
     def nextState(self, data, trace) -> 'State':
         state = State(self.rule, self.expect + 1, self.reference)
         state.data = self.data + [data]
@@ -286,6 +292,17 @@ class Parser:
                 if next_state is not None:
                     self.table[self.current + token_pos + 1].append(next_state)
                 w += 1
+
+            # Are there duplicates?
+            t = self.table[self.current + token_pos + 1] 
+            for i in range(len(t)):
+                for j in range(i + 1, len(t)):
+                    if t[i] == t[j]:
+                        print("{} {}".format(i, j))
+                        print("Same trace... duplicate?")
+                        t[i] = None
+                        break
+            self.table[self.current + token_pos + 1] = list(filter(lambda s: s is not None, t))
 
             # Next, for each of the rules, we either
             # (a) complete it, and try to see if the reference row expected that rule
