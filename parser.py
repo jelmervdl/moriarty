@@ -121,21 +121,20 @@ class RuleInstance:
 
 
 class State:
-    def __init__(self, rule: Rule, expect: int, reference: int, parent: Optional['State'] = None) -> None:
+    def __init__(self, rule: Rule, expect: int, reference: int) -> None:
         assert len(rule.symbols) > 0
         self.rule = rule
         self.expect = expect
         self.reference = reference
-        self.parent = parent
         self.data = []  # type: List[Any]
         self.trace = []
         self.error = None
 
     def __repr__(self) -> str:
-        return "{rule}, from: {ref} (data:{data!r}, parent:\n{parent!r})".format(rule=self.rule.__repr__(self.expect), ref=self.reference, data=self.data, parent=self.parent)
+        return "{rule}, from: {ref} (data:{data!r})".format(rule=self.rule.__repr__(self.expect), ref=self.reference, data=self.data)
 
     def nextState(self, data, trace) -> 'State':
-        state = State(self.rule, self.expect + 1, self.reference, parent=self)
+        state = State(self.rule, self.expect + 1, self.reference)
         state.data = self.data + [data]
         state.trace = trace + self.trace
         return state
@@ -226,7 +225,7 @@ class State:
                         # null rule means anyway)
                         if len(rule.symbols) > 0:
                             added_rules.append(rule)
-                            table[location].append(State(rule, 0, location, parent=self))
+                            table[location].append(State(rule, 0, location))
                         else:
                             # Empty rule, this is special
                             copy = self.consumeNonTerminal(rule)
