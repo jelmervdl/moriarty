@@ -1,4 +1,5 @@
 from parser import Rule, State, passthru
+from grammar.shared.keywords import Expression
 from interpretation import Symbol, Interpretation
 import english
 
@@ -27,20 +28,14 @@ class Category(object):
         return self
 
 
-class AdjectiveParser(Symbol):
-    """
-    Adjectives typically and on -ly, -able, -ful, -ical, etc. but you also
-    have adjectives such as 'red', 'large', 'rich'. On top of that, you can
-    convert verbs to adjectives using -ed and -able. So we'll just accept
-    anything today :)
-    """
-    def test(self, literal: str, position: int, state: State) -> bool:
-        return literal not in ('no','not')
-
-    def finish(self, literal: str, state: State):
-        return Interpretation(local=Category(literal))
-
+"""
+Adjectives typically and on -ly, -able, -ful, -ical, etc. but you also
+have adjectives such as 'red', 'large', 'rich'. On top of that, you can
+convert verbs to adjectives using -ed and -able. So we'll just accept
+anything today :)
+"""
 
 grammar = {
-    Rule("CATEGORY", [AdjectiveParser()], passthru)
+    Rule("CATEGORY", [Expression(r'.+')],
+        lambda state, data: data[0] + Interpretation(local=Category(data[0].local)))
 }
