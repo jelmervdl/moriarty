@@ -182,6 +182,8 @@ def api_parse_sentence():
         except:
             raise Exception('Grammar {} not available'.format(grammar_name));
 
+        instance.counter.reset()
+
         p = parser.Parser(grammar, 'ARGUMENT')
         parses = p.parse(tokens)
         reply['parses'] = parses

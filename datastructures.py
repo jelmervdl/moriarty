@@ -3,6 +3,9 @@ from collections import OrderedDict, MutableSet
 class Sequence(object):
     """Simple sequence utility class, for creating id's"""
     def __init__(self):
+        self.reset()
+
+    def reset(self):
         self.value = 0
 
     def next(self):

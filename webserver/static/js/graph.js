@@ -881,7 +881,7 @@ Graph.prototype = {
 			if (claim.data.assumption)
 				line.push('assume');
 
-			line.push(claim.text.join(" ").replace(/\s+\(.+?\)\s+/g, ' '));
+			line.push(claim.text.join(" "));
 
 			lines.push(line.join(' '));
 		});
