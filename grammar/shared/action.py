@@ -42,7 +42,7 @@ def grammar(**kwargs):
             lambda state, data: Interpretation(local=Action(data[0].local))),
 
         Rule('ACTION_INF', [RuleRef('VERB_INF'), RuleRef('PROTOTYPE*')],
-            lambda state, data: Interpretation(local=Action(data[0].local, data[1].local))),
+            lambda state, data: data[1] + Interpretation(local=Action(data[0].local, data[1].local))),
 
         Rule('ACTION_INF', [RuleRef('VERB_INF'), RuleRef('INSTANCE*')],
             lambda state, data: data[1] + Interpretation(local=Action(data[0].local, data[1].local))),
@@ -57,5 +57,5 @@ def grammar(**kwargs):
             lambda state, data: data[1] + Interpretation(local=Action(data[0].local, data[1].local))),
 
         Rule('ACTION_PP', [RuleRef('VERB_PP'), RuleRef('PROTOTYPE*')],
-            lambda state, data: Interpretation(local=Action(data[0].local, data[1].local))),
+            lambda state, data: data[1] + Interpretation(local=Action(data[0].local, data[1].local))),
     }

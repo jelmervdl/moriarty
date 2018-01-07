@@ -11,6 +11,9 @@ class NounParser(Symbol):
     def __init__(self, is_plural):
         self.is_plural = is_plural
 
+    def __repr__(self):
+        return 'NounParser({})'.format('plural' if self.is_plural else 'singular')
+
     def test(self, literal: str, position: int, state: 'State') -> bool:
         # Is it a name?
         if not literal.islower() and position != 0: 
@@ -100,8 +103,8 @@ def grammar(**kwargs):
             lambda state, data: data[1] + Interpretation(local=data[0].local.with_preposition_phrase(data[1].local))),
         
         Rule("NOUN", [RuleRef('ADJECTIVE'), RuleRef('NOUN')],
-            lambda state, data: Interpretation(local=data[1].local.with_adjective(data[0].local))),
+            lambda state, data: data[1] + Interpretation(local=data[1].local.with_adjective(data[0].local))),
 
         Rule("NOUNS", [RuleRef('ADJECTIVE'), RuleRef('NOUNS')],
-            lambda state, data: Interpretation(local=data[1].local.with_adjective(data[0].local))),
+            lambda state, data: data[1] + Interpretation(local=data[1].local.with_adjective(data[0].local))),
     }

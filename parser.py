@@ -134,7 +134,7 @@ class State:
         return "{rule}, from: {ref} (data:{data!r})".format(rule=self.rule.__repr__(self.expect), ref=self.reference, data=self.data)
 
     def __eq__(self, other) -> bool:
-        return self.rule == other.rule \
+        return self.rule is other.rule \
             and self.expect == other.expect \
             and self.reference == other.reference \
             and self.trace == other.trace
@@ -339,7 +339,7 @@ class Parser:
 
 
 def tokenize(sentence: str) -> List[str]:
-    return re.compile('\w+|\$[\d\.\;]+|\S+').findall(sentence)
+    return re.compile(r'\w+|\$[\d\.\;]+|\S+').findall(sentence)
 
 
 def parse_rule(line: str, callback: Optional[Callable[[Any, int], Any]] = None) -> Rule:
