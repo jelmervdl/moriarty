@@ -301,6 +301,7 @@
 
 				let diagram = diagramPanel.selectedTab.diagram;
 
+	
 				let json = {
 					isa: 'diagram',
 					claims: diagram.claims
@@ -311,16 +312,21 @@
 							text: claim.text.join("\n")
 						})),
 					relations: diagram.relations.reduce((acc, relation) => {
-						if (relation.claim.data.compound)
+						if (relation.target.data.compound)
 							return acc;
 
 						return acc.concat([
 							{
 								isa: 'relation',
 								id: id(relation),
-								sources: relation.realSources.map(ref),
-								target: ref(relation.realTarget),
-								type: relation.realType
+								sources: relation.data.merged
+									? diagram.relations
+										.filter(rel => rel.target === relation.claim)
+										.map(rel => rel.claim)
+										.map(ref)
+									: [ref(relation.claim)],
+								target: ref(relation.target),
+								type: relation.type
 							}
 						]);
 					}, [])
