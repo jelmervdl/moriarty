@@ -64,8 +64,9 @@ class JSONEncoder(flask.json.JSONEncoder):
                                 # name=str(other_occurrence.name),
                                 noun=str(other_occurrence.noun),
                                 pronoun=str(other_occurrence.pronoun),
-                                repr=repr(other_occurrence)
-                            ) for other_occurrence in other_occurrences
+                                repr=repr(other_occurrence),
+                                reason=str(reason.reason) if reason is not None else None
+                            ) for other_occurrence, reason in other_occurrences.items()
                         ]
                     ) for instance, other_occurrences in o.instances.items()
                 ]

@@ -15,13 +15,17 @@ class Argument(object):
     def __init__(self,
         claims: Dict['Claim', Set['Claim']] = {},
         relations: Set['Relation'] = set(),
-        instances: Dict['Instance', Set['Instance']] = {}):
+        instances: Dict['Instance', Dict['Instance', 'Boolean']] = {}):
         
         assert isinstance(claims, dict)
         assert isinstance(relations, set)
         assert isinstance(instances, dict)
 
-        assert all(instance.__class__.__name__.endswith('Instance') for instance in instances)
+        for instance in instances.keys():
+            if isinstance(instances[instance], set):
+                instances[instance] = {merged_instance: None for merged_instance in instances[instance]}
+
+        # assert all(instance.__class__.__name__.endswith('Instance') for (instance, reason) in instances.keys())
 
         self.claims = claims
         self.relations = relations
@@ -105,10 +109,17 @@ class Argument(object):
         return self.__get_occurrence(self.claims, claim)
 
     def find_instance(self, instance: 'Instance') -> 'Instance':
-        return self.__find_occurrence(self.instances, instance)
+        assert instance is not None
+        for full_instance, occurrences in self.instances.items():
+            if instance in occurrences.keys():
+                return full_instance
+        return None
 
     def get_instance(self, instance: 'Instance') -> 'Instance':
-        return self.__get_occurrence(self.instances, instance)
+        found = self.find_instance(instance)
+        if found is None:
+            raise RuntimeError('Instance {!r} not part of this argument'.format(instance))
+        return found
 
     def __merge_instances(self, other: 'Argument') -> Dict['Instance', Set['Instance']]:
         # Merge the instances of this and the other Interpretation
@@ -121,9 +132,10 @@ class Argument(object):
             for instance in instances.keys():
                 # If that is the case, update our instance and add the other's
                 # instance to the list of occurrences
-                if instance.could_be(other_instance):
+                could_be = instance.could_be(other_instance)
+                if could_be:
                     merged_instance = instance.replace(other_instance)
-                    instances[merged_instance] = instances[instance] | {merged_instance} | other_occurrences
+                    instances[merged_instance] = {**instances[instance], merged_instance:could_be, **other_occurrences}
                     del instances[instance]
                     merged = True
                     break

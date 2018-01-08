@@ -10,6 +10,18 @@ from decorators import memoize
 counter = Sequence()
 
 
+class Boolean(object):
+    def __init__(self, value, reason = None):
+        self.value = bool(value)
+        self.reason = reason
+
+    def __bool__(self):
+        return self.value
+
+    def __repr__(self):
+        return "<{!r}: {!s}>".format(self.value, self.reason)
+
+
 class Instance(object):
     def __init__(self, name: str = None, noun: str = None, pronoun: str = None, origin: 'Instance' = None, scope: 'Scope' = None):
         self.id = counter.next()
@@ -33,7 +45,7 @@ class Instance(object):
         elif self.pronoun is not None:
             return "{} (#{})".format(self.pronoun, self.id)
         else:
-            return "#{}".format(self.id)
+            return "(#{})".format(self.id)
 
     def __repr__(self):
         return "Instance(id={id!r} name={name!r} noun={noun!r} pronoun={pronoun!r} scope={scope!r})".format(**self.__dict__)
@@ -43,35 +55,36 @@ class Instance(object):
         return 'singular'
 
     def text(self, argument: Argument):
-        return argument.get_instance(self).__str__()
+        return argument.get_instance(self).__str__()[:-1] + '/{})'.format(self.id)
 
     def is_same(self, other: 'Instance', argument: Argument) -> bool:
         return argument.get_instance(self) == argument.get_instance(other)
 
     def could_be(self, other: 'Instance') -> bool:
         if isinstance(other, GroupInstance):
-            return False
+            return Boolean(False, '{}/{}: different class'.format(self.id, other.id))
         elif self.scope != other.scope:
-            return False
+            return Boolean(False, '{}/{}: different scope'.format(self.id, other.id))
         elif self.pronoun == 'something':
-            return other.pronoun == 'it'
+            return Boolean(other.pronoun == 'it', '{}/{}: my pronoun is something, other pronoun is it'.format(self.id, other.id))
         elif self.pronoun == 'someone':
-            return other.pronoun in ('he', 'she')
+            return Boolean(other.pronoun in ('he', 'she'), '{}/{}: my pronoun is someone, other pronoun is he/she'.format(self.id, other.id))
         elif self.name is not None:
-            return self.name == other.name \
-                or other.name is None \
-                and (self.pronoun is None and other.pronoun in ('he', 'she') \
-                    or self.pronoun == other.pronoun)
+            if other.name is not None:
+                return Boolean(self.name == other.name, '{}/{}: same name'.format(self.id, other.id))
+            elif self.pronoun is None:
+                return Boolean(other.pronoun in ('he', 'she'), '{}/{}: I have a name but my pronoun is None and other pronoun is he/she'.format(self.id, other.id))
+            else:
+                return Boolean(self.pronoun == other.pronoun, '{}/{}: I have a name, but same pronoun'.format(self.id, other.id))
         elif self.noun is not None:
-            return self.noun == other.noun \
-                or other.noun is None and other.pronoun in ('he', 'she', 'it')
-        elif self.pronoun == 'it':
-            return other.pronoun == 'it'
-        elif self.pronoun in ('he', 'she'):
-            return self.pronoun == other.pronoun
+            if other.noun is not None:
+                return Boolean(self.noun == other.noun, '{}/{}: same noun'.format(self.id, other.id))
+            else:
+                return Boolean(other.pronoun in ('he', 'she', 'it'), '{}/{}: other noun is none but pronoun is he/she/it'.format(self.id, other.id))
+        elif self.pronoun in ('he', 'she', 'it'):
+            return Boolean(self.pronoun == other.pronoun, '{}/{}: same pronoun'.format(self.id, other.id))
         else:
-            # assert False, "this instance is weird: {!r}".format(self)
-            return False
+            return Boolean(False, '{}/{}: undefined case'.format(self.id, other.id))
 
     def replaces(self, instance: 'Instance') -> bool:
         """
@@ -148,23 +161,25 @@ class GroupInstance(object):
 
     def could_be(self, other: 'GroupInstance') -> bool:
         if not isinstance(other, self.__class__):
-            return False
+            return Boolean(False, 'different class')
         elif self.scope != other.scope:
-            return False
+            return Boolean(False, 'different scope')
         elif self.pronoun == 'all':
-            return other.pronoun in ('all', 'they',)
+            return Boolean(other.pronoun in ('all', 'they',), 'my pronoun is all theirs is all/they')
         elif self.instances:
             if other.instances:
-                return all(any(instance.could_be(other_instance) for other_instance in other.instances) for instance in self.instances)
+                return Boolean(all(any(instance.could_be(other_instance) for other_instance in other.instances) for instance in self.instances), 'all instances could be the same')
             else:
-                return other.pronoun in ('they',)
+                return Boolean(other.pronoun in ('they',), 'other has no instances, but their pronoun is they')
         elif self.noun:
-            return self.noun == other.noun \
-                or other.noun is None and other.pronoun in ('they',)
+            if other.noun is not None:
+                return Boolean(self.noun == other.noun, 'same noun')
+            else:
+                return Boolean(other.pronoun in ('they',), 'other has no noun, but has pronoun they')
         elif self.pronoun:
-            return self.pronoun == other.pronoun
+            return Boolean(self.pronoun == other.pronoun, 'same pronoun')
         else:
-            return False
+            return Boolean(False, 'undefined case')
 
     def replaces(self, instance: 'GroupInstance') -> bool:
         """
@@ -218,7 +233,7 @@ class DumbInstance(Instance):
         return str(self) == str(other)
 
     def could_be(self, other: 'Instance') -> bool:
-        return False
+        return Boolean(False, 'anaphora resolution disabled')
 
     def __str__(self):
         if self.name is not None:
@@ -242,7 +257,7 @@ class DumbGroupInstance(GroupInstance):
         return str(self) == str(other)
 
     def could_be(self, other: 'GroupInstance') -> bool:
-        return False
+        return Boolean(False, 'anaphora resolution disabled')
 
     def __str__(self):
         if self.instances:
