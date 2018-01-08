@@ -334,8 +334,8 @@ Graph.prototype = {
 		function test(relation) {
 			return criteria.some(condition => {
 				return (!('claim' in condition) || relation.claim === condition.claim)
-				    && (!('target' in condition) || relation.target === condition.target)
-				    && (!('type' in condition || relation.type === condition.type));
+					&& (!('target' in condition) || relation.target === condition.target)
+					&& (!('type' in condition || relation.type === condition.type));
 			});
 		};
 
@@ -851,13 +851,57 @@ Graph.prototype = {
 		// );
 
 		if ((D.x / D.y < target.width / target.height)
-		 	&& !(D.x / D.y * target.height < -0.5 * target.width))
+			&& !(D.x / D.y * target.height < -0.5 * target.width))
 			t = {
 				x: target.x + (D.x / D.y) * (target.y > source.y ? -0.5 : 0.5) * target.height,
 				y: target.y + (target.y > source.y ? -0.5 : 0.5) * target.height
 			};
 
 		return t;
+	},
+
+	parse: function(input)
+	{
+		let variables = {};
+
+		let lines = input.split(/\r?\n/);
+
+		let rules = [
+			{
+				pattern: /^\s*([a-z]+)\s*:\s*(assume\s+)?((?:[a-z]+\s+)+)(supports|attacks)\s+([a-z]+)$/,
+				processor: match => {
+					let sources = match[3].split(/\s+/).filter(name => name != '').map(name => {
+						if (!(name in variables))
+							throw new Error('Variable "' + name + '" is unknown');
+						return variables[name];
+					});
+					let target = variables[match[5]];
+					let type = match[4].substr(0, match[4].length - 1); // support | attack
+					let relation = this.addRelation(sources, target, type, {variable: match[1], assumption: match[2] == 'assume'});
+					variables[match[1]] = relation;
+				}
+			},
+			{
+				pattern: /^\s*([a-z]+)\s*:\s*(assume\s+)?(.+?)\s*$/,
+				processor: match => {
+					variables[match[1]] = this.addClaim(match[3], {variable: match[1], assumption: match[2] == 'assume'});
+				}
+			}
+		];
+
+		lines.forEach((line, index) => {
+			for (const rule of rules) {
+				try {
+					let match = line.match(rule.pattern);
+					if (match) {
+						rule.processor(match, line);
+						break;
+					}
+				} catch (e) {
+					throw new Error('Parse error on line ' + (index + 1) + ': ' + e.message);
+				}
+			}
+		});
 	},
 
 	toString: function() {

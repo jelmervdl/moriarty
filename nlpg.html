@@ -48,7 +48,50 @@
 				flex-wrap: wrap;
 				flex-direction: column;
 				align-content: stretch;
+			}
 
+			.prompt-overlay {
+				position: fixed;
+				top: 0;
+				bottom: 0;
+				left: 0;
+				right: 0;
+				background: rgba(255, 255, 255, 0.8);
+			}
+
+			.prompt-overlay .popup {
+				box-sizing: border-box;
+				width: 100%;
+				max-width: 600px;
+				height: calc(100% - 40px);
+				margin: 20px auto;
+				padding: 0 15px;
+				background: white;
+				border: 1px solid #ccc;
+
+				display: flex;
+				flex-direction: column;
+				align-content: stretch;
+			}
+
+			.prompt-overlay .popup .prompt {
+				flex: 0;
+				margin: 15px 0;
+			}
+
+			.prompt-overlay .popup .controls {
+				flex: 0;
+				margin: 15px 0;
+				text-align: right;
+			}
+
+			.prompt-overlay .popup .controls button {
+				display: inline-block;
+				padding: 4px 15px;
+			}
+
+			.prompt-overlay .popup textarea {
+				flex: 1 1;
 			}
 		</style>
 	</head>
@@ -56,6 +99,8 @@
 		<div class="toolbar">
 			<button id="text-to-diagram-btn"><strong>Comprehend</strong> text as diagram</button>
 			<button id="diagram-to-text-btn"><strong>Formulate</strong> diagram as text</button>
+			<button id="load-diagram-btn"><strong>Load</strong> a diagram</button>
+			<button id="save-diagram-btn"><strong>Save</strong> a diagram</button>
 		</div>
 		<div class="container">
 			<div class="text-panel">
@@ -134,6 +179,59 @@
 				});
 
 				graph.layout().apply();
+			}
+
+			function showPrompt(prompt, value) {
+				return new Promise((resolve, reject) => {
+					const overlay = document.createElement('div');
+					overlay.className = 'prompt-overlay';
+
+					const popup = document.createElement('div');
+					popup.className = 'popup';
+
+					const title = document.createElement('p');
+					title.className = 'prompt';
+					title.textContent = prompt;
+
+					const textfield = document.createElement('textarea');
+					textfield.value = value;
+
+					const cancel = document.createElement('button');
+					cancel.textContent = 'Cancel';
+
+					const accept = document.createElement('button');
+					accept.innerHTML = '<strong>OK</strong>';
+
+					const controls = document.createElement('div');
+					controls.className = 'controls';
+
+					controls.appendChild(cancel);
+					controls.appendChild(accept);
+					
+					popup.appendChild(title);
+					popup.appendChild(textfield);
+					popup.appendChild(controls);
+
+					overlay.appendChild(popup);
+
+					// Show
+					document.body.appendChild(overlay);
+					textfield.focus();
+					
+					function hide() {
+						document.body.removeChild(overlay);
+					}
+
+					accept.addEventListener('click', e => {
+						hide();
+						resolve(textfield.value);
+					});
+
+					cancel.addEventListener('click', e => {
+						hide();
+						reject();
+					});
+				});
 			}
 
 			// createRealisation('Tweety can fly because birds can fly except Tweety is a penguin.', 0);
@@ -258,6 +356,34 @@
 
 				// Clear the current one
 				realisationPanel.clear();
+			});
+
+			document.getElementById('save-diagram-btn').addEventListener('click', e => {
+				let diagram = diagramPanel.selectedTab.diagram;
+				showPrompt('Diagram', diagram.toString());
+			});
+
+			document.getElementById('load-diagram-btn').addEventListener('click', e => {
+				showPrompt('Paste HASL diagram syntax here:', '').then(text => {
+					let canvas = document.createElement('canvas');
+					canvas.width = 600;
+					canvas.height = 600;
+
+					let graph = new Graph(canvas);
+
+					try {
+						graph.parse(text);
+
+						let tab = diagramPanel.createTab('Loaded'.toString());
+						tab.diagram = graph;
+						tab.appendChild(canvas);
+						tab.addEventListener('show', graph.draw.bind(graph));
+						
+						graph.layout().apply();
+				 	} catch (e) {
+				 		alert(e);
+				 	}
+				});
 			});
 		</script>
 	</body>
