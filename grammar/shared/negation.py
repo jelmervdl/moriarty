@@ -11,8 +11,22 @@ class Negation(object):
     def __repr__(self):
         return "Negation({!r})".format(self.object)
 
+    @property
+    def adverb(self):
+        # Todo: this is not how English works: it should be related to whether
+        # object is a noun. However, we don't really classify "nouns" as in a
+        # grammatical manner, so we have no idea...
+        return 'no' if isinstance(self.object, category.Category) else 'not'
+
     def __str__(self):
-        return "{} {!s}".format('no' if isinstance(self.object, category.Category) else 'not',  self.object)
+        return "{} {!s}".format(self.adverb, self.object)
+
+    def is_same(self, other, argument):
+        return isinstance(other, self.__class__) \
+            and self.object.is_same(other.object, argument) if hasattr(self.object, 'is_same') else self.object == other.object
+
+    def text(self, argument):
+        return "{} {}".format(self.adverb, self.object.text(argument) if hasattr(self.object, 'text') else str(self.object))
 
     @property
     def singular(self):
