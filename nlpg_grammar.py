@@ -329,7 +329,10 @@ def concatenate(tokens):
 		if len(string) > 1 and string[-2] == '.':
 			token = token[0].upper() + token[1:]
 		string += token
+	if len(string) > 1:
+		string = string[0].upper() + string[1:]
 	return string
+
 
 
 def parse(sentence, start = 'sentences'):

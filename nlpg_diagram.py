@@ -37,8 +37,16 @@ class Diagram(object):
 			'id' : node['id']
 		}
 
-	def _normalize(self, text):
-		return str(text).capitalize()
+	def _capitalize(self, text):
+		string = str(text)
+		return string[0].upper() + string[1:]
+
+	def _decapitalize(self, text):
+		string = str(text)
+		if len(string) > 1 and string[1].islower():
+			return string[0].lower() + string[1:]
+		else:
+			return string
 
 	def errors(self):
 		for id, relation in self.relations.items():
@@ -99,7 +107,7 @@ class Diagram(object):
 	def add_claim(self, claim):
 		# First, try to find if there isn't already a claim like this
 		for claim_id, claim_node in self.claims.items():
-			if claim_node['text'] == self._normalize(claim.text):
+			if claim_node['text'] == self._capitalize(claim.text):
 				return claim_node
 
 		# Else, create a new one
@@ -107,7 +115,7 @@ class Diagram(object):
 		claim = {
 			'id': claim_id,
 			'isa': 'claim',
-			'text': self._normalize(claim.text)
+			'text': self._capitalize(claim.text)
 		}
 		self.claims[claim_id] = claim
 		return claim
@@ -226,7 +234,7 @@ class Diagram(object):
 		assert claim['isa'] == 'claim'
 		if 'text' not in claim:
 			claim = self.claims[claim['id']]
-		obj = Claim(text=Text([claim['text']]))
+		obj = Claim(text=Text([self._decapitalize(claim['text'])]))
 		setattr(obj, '_ref', claim)
 		return obj
 
