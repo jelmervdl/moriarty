@@ -37,6 +37,9 @@ class Diagram(object):
 			'id' : node['id']
 		}
 
+	def _normalize(self, text):
+		return str(text).capitalize()
+
 	def errors(self):
 		for id, relation in self.relations.items():
 			if relation['target']['isa'] == 'relation':
@@ -86,12 +89,25 @@ class Diagram(object):
 
 			yield relation
 
+	def has_relations(self, **conditions):
+		try:
+			next(self.find_relations(**conditions))
+			return True
+		except StopIteration:
+			return False
+
 	def add_claim(self, claim):
+		# First, try to find if there isn't already a claim like this
+		for claim_id, claim_node in self.claims.items():
+			if claim_node['text'] == self._normalize(claim.text):
+				return claim_node
+
+		# Else, create a new one
 		claim_id = 'c{}'.format(self._next_id())
 		claim = {
 			'id': claim_id,
 			'isa': 'claim',
-			'text': str(claim.text)
+			'text': self._normalize(claim.text)
 		}
 		self.claims[claim_id] = claim
 		return claim
@@ -166,6 +182,21 @@ class Diagram(object):
 		# TODO: split up the argument into multiple arguments
 		# TODO: the root can be either an argument or a warrant!
 		yield tuple(self.to_argument(claim) for claim in self.find_roots())
+
+		top_warrants = tuple(self.to_warrant({'sources': [claim]}) for claim in self.find_roots())
+		
+		# Find all warrant conditions that themselves have conditions
+		# Use an index as we will add the newly found warrants to the list as
+		# well and we also want to process them.
+		i = 0
+		while i < len(top_warrants):
+			for condition in top_warrants[i].conditions:
+				for claim in condition.claims:
+					if self.has_relations(target=claim._ref, type=Type.SUPPORT):
+						top_warrants += (self.to_warrant({'sources': [claim._ref]}),)
+			i += 1
+		
+		yield top_warrants
 	
 	def to_argument(self, claim):
 		return Argument(
@@ -195,7 +226,9 @@ class Diagram(object):
 		assert claim['isa'] == 'claim'
 		if 'text' not in claim:
 			claim = self.claims[claim['id']]
-		return Claim(text=Text([claim['text']]))
+		obj = Claim(text=Text([claim['text']]))
+		setattr(obj, '_ref', claim)
+		return obj
 
 	@classmethod
 	def from_object(cls, obj: dict) -> 'Diagram':
