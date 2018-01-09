@@ -31,16 +31,17 @@ function main(input, output) {
       input: input
     });
 
+    const lines = [];
+
     rl.on('line', input => {
-        graph.parse(input.replace(/##/, '#'));
+        lines.push(input.replace(/##/, '#'));
     });
 
     rl.on('close', () => {
+        graph.parse(lines);
         graph.layout().apply();
         graph.fit();
         graph.draw();
-
-        // console.log(graph.relations);
     });
 
     graph.on('draw', () => {

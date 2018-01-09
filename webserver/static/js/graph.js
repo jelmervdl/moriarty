@@ -745,7 +745,7 @@ Graph.prototype = {
 
 			ctx.strokeStyle = relationColor(relation);
 
-			ctx.setLineDash = relationDash(relation);
+			ctx.setLineDash(relationDash(relation));
 
 			this.drawRelationLine(s, t, relation.type);
 		});
@@ -775,7 +775,7 @@ Graph.prototype = {
 					scale * t.y - scale * arrowRadius * Math.sin(angle));
 				ctx.stroke();
 
-				if (relation.type === Relation.SUPPORT)
+				if (type === Relation.SUPPORT)
 					ctx.lineWidth = scale * 2;
 				else
 					ctx.lineWidth = scale * 1;
@@ -787,7 +787,7 @@ Graph.prototype = {
 					scale * t.x,
 					scale * t.y);
 
-				if (relation.type === Relation.SUPPORT)
+				if (type === Relation.SUPPORT)
 					ctx.fill();
 				else
 					ctx.stroke();
@@ -800,7 +800,7 @@ Graph.prototype = {
 					scale * t.y - scale * arrowRadius * Math.sin(angle));
 				ctx.stroke();
 
-				if (relation.type === Relation.ATTACK)
+				if (type === Relation.ATTACK)
 					ctx.lineWidth = scale * 2;
 				else
 					ctx.lineWidth = scale * 1;
@@ -881,11 +881,11 @@ Graph.prototype = {
 	{
 		let variables = {};
 
-		let lines = input.split(/\r?\n/);
+		let lines = Array.isArray(input) ? input : input.split(/\r?\n/);
 
 		let rules = [
 			{
-				pattern: /^\s*([a-z0-9]+)\s*:\s*(assume\s+)?((?:[a-z]+\s+)+)(?:(support|attack|warrant|undercut)s)\s+([a-z]+)$/,
+				pattern: /^\s*([a-z0-9]+)\s*:\s*(assume\s+)?((?:[a-z0-9]+\s+)+)(?:(support|attack|warrant|undercut)s)\s+([a-z0-9]+)$/,
 				processor: match => {
 					let sources = match[3].split(/\s+/).filter(name => name != '').map(name => {
 						if (!(name in variables))
