@@ -185,9 +185,9 @@ rules = ruleset([
 		[l('if')],
 		empty()),
 
-	rule('condition_marker',
-		[l('when')],
-		empty()),
+	# rule('condition_marker',
+	# 	[l('when')],
+	# 	empty()),
 
 	rule('exceptions?',
 		[],
