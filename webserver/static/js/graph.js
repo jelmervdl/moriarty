@@ -73,6 +73,10 @@ Relation.SUPPORT = 'support';
 
 Relation.ATTACK = 'attack';
 
+Relation.CONDITION = 'warrant';
+
+Relation.EXCEPTION = 'undercut';
+
 Relation.prototype = {
 	delete: function() {
 		// Delete the relation from the graph
@@ -87,24 +91,6 @@ Relation.prototype = {
 		}, this);
 	},
 
-	get realSources() {
-		return this.data.merged
-			? this.graph.relations.filter(rel => rel.target === this.claim).map(rel => rel.claim)
-			: [this.claim];
-	},
-
-	get realTarget() {
-		return this.target.data.compound
-			? this.graph.relations.find(r => r.claim === this.target).target
-			: this.target;
-	},
-
-	get realType() {
-		return this.target.data.compound
-			? this.graph.relations.find(r => r.claim === this.target).type
-			: this.type;
-	},
-	
 	get x() {
 		return this.claim.x + (this.target.x - this.claim.x) / 2;
 	},
@@ -243,6 +229,9 @@ function Graph(canvas)
 			size: 5,
 			color: function(relation) {
 				return relation.data.assumption ? '#ccc' : 'black';
+			},
+			dash: function(relation) {
+				return relation.type === Relation.CONDITION || relation.type === Relation.EXCEPTION ? [5, 5] : [];
 			}
 		}
 	};
@@ -618,9 +607,14 @@ Graph.prototype = {
 
 		this.claims.forEach(claim => {
 			if (claim.width === null || claim.height === null) {
-				let textWidth = claim.text.map(line => this.context.measureText(line).width).max();
-				claim.width = textWidth / this.style.scale + 2 * this.style.claim.padding;
-				claim.height = claim.text.length * this.style.claim.lineHeight + 2 * this.style.claim.padding;
+				if (claim.data.compound) {
+					claim.width = 0;
+					claim.height = 0;
+				} else {
+					let textWidth = claim.text.map(line => this.context.measureText(line).width).max();
+					claim.width = textWidth / this.style.scale + 2 * this.style.claim.padding;
+					claim.height = claim.text.length * this.style.claim.lineHeight + 2 * this.style.claim.padding;
+				}
 			}
 		});
 	},
@@ -679,6 +673,9 @@ Graph.prototype = {
 
 		// Draw all claims
 		this.claims.forEach(claim => {
+			if (claim.data.compound)
+				return;
+
 			// Draw the background
 			ctx.fillStyle = claimColor(claim);
 			ctx.fillRect(
@@ -732,7 +729,8 @@ Graph.prototype = {
 	drawRelations: function()
 	{
 		let ctx = this.context,
-			relationColor = this.style.relation.color;
+			relationColor = this.style.relation.color,
+			relationDash = this.style.relation.dash;
 
 		// Draw all the relation arrows
 		this.relations.forEach(relation => {
@@ -746,6 +744,8 @@ Graph.prototype = {
 			var t = this.offsetPosition(relation.claim, relation.target);
 
 			ctx.strokeStyle = relationColor(relation);
+
+			ctx.setLineDash = relationDash(relation);
 
 			this.drawRelationLine(s, t, relation.type);
 		});
@@ -769,29 +769,43 @@ Graph.prototype = {
 
 		switch (type) {
 			case Relation.SUPPORT:
+			case Relation.CONDITION:
 				ctx.lineTo(
 					scale * t.x - scale * arrowRadius * Math.cos(angle),
 					scale * t.y - scale * arrowRadius * Math.sin(angle));
 				ctx.stroke();
 
-				ctx.lineWidth = scale * 2;
-				
+				if (relation.type === Relation.SUPPORT)
+					ctx.lineWidth = scale * 2;
+				else
+					ctx.lineWidth = scale * 1;
+			
+				ctx.setLineDash([]);
 				ctx.arrow(scale * arrowRadius, 
 					scale * s.x,
 					scale * s.y,
 					scale * t.x,
 					scale * t.y);
-				ctx.fill();
+
+				if (relation.type === Relation.SUPPORT)
+					ctx.fill();
+				else
+					ctx.stroke();
 				break;
 
 			case Relation.ATTACK:
+			case Relation.EXCEPTION:
 				ctx.lineTo(
 					scale * t.x - scale * arrowRadius * Math.cos(angle),
 					scale * t.y - scale * arrowRadius * Math.sin(angle));
 				ctx.stroke();
 
-				ctx.lineWidth = scale * 2;
+				if (relation.type === Relation.ATTACK)
+					ctx.lineWidth = scale * 2;
+				else
+					ctx.lineWidth = scale * 1;
 
+				ctx.setLineDash([]);
 				ctx.cross(0.75 * scale * arrowRadius, 
 					scale * s.x,
 					scale * s.y,
@@ -835,6 +849,9 @@ Graph.prototype = {
 		const source = center(sourceBox);
 		const target = center(targetBox);
 
+		if (target.width === 0 || target.height === 0)
+			return {x: target.x, y: target.y};
+
 		const D = {
 			x: source.x - target.x,
 			y: source.y - target.y
@@ -868,7 +885,7 @@ Graph.prototype = {
 
 		let rules = [
 			{
-				pattern: /^\s*([a-z]+)\s*:\s*(assume\s+)?((?:[a-z]+\s+)+)(supports|attacks)\s+([a-z]+)$/,
+				pattern: /^\s*([a-z0-9]+)\s*:\s*(assume\s+)?((?:[a-z]+\s+)+)(?:(support|attack|warrant|undercut)s)\s+([a-z]+)$/,
 				processor: match => {
 					let sources = match[3].split(/\s+/).filter(name => name != '').map(name => {
 						if (!(name in variables))
@@ -876,13 +893,12 @@ Graph.prototype = {
 						return variables[name];
 					});
 					let target = variables[match[5]];
-					let type = match[4].substr(0, match[4].length - 1); // support | attack
-					let relation = this.addRelation(sources, target, type, {variable: match[1], assumption: match[2] == 'assume'});
+					let relation = this.addRelation(sources, target, match[4], {variable: match[1], assumption: match[2] == 'assume'});
 					variables[match[1]] = relation;
 				}
 			},
 			{
-				pattern: /^\s*([a-z]+)\s*:\s*(assume\s+)?(.+?)\s*$/,
+				pattern: /^\s*([a-z0-9]+)\s*:\s*(assume\s+)?(.+?)\s*$/,
 				processor: match => {
 					variables[match[1]] = this.addClaim(match[3], {variable: match[1], assumption: match[2] == 'assume'});
 				}

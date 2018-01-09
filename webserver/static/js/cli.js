@@ -18,6 +18,10 @@ require('./array.js');
 require('./layout.js')(Graph);
 require('./canvas.js')(Canvas.Context2d);
 
+console.log = function() {
+    // noop
+};
+
 function main(input, output) {
     let canvas = new Canvas(200, 200, 'pdf');
 
@@ -28,7 +32,7 @@ function main(input, output) {
     });
 
     rl.on('line', input => {
-        graph.parse(input);
+        graph.parse(input.replace(/##/, '#'));
     });
 
     rl.on('close', () => {
