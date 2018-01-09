@@ -24,6 +24,11 @@
 				border-bottom: 1px solid #333;
 			}
 
+			#load-diagram-btn,
+			#save-diagram-btn {
+				float: right;
+			}
+
 			.container {
 				flex: 1;
 				display: flex;
@@ -97,10 +102,10 @@
 	</head>
 	<body>
 		<div class="toolbar">
-			<button id="text-to-diagram-btn"><strong>Comprehend</strong> text as diagram</button>
-			<button id="diagram-to-text-btn"><strong>Formulate</strong> diagram as text</button>
-			<button id="load-diagram-btn"><strong>Load</strong> a diagram</button>
-			<button id="save-diagram-btn"><strong>Save</strong> a diagram</button>
+			<button id="text-to-diagram-btn" accesskey="c"><strong>Comprehend</strong> text as diagram</button>
+			<button id="diagram-to-text-btn" accesskey="f"><strong>Formulate</strong> diagram as text</button>
+			<button id="load-diagram-btn" accesskey="l"><strong>Load</strong> a diagram</button>
+			<button id="save-diagram-btn" accesskey="s"><strong>Save</strong> a diagram</button>
 		</div>
 		<div class="container">
 			<div class="text-panel">
@@ -214,13 +219,39 @@
 
 					overlay.appendChild(popup);
 
+					// Remember focus
+					const prevActiveElement = document.activeElement;
+
 					// Show
 					document.body.appendChild(overlay);
-					textfield.focus();
+					textfield.select();
 					
 					function hide() {
 						document.body.removeChild(overlay);
+
+						// Return focus
+						if (prevActiveElement)
+							prevActiveElement.focus();
 					}
+
+					popup.addEventListener('keydown', e => {
+						switch (e.keyCode) {
+							case 27:
+								e.preventDefault();
+								hide();
+								reject();
+								break;
+
+							case 13:
+								if (!e.metaKey)
+									break;
+
+								e.preventDefault();
+								hide();
+								resolve(textfield.value);
+								break;
+						}
+					});
 
 					accept.addEventListener('click', e => {
 						hide();
@@ -365,6 +396,9 @@
 			});
 
 			document.getElementById('save-diagram-btn').addEventListener('click', e => {
+				if (!diagramPanel.selectedTab)
+					return;
+
 				let diagram = diagramPanel.selectedTab.diagram;
 				showPrompt('Diagram', diagram.toString());
 			});
