@@ -326,6 +326,8 @@ def concatenate(tokens):
 	for token in tokens:
 		if len(string) > 0 and (not len(token) == 1 or token.isalpha()):
 			string += " "
+		if len(string) > 1 and string[-2] == '.':
+			token = token[0].upper() + token[1:]
 		string += token
 	return string
 
