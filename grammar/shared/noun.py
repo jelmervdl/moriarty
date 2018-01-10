@@ -44,7 +44,7 @@ class Noun(object):
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) \
-            and self.is_same(other)
+            and self.is_same(other, None)
 
     def __str__(self):
         noun = english.pluralize(self.literal) if self.is_plural else self.literal
@@ -55,6 +55,7 @@ class Noun(object):
 
     def text(self, argument):
         if len(self.prep_phrase) > 0 and hasattr(self.prep_phrase[0], 'text'):
+            noun = english.pluralize(self.literal) if self.is_plural else self.literal
             return " ".join(map(str, self.adjectives + (noun,) + (self.prep_phrase[0].text(argument),)))
         else:
             return str(self)
@@ -77,8 +78,9 @@ class Noun(object):
     def grammatical_number(self) -> str:
         return 'plural' if self.is_plural else 'singular'
 
-    def is_same(self, other):
-        return self.literal == other.literal \
+    def is_same(self, other, argument):
+        return isinstance(other, self.__class__) \
+            and self.literal == other.literal \
             and self.is_plural == other.is_plural \
             and self.adjectives == other.adjectives \
             and (\
@@ -112,4 +114,7 @@ def grammar(**kwargs):
 
         Rule("NOUNS", [RuleRef('ADJECTIVE'), RuleRef('NOUNS')],
             lambda state, data: data[1] + Interpretation(local=data[1].local.with_adjective(data[0].local))),
+
+        Rule("NOUN*", [RuleRef('NOUN')], passthru),
+        Rule("NOUN*", [RuleRef('NOUNS')], passthru),
     }

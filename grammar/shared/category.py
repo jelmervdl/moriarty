@@ -1,4 +1,4 @@
-from parser import Rule, State, passthru
+from parser import Rule, RuleRef, State, passthru
 from grammar.shared.keywords import Expression
 from interpretation import Symbol, Interpretation
 import english
@@ -39,6 +39,7 @@ anything today :)
 @memoize
 def grammar(**kwargs):
     return {
-        Rule("CATEGORY", [Expression(r'.+')],
-            lambda state, data: data[0] + Interpretation(local=Category(data[0].local)))
+        # Rule("CATEGORY", [Expression(r'.+')],
+        #     lambda state, data: data[0] + Interpretation(local=Category(data[0].local)))
+        Rule('CATEGORY', [RuleRef('NOUN*')], passthru),
     }
