@@ -62,6 +62,30 @@ CanvasRenderingContext2D.prototype.cross = function(r, fromx, fromy, tox, toy)
 	this.lineTo(a.x - 2.5 * r * Math.cos(angle), a.y - 2.5 * r * Math.sin(angle));
 };
 
+CanvasRenderingContext2D.prototype.wrapText = function(text, maxWidth)
+{
+	// Todo: use https://github.com/bramstein/hypher/blob/master/lib/hypher.js for hypens
+	const words = text.split(/\s+/);
+
+	const lines = [];
+	let line = [];
+
+	for (let i = 0; i < words.length; ++i) {
+		line.push(words[i]);
+
+		if (this.measureText(line.join(' ')).width > maxWidth) {
+			line.pop();
+			lines.push(line.join(' '));
+			line = [words[i]];
+		}
+	}
+
+	if (line.length)
+		lines.push(line.join(' '));
+
+	return lines;
+};
+
 });
 
 if (typeof module !== 'undefined')

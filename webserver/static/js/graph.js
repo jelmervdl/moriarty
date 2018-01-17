@@ -15,7 +15,7 @@ var _requestAnimationFrame = (function() {
 function Claim(graph, text, data)
 {
 	this.graph = graph;
-	this.text = text.split(/\n/);
+	this.text = text;
 	this.data = data || {};
 	this.ax = 0;
 	this.ay = 0;
@@ -202,9 +202,15 @@ function Graph(canvas)
 		scale: typeof window !== 'undefined' && 'devicePixelRatio' in window ? window.devicePixelRatio : 1.0,
 		padding: 20,
 		claim: {
-			padding: 5,
+			padding: {
+				top: 3,
+				left: 10,
+				bottom: 10,
+				right: 10
+			},
 			fontSize: 13,
 			lineHeight: 16,
+			maxWidth: 300,
 			background: function(claim) {
 				return 'white';
 			},
@@ -606,14 +612,17 @@ Graph.prototype = {
 		this.context.font = (this.style.scale * this.style.claim.fontSize) + 'px sans-serif';
 
 		this.claims.forEach(claim => {
+			if (!Array.isArray(claim.text))
+				claim.text = this.context.wrapText(claim.text, this.style.claim.maxWidth);
+
 			if (claim.width === null || claim.height === null) {
 				if (claim.data.compound) {
 					claim.width = 0;
 					claim.height = 0;
 				} else {
 					let textWidth = claim.text.map(line => this.context.measureText(line).width).max();
-					claim.width = textWidth / this.style.scale + 2 * this.style.claim.padding;
-					claim.height = claim.text.length * this.style.claim.lineHeight + 2 * this.style.claim.padding;
+					claim.width = textWidth / this.style.scale + this.style.claim.padding.left + this.style.claim.padding.right;
+					claim.height = claim.text.length * this.style.claim.lineHeight + this.style.claim.padding.top + this.style.claim.padding.bottom;
 				}
 			}
 		});
@@ -700,8 +709,8 @@ Graph.prototype = {
 			ctx.fillStyle = fontColor(claim);
 			claim.text.forEach(function(line, i) {
 				ctx.fillText(line,
-					scale * (claim.x + padding),
-					scale * (claim.y + padding / 2 + (i + 1) * lineHeight));
+					scale * (claim.x + padding.left),
+					scale * (claim.y + padding.top + (i + 1) * lineHeight));
 			});
 		});
 	},
