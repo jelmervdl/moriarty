@@ -278,8 +278,6 @@ def grammar(anaphora=True, **kwargs):
         singular = DumbInstance
         plural = DumbGroupInstance
 
-    print("anaphora is {!r} and {!r}".format(singular, plural))
-
     return name.grammar(**kwargs) | noun.grammar(**kwargs) | pronoun.grammar(**kwargs) | {
         # Singular
         Rule("INSTANCE", [RuleRef("PRONOUN")],

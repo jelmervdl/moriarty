@@ -160,11 +160,11 @@ grammars = {
 }
 
 
-for name, grammar in grammars.items():
-    print("{}:".format(name))
-    for rule in sorted(grammar, key=lambda rule: rule.name):
-        print("  " + str(rule))
-print()
+# for name, grammar in grammars.items():
+#     print("{}:".format(name))
+#     for rule in sorted(grammar, key=lambda rule: rule.name):
+#         print("  " + str(rule))
+# print()
 
 @app.route('/')
 def hello():

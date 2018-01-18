@@ -313,7 +313,7 @@ class Parser:
             # If needed, throw an error
             if len(self.table[-1]) == 0:
                 # No states at all! This is not good
-                print(self.table)
+                # print(self.table)
                 raise ParseError(self.current + token_pos, token, sentence=chunk,
                     expected=[str(state.rule.symbols[state.expect] \
                         if len(state.rule.symbols) < state.expect \
