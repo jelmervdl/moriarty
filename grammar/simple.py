@@ -70,16 +70,16 @@ def grammar(**kwargs):
             lambda state, data: data[0] + data[2] + Interpretation(argument=relation(Relation.SUPPORT, data[0].local, general=data[2].local[-1], specifics=data[2].local[:-1]), local=data[0].local)),
         
         
-        Rule('ATTACKED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Expression(r'but|except'), RuleRef('SPECIFIC_CLAIMS')],
+        Rule('ATTACKED_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Expression(r'^but|except$'), RuleRef('SPECIFIC_CLAIMS')],
             lambda state, data: data[0] + data[2] + Interpretation(argument=relation(Relation.ATTACK, data[0].local, specifics=data[2].local), local=data[0].local)),
 
         Rule('ATTACKED_CLAIM', [RuleRef('ATTACKED_CLAIM_WITH_WARRANT')],
             lambda state, data: data[0]),
 
-        Rule('ATTACKED_CLAIM_WITH_WARRANT', [RuleRef('SPECIFIC_CLAIM'), Expression(r'but|except'), RuleRef('SPECIFIC_CLAIMS_CONDITIONAL_FIRST')],
+        Rule('ATTACKED_CLAIM_WITH_WARRANT', [RuleRef('SPECIFIC_CLAIM'), Expression(r'^but|except$'), RuleRef('SPECIFIC_CLAIMS_CONDITIONAL_FIRST')],
             lambda state, data: data[0] + data[2] + Interpretation(argument=relation(Relation.ATTACK, data[0].local, general=data[2].local[0], specifics=data[2].local[1:]), local=data[0].local)),
         
-        Rule('ATTACKED_CLAIM_WITH_WARRANT', [RuleRef('SPECIFIC_CLAIM'), Expression(r'but|except'), RuleRef('SPECIFIC_CLAIMS_CONDITIONAL_LAST')],
+        Rule('ATTACKED_CLAIM_WITH_WARRANT', [RuleRef('SPECIFIC_CLAIM'), Expression(r'^but|except$'), RuleRef('SPECIFIC_CLAIMS_CONDITIONAL_LAST')],
             lambda state, data: data[0] + data[2] + Interpretation(argument=relation(Relation.ATTACK, data[0].local, general=data[2].local[-1], specifics=data[2].local[:-1]), local=data[0].local)),
         
         # Experimental, don't know if I want this
@@ -87,9 +87,9 @@ def grammar(**kwargs):
         #     lambda state, data: data[0] + data[2] + assume(data[0].local, data[2].local)),
 
         # Attacking a warrant?
-        Rule('SUPPORTED_CLAIM', [RuleRef('SUPPORTED_CLAIM'), Expression(r'but|except'), RuleRef('SPECIFIC_CLAIMS')],
+        Rule('SUPPORTED_CLAIM', [RuleRef('SUPPORTED_CLAIM'), Expression(r'^but|except$'), RuleRef('SPECIFIC_CLAIMS')],
             lambda state, data: data[0] + data[2] + Interpretation(argument=relation(Relation.ATTACK, data[0].local, specifics=data[2].local))),
 
-        Rule('SUPPORTED_CLAIM', [RuleRef('SUPPORTED_CLAIM_WITH_WARRANT'), Expression(r'but|except'), RuleRef('SPECIFIC_CLAIMS')],
+        Rule('SUPPORTED_CLAIM', [RuleRef('SUPPORTED_CLAIM_WITH_WARRANT'), Expression(r'^but|except$'), RuleRef('SPECIFIC_CLAIMS')],
             lambda state, data: data[0] + data[2] + Interpretation(argument=relation(Relation.ATTACK, warrant_relation(data[0]), specifics=data[2].local)))
     }

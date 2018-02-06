@@ -129,30 +129,30 @@ def grammar(**kwargs):
     | and_rules('SPECIFIC_CLAIMS', 'SPECIFIC_CLAIM', accept_singular=True) \
     | {
         # x is an A when x is a B
-        Rule('CONDITIONAL_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Expression('if|when'), RuleRef('SPECIFIC_CLAIMS')],
+        Rule('CONDITIONAL_CLAIM', [RuleRef('SPECIFIC_CLAIM'), Expression(r'^if|when$'), RuleRef('SPECIFIC_CLAIMS')],
             undetermined_claim),
 
-        Rule('CONDITIONAL_CLAIM', [RuleRef('GENERAL_CLAIM'), Expression('if|when'), RuleRef('SPECIFIC_CLAIMS')],
+        Rule('CONDITIONAL_CLAIM', [RuleRef('GENERAL_CLAIM'), Expression(r'^if|when$'), RuleRef('SPECIFIC_CLAIMS')],
             expanded_general_claim),
 
         Rule('CONDITIONAL_CLAIM', [RuleRef('GENERAL_CLAIM')],
             passthru),
 
         # an A is a B
-        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPE'), VerbParser('is|has|was'), RuleRef('CATEGORY')],
+        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPE'), VerbParser(r'^is|has|was$'), RuleRef('CATEGORY')],
             general_claim_singular),
-        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPE'), VerbParser('is|has|was'), RuleRef('PROTOTYPE')],
+        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPE'), VerbParser(r'^is|has|was$'), RuleRef('PROTOTYPE')],
             general_claim_singular),
 
-        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPE'), VerbParser('can|may|should'), RuleRef('VERB_INF')],
+        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPE'), VerbParser(r'^can|may|should$'), RuleRef('VERB_INF')],
             general_claim_singular),
 
         # A's are B's
-        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPES'), VerbParser('are|have'), RuleRef('CATEGORY')],
+        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPES'), VerbParser(r'^are|have$'), RuleRef('CATEGORY')],
             general_claim_plural),
-        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPES'), VerbParser('are|have'), RuleRef('PROTOTYPES')],
+        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPES'), VerbParser(r'^are|have$'), RuleRef('PROTOTYPES')],
             general_claim_plural),
 
-        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPES'), VerbParser('can|may|should'), RuleRef('VERB_INF')],
+        Rule('GENERAL_CLAIM', [RuleRef('PROTOTYPES'), VerbParser(r'^can|may|should$'), RuleRef('VERB_INF')],
             general_claim_plural),
     }

@@ -48,15 +48,15 @@ class Negation(object):
 @memoize
 def grammar(**kwargs):
     return category.grammar(**kwargs) | prototype.grammar(**kwargs) | verb.grammar(**kwargs) | {
-        Rule('CATEGORY', [Expression('not?'), RuleRef('CATEGORY')],
+        Rule('CATEGORY', [Expression(r'^not?$'), RuleRef('CATEGORY')],
             Negation.from_rule),
 
-        Rule('PROTOTYPE', [Expression('not'), RuleRef('PROTOTYPE')],
+        Rule('PROTOTYPE', [Expression(r'^not$'), RuleRef('PROTOTYPE')],
             Negation.from_rule),
 
-        Rule('PROTOTYPES', [Expression('not'), RuleRef('PROTOTYPES')],
+        Rule('PROTOTYPES', [Expression(r'^not$'), RuleRef('PROTOTYPES')],
             Negation.from_rule),
 
-        Rule('VERB_INF', [Expression('not'), RuleRef('VERB_INF')],
+        Rule('VERB_INF', [Expression(r'^not$'), RuleRef('VERB_INF')],
             Negation.from_rule)
     }

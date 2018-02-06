@@ -286,10 +286,10 @@ def grammar(anaphora=True, **kwargs):
         Rule("INSTANCE", [RuleRef("NAME")],
             singular.from_name_rule),
 
-        Rule("INSTANCE", [Expression(r"[Tt]he"), RuleRef("NOUN")],
+        Rule("INSTANCE", [Expression(r"^[Tt]he$"), RuleRef("NOUN")],
             singular.from_noun_rule),
 
-        Rule("INSTANCE", [Expression(r"[Hh]is|[Hh]er|[Tt]heir"), RuleRef("NOUN")],
+        Rule("INSTANCE", [Expression(r"^[Hh]is|[Hh]er|[Tt]heir$"), RuleRef("NOUN")],
             singular.from_noun_rule),
 
         # Plural
@@ -299,10 +299,10 @@ def grammar(anaphora=True, **kwargs):
         Rule("INSTANCES", [RuleRef("NAMES")],
             plural.from_names_rule),
 
-        Rule("INSTANCES", [Expression(r"[Tt]he"), RuleRef("NOUNS")],
+        Rule("INSTANCES", [Expression(r"^[Tt]he$"), RuleRef("NOUNS")],
             plural.from_noun_rule),
 
-        Rule("INSTANCES", [Expression(r"[Hh]is|[Hh]er|[Tt]heir"), RuleRef("NOUNS")],
+        Rule("INSTANCES", [Expression(r"^[Hh]is|[Hh]er|[Tt]heir$"), RuleRef("NOUNS")],
             plural.from_noun_rule),
 
         # Shortcuts

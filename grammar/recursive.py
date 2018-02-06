@@ -158,16 +158,16 @@ def grammar(assumptions=True, **kwargs):
         Rule('SUPPORTS', [],
             lambda state, data: Interpretation()),
 
-        Rule('ATTACK', [Expression('except|but'), RuleRef('EXPANDED_SPECIFIC_CLAIMS')],
+        Rule('ATTACK', [Expression(r'^except|but$'), RuleRef('EXPANDED_SPECIFIC_CLAIMS')],
             lambda state, data: data[1] + Interpretation(local=PartialRelation(Relation.ATTACK, specifics=data[1].local, make_assumptions=assumptions))),
 
-        Rule('ATTACK', [Expression('except|but'), RuleRef('EXPANDED_SPECIFIC_CLAIMS_GENERAL_FIRST')],
+        Rule('ATTACK', [Expression(r'^except|but$'), RuleRef('EXPANDED_SPECIFIC_CLAIMS_GENERAL_FIRST')],
             lambda state, data: data[1] + Interpretation(local=PartialRelation(Relation.ATTACK, conditional=data[1].local[0], specifics=data[1].local[1:], make_assumptions=assumptions))),
 
-        Rule('ATTACK', [Expression('except|but'), RuleRef('EXPANDED_SPECIFIC_CLAIMS_GENERAL_LAST')],
+        Rule('ATTACK', [Expression(r'^except|but$'), RuleRef('EXPANDED_SPECIFIC_CLAIMS_GENERAL_LAST')],
             lambda state, data: data[1] + Interpretation(local=PartialRelation(Relation.ATTACK, conditional=data[1].local[-1], specifics=data[1].local[0:-1], make_assumptions=assumptions))),
 
-        Rule('ATTACK', [Expression('except|but'), RuleRef('EXPANDED_GENERAL_CLAIM')],
+        Rule('ATTACK', [Expression(r'^except|but$'), RuleRef('EXPANDED_GENERAL_CLAIM')],
             lambda state, data: data[1] + Interpretation(local=PartialRelation(Relation.ATTACK, conditional=data[1].local, make_assumptions=assumptions))),
 
         Rule('ATTACKS', [],

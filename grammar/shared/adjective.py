@@ -7,5 +7,5 @@ from decorators import memoize
 @memoize
 def grammar(**kwargs):
     return {
-        Rule("ADJECTIVE", [Expression(r".*")], passthru)
+        Rule("ADJECTIVE", [Expression(r"^\w+$")], passthru)
     }

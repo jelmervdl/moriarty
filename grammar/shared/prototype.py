@@ -51,13 +51,13 @@ class Prototype(object):
 @memoize
 def grammar(**kwargs):
     return noun.grammar(**kwargs) | {
-        Rule("PROTOTYPE", [Expression(r'every|an?'), RuleRef("NOUN")],
+        Rule("PROTOTYPE", [Expression(r'^every|an?$'), RuleRef("NOUN")],
             lambda state, data: data[1] + Interpretation(local=Prototype(data[1].local, article=data[0].local))),
 
         Rule("PROTOTYPES", [RuleRef("NOUNS")],
             lambda state, data: data[0] + Interpretation(local=Prototype(data[0].local))),
 
-        Rule("PROTOTYPES", [Expression(r'all|most|many|some'), RuleRef("NOUNS")],
+        Rule("PROTOTYPES", [Expression(r'^all|most|many|some$'), RuleRef("NOUNS")],
             lambda state, data: data[0] + Interpretation(local=Prototype(data[1].local, article=data[0].local))),
 
         Rule("PROTOTYPE*", [RuleRef("PROTOTYPE")], passthru),
