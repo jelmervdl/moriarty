@@ -1,8 +1,8 @@
 from collections import OrderedDict
 from typing import List
-from parser import Rule, RuleRef, Literal
+from parser import RuleRef, Literal
 from argumentation import Argument, Relation
-from interpretation import Interpretation, Expression
+from interpretation import Rule, Interpretation, Expression
 from grammar.macros import and_rules
 from grammar.shared.claim import Scope
 from grammar.shared.instance import Instance

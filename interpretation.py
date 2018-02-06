@@ -1,7 +1,13 @@
-from typing import Any, Dict, Set
+from typing import Any, Dict, Set, List
 from argumentation import Argument
 import parser
 import re
+
+
+class Rule(parser.Rule):
+    def __init__(self, name, symbols, callback = None):
+        super().__init__(name, symbols, callback)
+        self.callback = lambda state, data: callback(state, data).validated()
 
 
 class Interpretation(object):
@@ -19,6 +25,10 @@ class Interpretation(object):
 
     def __repr__(self) -> str:
         return "Interpretation(argument={argument!r} local={local!r})".format(**self.__dict__)
+
+    def validated(self):
+        self.argument = self.argument.validated()
+        return self
     
 
 

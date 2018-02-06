@@ -3,6 +3,7 @@ from collections import OrderedDict
 import english
 import parser
 from copy import copy
+from pprint import pformat
 
 class ArgumentError(Exception):
     pass
@@ -95,6 +96,12 @@ class Argument(object):
         """Return a string representation of the argument for inspection."""
         return "Argument(claims={claims!r} relations={relations!r} instances={instances!r})".format(**self.__dict__)
 
+    def validated(self):
+        # Check whether all instances are known?
+        for claim in self.claims:
+            self.find_claim(claim).text(self)        
+        return self
+
     def with_scope(self, scope: 'Scope') -> 'Argument':
         claims = OrderedDict()
         for claim, occurrences in self.claims.items():
@@ -118,13 +125,13 @@ class Argument(object):
     def get_instance(self, instance: 'Instance') -> 'Instance':
         found = self.find_instance(instance)
         if found is None:
-            raise RuntimeError('Instance {!r} not part of this argument'.format(instance))
+            raise Exception('Instance {!r} not part of this argument: {}'.format(instance, pformat(list(self.instances.items()))))
         return found
 
     def __merge_instances(self, other: 'Argument') -> Dict['Instance', Set['Instance']]:
         # Merge the instances of this and the other Interpretation
         instances = OrderedDict(self.instances)
-        for other_instance, other_occurrences in other.instances.items():
+        for other_instance, other_occurrences in reversed(list(other.instances.items())):
             merged = False
 
             # Check for all known instances whether they could be the same as

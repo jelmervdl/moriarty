@@ -1,6 +1,6 @@
 from typing import Set
 from itertools import chain
-from parser import Rule, RuleRef, Literal, passthru
+from parser import RuleRef, Literal, passthru
 from grammar.shared.claim import Claim, Scope
 from grammar.shared.instance import Instance, GroupInstance
 from grammar.shared.specific import SpecificClaim
@@ -9,7 +9,7 @@ from grammar.shared.verb import VerbParser, Verb
 from grammar.shared import pronoun, category, prototype, verb, specific
 from grammar.macros import and_rules
 from argumentation import Argument, Relation
-from interpretation import Expression, Interpretation
+from interpretation import Rule, Expression, Interpretation
 import english
 from decorators import memoize
 

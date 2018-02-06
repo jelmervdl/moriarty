@@ -1,7 +1,8 @@
 from grammar.shared import instance, category, prototype, verb, action
 from grammar.shared.claim import Claim
 from grammar.shared.verb import VerbParser
-from parser import Rule, RuleRef
+from parser import RuleRef
+from interpretation import Rule
 from decorators import memoize
 
 
