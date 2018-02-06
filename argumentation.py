@@ -162,7 +162,7 @@ class Argument(object):
                 if claim.is_same(other_claim, context):
                     key = claim if claim.is_preferred_over(other_claim, context) else other_claim
                     claims[key] = self.claims[claim] | other.claims[other_claim]
-                    matched.add(claim)
+                    matched.add(claim) #TODO: Here I lose the relations that were unique to the replaced claim.
                     merged = True
                     break
             if not merged:

@@ -51,6 +51,9 @@ the queen can fly because Tweety is a bird and he has wings and she is a queen.
 Jan can fly because Piet has wings and wings are tools and because he has feathers.
 Tweety can fly because she is a bird. Ducky can quack because he is a duck and she is a bird.
 
+John is ill because he has eaten spoiled food and because Henry is also ill because he has eaten spoiled food.
+John is ill because he has eaten spoiled food and because Henry is also ill.
+
 # Undercutter
 Jan is a prisoner but Jan is not a thief.
 Jan is a prisoner because thieves are prisoners but Jan is not a thief.
