@@ -225,33 +225,39 @@ jQuery(function($) {
 
         $el.data('graph', graph);
 
-        let $button = $('<button class="btn btn-default btn-xs copy-btn graph-copy-button"></button>')
+        let copyButton = $('<button class="btn btn-default btn-xs copy-btn graph-copy-button"></button>')
             .prop('title', 'Copy graph to clipboard')
             .append('<span class="glyphicon glyphicon-copy"></span>')
             .appendTo($el);
 
-        $button.on('click', (e) => {
+        copyButton.on('click', (e) => {
             // Set the to be copied data just before the click event
             // propagates to the Clipboard listener.
-            $button.attr('data-clipboard-text', graph.toString());
+            copyButton.attr('data-clipboard-text', graph.toString());
         });
 
-        let $trace = $('<div class="collapse trace">')
+        let trace = $('<div class="collapse trace">')
             .append($('<ol>')
                 .append($.map(parse.trace, function(step) {
                     return $('<li>').text(step);
                 })));           
 
-        let $traceBtn = $('<button class="btn btn-default btn-xs trace-btn trace-toggle-button"></button>')
-            .prop('title', 'Toggle trace')
-            .append('<span class="glyphicon glyphicon-sort-by-attributes"></span>')
+        $('<button class="btn btn-default btn-xs trace-btn trace-toggle-button" title="Toggle trace">\
+            <span class="glyphicon glyphicon-sort-by-attributes"></span>\
+            </button>')
+            .click(function() { trace.collapse('toggle'); })
             .appendTo($el);
 
-        $traceBtn.on('click', e => {
-            $trace.collapse('toggle');
-        });
+        let instances = $('<div class="collapse instances">')
+            .append($('<pre>').text(JSON.stringify(parse.data.instances, null, '\t')));
 
-        return $('<div>').append([$el, $trace]);
+        $('<button class="btn btn-default btn-xs instances-btn instances-toggle-button" title="Toggle instances">\
+            <span class="glyphicon glyphicon-tags"></span>\
+           </button>')
+            .click(function() { instances.collapse('toggle'); })
+            .appendTo($el);
+
+        return $('<div>').append([$el, trace, instances]);
     }
 
     function listInstances(parse) {
