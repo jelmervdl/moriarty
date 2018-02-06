@@ -1,7 +1,80 @@
 jQuery(function($) {
     "use strict"
 
-    var grammars = $('#parse-sentence-form .grammar-dropdown input[name=grammar]').map(function() {
+    class FavoriteStorage {
+        constructor(key) {
+            this.key = key;
+            this.listeners = {};
+        }
+
+        get values() {
+            try {
+                return JSON.parse(window.localStorage[this.key]);
+            } catch (e) {
+                return [];
+            }
+        }
+
+        set values(list) {
+            window.localStorage[this.key] = JSON.stringify(list);
+        }
+
+        compare(a, b) {
+            return a.sentence == b.sentence && a.grammar == b.grammar;
+        }
+
+        add(favorite) {
+            this.values = this.values.concat([favorite]);
+            this.dispatchEvent(['add', 'update'], {action: 'add', favorite: favorite});
+        }
+
+        remove(favorite) {
+            this.values = this.values.filter(function(stored) {
+                return !this.compare(stored, favorite);
+            }, this);
+            this.dispatchEvent(['remove', 'update'], {action: 'remove', favorite: favorite});
+        }
+
+        toggle(favorite) {
+            if (this.contains(favorite))
+                this.remove(favorite);
+            else
+                this.add(favorite);
+        }
+
+        contains(favorite) {
+            return this.values.find(function(stored) {
+                return this.compare(stored, favorite);
+            }, this) !== undefined;
+        }
+
+        on(event, callback) {
+            if (!(event in this.listeners))
+                this.listeners[event] = [];
+
+            this.listeners[event].push(callback);
+
+            return callback;
+        }
+
+        dispatchEvent(event, data) {
+            if (Array.isArray(event))
+                return event.forEach(function(event) {
+                    this.dispatchEvent(event, data);
+                }, this);
+
+            if (!(event in this.listeners))
+                return;
+
+            this.listeners[event].forEach(function(listener) {
+                listener(data);
+            });
+        }
+    }
+
+    const favorites = new FavoriteStorage('favorites');
+
+    const grammars = $('#parse-sentence-form .grammar-dropdown input[name=grammar]').map(function() {
         return {
             name: $(this).val(),
             label: $.trim($(this).parent().text())
@@ -14,6 +87,17 @@ jQuery(function($) {
 
     function editButton(sentence, grammar) {
         return $('<button type="button" class="btn btn-hidden btn-xs edit-sentence" aria-label="Edit sentence" title="Edit sentence"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span></button>').data({'sentence': sentence, 'grammar': grammar});
+    }
+
+    function starButton(sentence, grammar) {
+        const button = $('<button type="button" class="btn btn-hidden btn-xs star-sentence" aria-label="Remember sentence" title="Remember sentence"><span class="glyphicon" aria-hidden="true"></span></button>').data({'sentence': sentence, 'grammar': grammar});
+        favorites.on('update', function() {
+            const isFavorite = favorites.contains({sentence: sentence, grammar: grammar});
+            button.find('.glyphicon')
+                .removeClass('glyphicon-star glyphicon-star-empty')
+                .addClass(isFavorite ? 'glyphicon-star' : 'glyphicon-star-empty');
+        })();
+        return button;
     }
 
     function repeatButton(sentence, grammar) {
@@ -188,7 +272,12 @@ jQuery(function($) {
                 .append(closeButton())
                 .append(editButton(sentence, response.grammar || null))
                 .append(repeatButton(sentence, response.grammar || null))
-                .append(stringifyTokens(response.tokens || [])));
+                .append(starButton(sentence, response.grammar || null))
+                .append(stringifyTokens(response.tokens || []))
+                .on('dblclick', function(e) {
+                    e.preventDefault();
+                    $(this).parent().find('.panel-collapse').collapse('toggle');
+                }));
     }
 
     function parseSentence(sentence, grammar, location) {
@@ -206,9 +295,11 @@ jQuery(function($) {
                     $('#parses').prepend(panel);
                 }
 
+                const body = $('<div class="panel-collapse collapse in">').appendTo(panel);
+
                 switch (status) {
                     case 'success':
-                        panel.append($('<div class="panel-body list-group">')
+                        body.append($('<div class="panel-body list-group">')
                             .append($.map(response.parses, function(parse) {
                                 return $('<div>')
                                     .addClass('list-group-item')
@@ -220,12 +311,12 @@ jQuery(function($) {
 
                     default:
                         try {
-                            panel.append($('<div class="panel-body">').alert(response.error));
+                            body.append($('<div class="panel-body">').alert(response.error));
                             var match = response.error.match(/\(at position (\d+)\)/);
                             if (match)
                                 panel.find('[data-pos=' + match[1] + '].token').addClass('bg-danger');
                         } catch (e) {
-                           panel.append($('<div class="panel-body">').alert("Something went wrong on the server."));
+                           body.append($('<div class="panel-body">').alert("Something went wrong on the server."));
                         }
                         break;
                 }
@@ -292,7 +383,11 @@ jQuery(function($) {
         parseSentence($(this).closest('.repeat-sentence').data('sentence'), $(this).val(), $(this).closest('.parse.panel'));
     });
 
-   $('#parse-sentence-form').submit(function(e) {
+    $('body').on('click', '.star-sentence', function(e) {
+        favorites.toggle({sentence: $(this).data('sentence'), grammar: $(this).data('grammar')});
+    });
+
+    $('#parse-sentence-form').submit(function(e) {
         e.preventDefault();
         var sentence = $(this).find('input[name=sentence]').val();
         var grammar = $(this).find('input[name=grammar]:checked').val();
@@ -335,6 +430,10 @@ jQuery(function($) {
 
     if ('Clipboard' in window)
         new Clipboard('.copy-btn');
+
+    favorites.values.forEach(favorite => {
+        parseSentence(favorite.sentence, favorite.grammar);
+    });
 
     // var stream = new EventSource('/api/stream');
     // stream.onmessage = function(e) {
