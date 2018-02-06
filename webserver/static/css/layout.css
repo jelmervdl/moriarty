@@ -21,6 +21,7 @@ body {
 
 .panel-heading button.star-sentence {
 	float: left;
+	margin-left: -6px;
 }
 
 .panel-heading button.close {
