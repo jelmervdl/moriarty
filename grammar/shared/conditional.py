@@ -67,7 +67,11 @@ def undetermined_claim(state, data):
                 claim: {claim}, 
                 **{condition: {condition} for condition in conditions}
             },
-            relations={relation}
+            relations={relation},
+            instances={
+                claim.subject: {claim.subject},
+                **{condition.subject: {condition.subject} for condition in conditions}
+            }
         ),
         local=claim)
 
