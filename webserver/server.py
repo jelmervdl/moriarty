@@ -131,7 +131,7 @@ for sentence_file in sentence_files:
 # print()
 
 def simple_grammar():
-    options = dict(assumptions=False, anaphora__bug=False)
+    options = dict(assumptions=False, anaphora=False)
     return specific.grammar(**options) \
         | conditional.grammar(**options) \
         | negation.grammar(**options) \
