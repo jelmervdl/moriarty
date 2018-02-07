@@ -151,7 +151,7 @@ class State:
         if len(self.rule.symbols) > self.expect and self.rule.symbols[self.expect].test(inp, position=token_pos, state=self):
             log("Terminal consumed")
             try:
-                return self.nextState(self.rule.symbols[self.expect].finish(inp, self), ['Consume terminal {!r} with {!r}'.format(inp, self.rule.symbols[self.expect])])
+                return self.nextState(self.rule.symbols[self.expect].finish(inp, self), ['Consume terminal {!r}({}) with {!r}'.format(inp, token_pos, self.rule.symbols[self.expect])])
             except Exception as e:
                 raise Exception('Exception while trying to consume {!r} with {!r}'.format(inp, self.rule.symbols[self.expect])) from e
         else:
