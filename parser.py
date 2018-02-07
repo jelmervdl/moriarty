@@ -126,6 +126,7 @@ class State:
         self.rule = rule
         self.expect = expect
         self.reference = reference
+        self.inp = []
         self.data = []  # type: List[Any]
         self.trace = []
         self.error = None
@@ -139,8 +140,17 @@ class State:
             and self.reference == other.reference \
             and self.trace == other.trace
 
-    def nextState(self, data, trace) -> 'State':
+    @property
+    def tree(self):
+        return {
+            'label': self.rule.name,
+            'nodes': [child.tree if isinstance(child, State) else {'label': child} for child in self.inp]
+        }
+
+
+    def nextState(self, inp, data, trace) -> 'State':
         state = State(self.rule, self.expect + 1, self.reference)
+        state.inp = self.inp + inp
         state.data = self.data + [data]
         state.trace = trace + self.trace
         return state
@@ -151,7 +161,7 @@ class State:
         if len(self.rule.symbols) > self.expect and self.rule.symbols[self.expect].test(inp, position=token_pos, state=self):
             log("Terminal consumed")
             try:
-                return self.nextState(self.rule.symbols[self.expect].finish(inp, self), ['Consume terminal {!r}({}) with {!r}'.format(inp, token_pos, self.rule.symbols[self.expect])])
+                return self.nextState([inp], self.rule.symbols[self.expect].finish(inp, self), ['Consume terminal {!r}({}) with {!r}'.format(inp, token_pos, self.rule.symbols[self.expect])])
             except Exception as e:
                 raise Exception('Exception while trying to consume {!r} with {!r}'.format(inp, self.rule.symbols[self.expect])) from e
         else:
@@ -162,7 +172,7 @@ class State:
         if len(self.rule.symbols) > self.expect \
                 and isinstance(self.rule.symbols[self.expect], RuleRef) \
                 and self.rule.symbols[self.expect].name == inp.name:
-            return self.nextState(inp.consume(self), ['{!r}: Consume non-terminal {!r}'.format(self.rule.__repr__(self.expect), inp)])
+            return self.nextState([], inp.consume(self), ['{!r}: Consume non-terminal {!r}'.format(self.rule.__repr__(self.expect), inp)])
         else:
             return None
 
@@ -179,6 +189,7 @@ class State:
                 next_state = state.consumeNonTerminal(self.rule)
                 if next_state is not None:
                     next_state.data[-1] = self.data
+                    next_state.inp.append(self)
                     next_state.trace = self.trace + next_state.trace
                     table[location].append(next_state)
                 w += 1
@@ -326,7 +337,7 @@ class Parser:
 
     def finish(self) -> List[List[Any]]:
         # Return the possible parsings
-        return [dict(data=state.data, trace=list(reversed(state.trace))) for state in self.table[-1] if
+        return [dict(data=state.data, trace=list(reversed(state.trace)), tree=state.tree) for state in self.table[-1] if
                 state.rule.name == self.start
                 and state.expect == len(state.rule.symbols)
                 and state.reference == 0

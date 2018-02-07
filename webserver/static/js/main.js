@@ -165,6 +165,16 @@ jQuery(function($) {
 
     var globalIDCounter = 0;
 
+    function treeElement(tree) {
+        const label = $('<span>').text(tree.label);
+        const leaf = $('<li>').append(label);
+        
+        if (tree.nodes)
+            leaf.append($('<ul>').append(tree.nodes.map(treeElement)));
+        
+        return leaf;
+    }
+
     function networkifyParse(parse) {
         var $el = $('<div>').addClass('network');
 
@@ -225,10 +235,12 @@ jQuery(function($) {
 
         $el.data('graph', graph);
 
+        const buttons = $('<div class="buttons">');
+
         let copyButton = $('<button class="btn btn-default btn-xs copy-btn graph-copy-button"></button>')
             .prop('title', 'Copy graph to clipboard')
             .append('<span class="glyphicon glyphicon-copy"></span>')
-            .appendTo($el);
+            .appendTo(buttons);
 
         copyButton.on('click', (e) => {
             // Set the to be copied data just before the click event
@@ -246,7 +258,7 @@ jQuery(function($) {
             <span class="glyphicon glyphicon-sort-by-attributes"></span>\
             </button>')
             .click(function() { trace.collapse('toggle'); })
-            .appendTo($el);
+            .appendTo(buttons);
 
         let instances = $('<div class="collapse instances">')
             .append($('<pre>').text(JSON.stringify(parse.data.instances, null, '\t')));
@@ -255,9 +267,18 @@ jQuery(function($) {
             <span class="glyphicon glyphicon-tags"></span>\
            </button>')
             .click(function() { instances.collapse('toggle'); })
-            .appendTo($el);
+            .appendTo(buttons);
 
-        return $('<div>').append([$el, trace, instances]);
+        const tree = $('<div class="collapse tree">')
+            .append($('<ul>').append(treeElement(parse.tree)));
+
+        $('<button class="btn btn-default btn-xs tree-btn tree-toggle-button" title="Toggle tree">\
+            <span class="glyphicon glyphicon-tags"></span>\
+           </button>')
+            .click(function() { tree.collapse('toggle'); })
+            .appendTo(buttons);
+
+        return $('<div>').append([buttons, $el, trace, instances, tree]);
     }
 
     function listInstances(parse) {
