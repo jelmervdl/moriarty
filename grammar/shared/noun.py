@@ -80,7 +80,7 @@ class Noun(object):
 
     def is_same(self, other, argument):
         return isinstance(other, self.__class__) \
-            and self.literal == other.literal \
+            and self.literal.lower() == other.literal.lower() \
             and self.is_plural == other.is_plural \
             and self.adjectives == other.adjectives \
             and (\

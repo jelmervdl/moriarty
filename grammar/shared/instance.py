@@ -18,6 +18,9 @@ class Boolean(object):
     def __bool__(self):
         return self.value
 
+    def __str__(self):
+        return '{} because {}'.format('Yes' if self.value else 'No', self.reason)
+
     def __repr__(self):
         return "<{!r}: {!s}>".format(self.value, self.reason)
 
@@ -65,24 +68,24 @@ class Instance(object):
             return Boolean(False, '{}/{}: different class'.format(self.id, other.id))
         elif self.scope != other.scope:
             return Boolean(False, '{}/{}: different scope'.format(self.id, other.id))
-        elif self.pronoun == 'something':
-            return Boolean(other.pronoun == 'it', '{}/{}: my pronoun is something, other pronoun is it'.format(self.id, other.id))
-        elif self.pronoun == 'someone':
-            return Boolean(other.pronoun in ('he', 'she'), '{}/{}: my pronoun is someone, other pronoun is he/she'.format(self.id, other.id))
+        elif self.pronoun and self.pronoun.lower() == 'something':
+            return Boolean(other.pronoun.lower() == 'it', '{}/{}: my pronoun is something, other pronoun is it'.format(self.id, other.id))
+        elif self.pronoun and self.pronoun.lower() == 'someone':
+            return Boolean(other.pronoun.lower() in ('he', 'she'), '{}/{}: my pronoun is someone, other pronoun is he/she'.format(self.id, other.id))
         elif self.name is not None:
             if other.name is not None:
                 return Boolean(self.name == other.name, '{}/{}: same name'.format(self.id, other.id))
             elif self.pronoun is None:
-                return Boolean(other.pronoun in ('he', 'she'), '{}/{}: I have a name but my pronoun is None and other pronoun is he/she'.format(self.id, other.id))
+                return Boolean(other.pronoun and other.pronoun.lower() in ('he', 'she'), '{}/{}: I have a name but my pronoun is None and other pronoun is he/she'.format(self.id, other.id))
             else:
-                return Boolean(self.pronoun == other.pronoun, '{}/{}: I have a name, but same pronoun'.format(self.id, other.id))
+                return Boolean(other.pronoun and self.pronoun.lower() == other.pronoun.lower(), '{}/{}: I have a name, but same pronoun'.format(self.id, other.id))
         elif self.noun is not None:
             if other.noun is not None:
                 return Boolean(self.noun == other.noun, '{}/{}: same noun'.format(self.id, other.id))
             else:
-                return Boolean(other.pronoun in ('he', 'she', 'it'), '{}/{}: other noun is none but pronoun is he/she/it'.format(self.id, other.id))
-        elif self.pronoun in ('he', 'she', 'it'):
-            return Boolean(self.pronoun == other.pronoun, '{}/{}: same pronoun'.format(self.id, other.id))
+                return Boolean(other.pronoun.lower() in ('he', 'she', 'it'), '{}/{}: other noun is none but pronoun is he/she/it'.format(self.id, other.id))
+        elif self.pronoun and self.pronoun.lower() in ('he', 'she', 'it'):
+            return Boolean(other.pronoun and self.pronoun.lower() == other.pronoun.lower(), '{}/{}: same pronoun'.format(self.id, other.id))
         else:
             return Boolean(False, '{}/{}: undefined case'.format(self.id, other.id))
 
@@ -235,6 +238,9 @@ class DumbInstance(Instance):
     def could_be(self, other: 'Instance') -> bool:
         return Boolean(False, 'anaphora resolution disabled')
 
+    def text(self, argument: Argument):
+        return str(self)
+
     def __str__(self):
         if self.name is not None:
             return "{}".format(self.name)
@@ -258,6 +264,9 @@ class DumbGroupInstance(GroupInstance):
 
     def could_be(self, other: 'GroupInstance') -> bool:
         return Boolean(False, 'anaphora resolution disabled')
+
+    def text(self, argument: Argument):
+        return str(self)
 
     def __str__(self):
         if self.instances:
