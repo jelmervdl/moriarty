@@ -10,14 +10,14 @@ def relation(type, claim, specifics, general=None):
     relation = Relation(specifics, claim, type)
     argument = Argument(relations={relation})
     if general is not None:
-        argument = argument | Argument(relations={Relation([general], relation, Relation.SUPPORT)})
+        argument = argument + Argument(relations={Relation([general], relation, Relation.SUPPORT)})
     return argument
 
 
 def assume(claim, general):
     assumption = SpecificClaim(claim.subject, 'is', general.subject.singular, assumption=True)
     argument = Argument(claims={assumption: {assumption}})
-    argument |= relation(Relation.SUPPORT, claim, general=general, specifics={assumption})
+    argument += relation(Relation.SUPPORT, claim, general=general, specifics={assumption})
     return Interpretation(argument=argument, local=claim)
 
 

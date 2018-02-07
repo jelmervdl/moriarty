@@ -38,10 +38,10 @@ class PartialRelation(object):
                     claims[scoped_specific] = {scoped_specific, specific}
                 else:
                     relation.sources.add(specific)
-            argument = argument | Argument(instances=instances, claims=claims)
+            argument = argument + Argument(instances=instances, claims=claims)
 
         if self.make_assumptions and self.conditional is not None:
-            argument = argument | Argument(relations={Relation([self.conditional], relation, Relation.SUPPORT)})
+            argument = argument + Argument(relations={Relation([self.conditional], relation, Relation.SUPPORT)})
             conditions = find_conditions(self.conditional, context)
             if len(conditions) > 0:
                 assumptions = []
@@ -56,7 +56,7 @@ class PartialRelation(object):
                     
                     assumptions.append(condition.assume(**params))
 
-                argument = argument | Argument(claims=dict((assumption, {assumption}) for assumption in assumptions))
+                argument = argument + Argument(claims=dict((assumption, {assumption}) for assumption in assumptions))
                 relation.sources.update(assumptions)
         
         if self.make_assumptions and self.conditional is None and self.specifics is not None:
@@ -82,7 +82,7 @@ class PartialRelation(object):
                     assumptions.append(specific.update(id=None, subject=conditional.subject, scope=scope))
 
             if len(assumptions) > 0:
-                argument = argument | Argument(
+                argument = argument + Argument(
                     instances={subject: {subject}},
                     claims={conditional: {conditional}, **{assumption: {assumption} for assumption in assumptions}},
                     relations={

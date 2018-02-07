@@ -44,7 +44,7 @@ class Argument(object):
         # Assert all the targets relations point to are in our claims set (if they point to a claim instead of a relation)
         # assert all(relation.target in self.claims for relation in self.relations if isinstance(relation.target, Claim))
 
-    def __or__(self, other):
+    def __add__(self, other):
         """Combine two Arguments into one."""
         assert isinstance(other, self.__class__)
         
@@ -140,6 +140,7 @@ class Argument(object):
                 # If that is the case, update our instance and add the other's
                 # instance to the list of occurrences
                 could_be = instance.could_be(other_instance)
+                print("Could {!r} be {!r}: {!s}".format(instance, other_instance, could_be))
                 if could_be:
                     merged_instance = instance.replace(other_instance)
                     instances[merged_instance] = {**instances[instance], merged_instance:could_be, **other_occurrences}

@@ -17,7 +17,7 @@ class Interpretation(object):
 
     def __add__(self, other: 'Interpretation') -> 'Interpretation':
         return Interpretation(
-            argument = self.argument | other.argument,
+            argument = self.argument + other.argument,
             local = other.local)
 
     def __str__(self) -> str:
