@@ -69,9 +69,9 @@ class Instance(object):
         elif self.scope != other.scope:
             return Boolean(False, '{}/{}: different scope'.format(self.id, other.id))
         elif self.pronoun and self.pronoun.lower() == 'something':
-            return Boolean(other.pronoun.lower() == 'it', '{}/{}: my pronoun is something, other pronoun is it'.format(self.id, other.id))
+            return Boolean(other.pronoun and other.pronoun.lower() == 'it', '{}/{}: my pronoun is something, other pronoun is it'.format(self.id, other.id))
         elif self.pronoun and self.pronoun.lower() == 'someone':
-            return Boolean(other.pronoun.lower() in ('he', 'she'), '{}/{}: my pronoun is someone, other pronoun is he/she'.format(self.id, other.id))
+            return Boolean(other.pronoun and other.pronoun.lower() in ('he', 'she'), '{}/{}: my pronoun is someone, other pronoun is he/she'.format(self.id, other.id))
         elif self.name is not None:
             if other.name is not None:
                 return Boolean(self.name == other.name, '{}/{}: same name'.format(self.id, other.id))
