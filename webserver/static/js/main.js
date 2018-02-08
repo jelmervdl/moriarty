@@ -177,10 +177,8 @@ jQuery(function($) {
         return leaf;
     }
 
-    function networkifyParse(parse) {
-        var $el = $('<div>').addClass('network');
-
-        var $canvas = $('<canvas>').prop('tabIndex', 1).appendTo($el);
+    function networkifyParse(parse, i) {
+        var $canvas = $('<canvas>').prop('tabIndex', 1);
         
         var graph = new Graph($canvas.get(0));
 
@@ -235,61 +233,72 @@ jQuery(function($) {
             graph.fitVertically(10);
         });
 
-        $el.data('graph', graph);
+        const panel = $('<div>');
 
-        const buttons = $('<div class="btn-group btn-group-xs">');
+        const parseNumber = $('<span>').addClass('parse-number').text(i + 1).appendTo(panel);
+
+        const toolbar = $('<div class="btn-toolbar" role="toolbar">').appendTo(panel);
+
+        const actionButtons = $('<div class="btn-group btn-group-xs" role="group" aria-label="actions">').appendTo(toolbar);
+
+        const viewButtons = $('<div class="btn-group btn-group-xs" role="group" aria-label="views">').appendTo(toolbar);
 
         let copyButton = $('<button class="btn btn-default copy-btn graph-copy-button"></button>')
             .prop('title', 'Copy graph to clipboard')
             .append('<span class="glyphicon glyphicon-copy"></span>')
-            .appendTo(buttons);
+            .appendTo(actionButtons)
+            .click(function() {
+                this.attr('data-clipboard-text', graph.toString());
+            });
 
-        copyButton.on('click', (e) => {
-            // Set the to be copied data just before the click event
-            // propagates to the Clipboard listener.
-            copyButton.attr('data-clipboard-text', graph.toString());
+        function view(label, type, icon, constructor) {
+            const container = $('<div>')
+                .appendTo(panel)
+                .addClass('collapse ' + type);
+            
+            const button = $('<button>')
+                .appendTo(viewButtons)
+                .addClass('btn btn-default')
+                .prop('title', 'Toggle ' + label)
+                .append($('<span>').addClass('glyphicon ' + icon))
+                .click(function() {
+                    container.collapse('toggle');
+                });
+
+            container.on('show.bs.collapse', function() {
+                button.addClass('active').attr('aria-pressed', 'true');
+            });
+
+            container.on('hide.bs.collapse', function() {
+                button.removeClass('active').attr('aria-pressed', 'false');
+            });
+
+            constructor.call(container, button);
+        }
+
+        view('argument diagram', 'network', 'glyphicon-comment', function(button) {
+            this.append($canvas);
+
+            // Show first 10 parses by default
+            if (i < 10) this.collapse('show');
         });
 
-        let trace = $('<div class="collapse trace">')
-            .append($('<ol>')
+        view('parse tree', 'tree', 'glyphicon-object-align-vertical', function() {
+            this.append($('<ul>').append(treeElement(parse.tree)));
+        });
+
+        view('parse log', 'trace', 'glyphicon-sort-by-attributes', function() {
+            this.append($('<ol>')
                 .append($.map(parse.trace, function(step) {
                     return $('<li>').text(step);
-                })));           
+                })));
+        });
 
-        $('<button class="btn btn-default btn-xs trace-btn trace-toggle-button" title="Toggle trace">\
-            <span class="glyphicon glyphicon-sort-by-attributes"></span>\
-            </button>')
-            .click(function() { 
-                $(this).button('toggle');
-                trace.collapse('toggle');
-            })
-            .appendTo(buttons);
+        view('list of individuals/instances', 'instances', 'glyphicon-tags', function() {
+            this.append($('<pre>').text(JSON.stringify(parse.data.instances, null, '\t')));
+        });
 
-        let instances = $('<div class="collapse instances">')
-            .append($('<pre>').text(JSON.stringify(parse.data.instances, null, '\t')));
-
-        $('<button class="btn btn-default btn-xs instances-btn instances-toggle-button" title="Toggle instances">\
-            <span class="glyphicon glyphicon-tags"></span>\
-           </button>')
-            .click(function() {
-                $(this).button('toggle');
-                instances.collapse('toggle');
-            })
-            .appendTo(buttons);
-
-        const tree = $('<div class="collapse tree">')
-            .append($('<ul>').append(treeElement(parse.tree)));
-
-        $('<button class="btn btn-default btn-xs tree-btn tree-toggle-button" title="Toggle tree">\
-            <span class="glyphicon glyphicon-object-align-vertical"></span>\
-           </button>')
-            .click(function() {
-                $(this).button('toggle');
-                tree.collapse('toggle');
-            })
-            .appendTo(buttons);
-
-        return $('<div>').append([buttons, $el, trace, instances, tree]);
+        return panel;
     }
 
     function listInstances(parse) {
@@ -338,11 +347,10 @@ jQuery(function($) {
                 switch (status) {
                     case 'success':
                         body.append($('<div class="panel-body list-group">')
-                            .append($.map(response.parses, function(parse) {
-                                return $('<div>')
+                            .append($.map(response.parses, function(parse, i) {
+                                return panel = $('<div>')
                                     .addClass('list-group-item')
-                                    .append(networkifyParse(parse))
-                                    // .append(listInstances(parse))
+                                    .append(networkifyParse(parse, i));
                             }))
                         );
                         break;
