@@ -168,9 +168,11 @@ jQuery(function($) {
     function treeElement(tree) {
         const label = $('<span>').text(tree.label);
         const leaf = $('<li>').append(label);
-        
-        if (tree.nodes)
+
+        if ('nodes' in tree)
             leaf.append($('<ul>').append(tree.nodes.map(treeElement)));
+        else
+            label.addClass('literal');
         
         return leaf;
     }

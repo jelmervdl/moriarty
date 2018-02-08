@@ -159,6 +159,10 @@ ul.attacks li:before {
     border-radius: 2px;
 }
 
+.tree span.literal {
+    font-style: italic;
+}
+
 .tree li span:hover,
 .tree li span:hover + ul li span {
     background: #e9453f;
