@@ -46,8 +46,8 @@ Tweety can fly because something can fly if it has wings and it is light and Twe
 
 # Anaphora
 Tweety can fly because he has wings and because Ducky is a bird and he has wings.
-the queen can fly because Tweety is a bird and he has wings and because she is a queen.
-the queen can fly because Tweety is a bird and he has wings and she is a queen.
+The queen can fly because Tweety is a bird and he has wings and because she is a queen.
+The queen can fly because Tweety is a bird, he has wings and she is a queen.
 Jan can fly because Piet has wings and wings are tools and because he has feathers.
 Tweety can fly because she is a bird. Ducky can quack because he is a duck and she is a bird.
 

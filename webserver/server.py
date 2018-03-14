@@ -188,6 +188,11 @@ def api_parse_sentence():
         p = parser.Parser(grammar, 'ARGUMENT')
         parses = p.parse(tokens)
         reply['parses'] = parses
+
+        if len(reply['parses']) > 20:
+            reply['warning'] = 'There were {} parses, but cut off at {}'.format(len(reply['parses']), 20)
+            reply['parses'] = reply['parses'][:20]
+
         return jsonify(reply)
     except Exception as error:
         traceback.print_exc()

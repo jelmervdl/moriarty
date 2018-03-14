@@ -74,6 +74,12 @@ body {
 	z-index: 5;
 }
 
+.parse-number {
+	float: left;
+	width: 20px;
+	line-height: 24px;
+}
+
 .history-dropdown {
 	width: 100%;
 }
@@ -149,4 +155,10 @@ body {
 	#navbar .navbar-nav {
 		display: block;
 	}
+}
+
+#toast-list {
+	position: fixed;
+	bottom: 0;
+	right: 15px;
 }

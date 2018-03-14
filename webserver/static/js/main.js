@@ -81,6 +81,26 @@ jQuery(function($) {
         };
     });
 
+    function notify(message) {
+        let toastList = $('#toast-list');
+
+        if (!toastList.length)
+            toastList = $('<div id="toast-list">').appendTo(document.body);
+
+        const toast = $('<div>')
+            .addClass('alert alert-info toast')
+            .append($('<p>').text(message))
+            .prependTo(toastList);
+
+        setTimeout(function() {
+            toast.slideUp(400, function() {
+                toast.remove();
+            });
+        }, 3e3);
+
+        return toast;
+    }
+
     function closeButton() {
         return $('<button type="button" class="close" aria-label="Close results" title="Close results"><span>&times;</span></button>');
     }
@@ -177,6 +197,29 @@ jQuery(function($) {
         return leaf;
     }
 
+    String.prototype.indent = function(prefix) {
+        return this.split('\n').map((line) => prefix + line).join('\n');
+    };
+
+    String.prototype.capitalize = function() {
+        return this.substring(0, 1).toUpperCase() + this.substring(1).toLowerCase();
+    };
+
+    function treeTikz(tree) {
+        if (tree.nodes) {
+            const leavestr = tree.nodes.some(node => tree.nodes)
+                ? '\n' + tree.nodes.map(treeTikz).join('\n').indent('\t')
+                : ' ' + tree.nodes.map(node => node.label).join(' ');
+            return '[.' + treeTikzLabel(tree.label) + leavestr + ' ]';
+        }
+        else
+            return '[.' + tree.label + ' ]';
+    }
+
+    function treeTikzLabel(label) {
+        return label.toLowerCase().replace(/_/g, '-');
+    }
+
     function networkifyParse(parse, i) {
         var $canvas = $('<canvas>').prop('tabIndex', 1);
         
@@ -239,16 +282,26 @@ jQuery(function($) {
 
         const toolbar = $('<div class="btn-toolbar" role="toolbar">').appendTo(panel);
 
-        const actionButtons = $('<div class="btn-group btn-group-xs" role="group" aria-label="actions">').appendTo(toolbar);
-
         const viewButtons = $('<div class="btn-group btn-group-xs" role="group" aria-label="views">').appendTo(toolbar);
 
-        let copyButton = $('<button class="btn btn-default copy-btn graph-copy-button"></button>')
+        const actionButtons = $('<div class="btn-group btn-group-xs" role="group" aria-label="actions">').appendTo(toolbar);
+
+        const copyButton = $('<button class="btn btn-default copy-btn graph-copy-button"></button>')
             .prop('title', 'Copy graph to clipboard')
-            .append('<span class="glyphicon glyphicon-copy"></span>')
+            .append('<span class="glyphicon glyphicon-copy"></span> Diagram')
             .appendTo(actionButtons)
             .click(function() {
-                this.attr('data-clipboard-text', graph.toString());
+                $(this).attr('data-clipboard-text', graph.toString());
+                notify('HASL diagram copied to clipboard');
+            });
+
+        const treeCopyButton = $('<button class="btn btn-default copy-btn tree-copy-button"></button>')
+            .prop('title', 'Copy parse tree to clipboard')
+            .append('<span class="glyphicon glyphicon-copy"></span> Tree')
+            .appendTo(actionButtons)
+            .click(function() {
+                $(this).attr('data-clipboard-text', treeTikz(parse.tree));
+                notify('Tikz tree copied to clipboard');
             });
 
         function view(label, type, icon, constructor) {
@@ -261,6 +314,7 @@ jQuery(function($) {
                 .addClass('btn btn-default')
                 .prop('title', 'Toggle ' + label)
                 .append($('<span>').addClass('glyphicon ' + icon))
+                .append(document.createTextNode(' ' + label.capitalize()))
                 .click(function() {
                     container.collapse('toggle');
                 });
@@ -343,6 +397,9 @@ jQuery(function($) {
                 }
 
                 const body = $('<div class="panel-collapse collapse in">').appendTo(panel);
+
+                if (response.warning)
+                    alert(response.warning);
 
                 switch (status) {
                     case 'success':

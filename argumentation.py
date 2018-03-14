@@ -140,7 +140,7 @@ class Argument(object):
                 # If that is the case, update our instance and add the other's
                 # instance to the list of occurrences
                 could_be = instance.could_be(other_instance)
-                print("Could {!r} be {!r}: {!s}".format(instance, other_instance, could_be))
+                # print("Could {!r} be {!r}: {!s}".format(instance, other_instance, could_be))
                 if could_be:
                     merged_instance = instance.replace(other_instance)
                     instances[merged_instance] = {**instances[instance], merged_instance:could_be, **other_occurrences}
