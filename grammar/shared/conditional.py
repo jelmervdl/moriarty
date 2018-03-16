@@ -1,6 +1,6 @@
 from typing import Set
 from itertools import chain
-from parser import RuleRef, Literal, passthru
+from parser import RuleRef, Literal, Span, passthru
 from grammar.shared.claim import Claim, Scope
 from grammar.shared.instance import Instance, GroupInstance
 from grammar.shared.specific import SpecificClaim
@@ -95,11 +95,11 @@ def expanded_general_claim(state, data):
 
 def general_claim_singular(state, data):
     scope = Scope()
-    subj = Instance(pronoun='something', scope=scope)
+    subj = Instance(pronoun=Span('something'), scope=scope)
     condition = SpecificClaim(subj, Verb('is'), data[0].local.singular, scope=scope)
     claim = GeneralClaim(subj, data[1].local, data[2].local, scope=scope)
     relation = Relation({condition}, claim, Relation.CONDITION)
-    return Interpretation(
+    return data[0] + data[2] + Interpretation(
         argument=Argument(
             claims={claim: {claim}, condition: {condition}},
             relations={relation},
@@ -110,11 +110,11 @@ def general_claim_singular(state, data):
 
 def general_claim_plural(state, data):
     scope = Scope()
-    subj = GroupInstance(pronoun='all', scope=scope)
+    subj = GroupInstance(pronoun=Span('all'), scope=scope)
     condition = SpecificClaim(subj, Verb('are'), data[0].local.plural, scope=scope)
     claim = GeneralClaim(subj, data[1].local, data[2].local, scope=scope)
     relation = Relation({condition}, claim, Relation.CONDITION)
-    return Interpretation(
+    return data[0] + data[2] + Interpretation(
         argument=Argument(
             claims={claim: {claim}, condition: {condition}},
             relations={relation},

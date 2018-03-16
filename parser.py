@@ -7,6 +7,7 @@ from collections import OrderedDict
 import functools
 import re
 
+import traceback
 
 def log(line: str) -> None:
     pass
@@ -49,12 +50,81 @@ class RuleParseException(Exception):
     pass
 
 
+class Span(str):
+    """
+    Behaves like a string, but has a start and end position of where it occurred
+    in the text it originates from.
+    """
+
+    def __new__(cls, value, *args, **kwargs):
+        return super(Span, cls).__new__(cls, value)
+
+    def __init__(self, string: str, start: int = None, end: int = None):
+        if isinstance(string, self.__class__):
+            start = string.start
+            end = string.end
+        assert (start is None and end is None) or start < end
+        self.start = start
+        self.end = end
+
+    def __repr__(self):
+        return "Span({start}, {end}, {super})".format(start=self.start, end=self.end, super=super().__repr__())
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def __add__(self, other):
+        if self.start is not None and other.end is not None and self.start > other.end:
+            raise Exception('Cannot two spans that are not adjacent to each other')
+        return Span(super().__add__(other),
+            self.start if self.start is not None else other.start,
+            other.end if other.end is not None else self.end)
+
+    def before(self, other):
+        if not isinstance(other, self.__class__):
+            other = other.__str__()
+        if self.start is None or other.start is None:
+            return None
+        return self.start < other.start
+
+    def after(self, other):
+        if not isinstance(other, self.__class__):
+            other = other.__str__()
+        if self.end is None or other.end is None:
+            return None
+        return self.start >= other.end
+
+    def lower(self):
+        return Span(super().lower(), self.start, self.end)
+
+    def join(self, spans: List['Span']):
+        it = iter(spans)
+        acc = next(it)
+        while True:
+            try:
+                acc = acc + self + next(it)
+            except StopIteration:
+                break
+        return acc
+
+
+def test_span():
+    assert Span('Hele grote woorden', 0, 3) == 'Hele grote woorden'
+    assert Span('Hele grote woorden', 0, 3).lower().end == 3
+    assert Span('Hele grote woorden', 0, 3) == Span('Hele grote woorden', 3, 6)
+    assert Span('Hele grote woorden', 0, 3) in ('x', 'Hele grote woorden')
+    assert Span(':').join([Span('a', 0, 1), Span('b', 1, 2), Span('c', 2, 3)]) == Span('a:b:c', 0, 3)
+    assert Span(':').join([Span('a', 0, 1), Span('b', 1, 2), Span('c', 2, 3)]).start == 0
+    assert Span(':').join([Span('a', 0, 1), Span('b', 1, 2), Span('c', 2, 3)]).end == 3
+
+test_span()
+
 class Symbol:
     def test(self, literal: str, position: int, state: 'State') -> bool:
         raise NotImplementedError("Symbol.test is abstract")
 
-    def finish(self, literal: str, state: 'State'):
-        return literal
+    def finish(self, literal: str, position: int, state: 'State'):
+        return Span(literal, position, position + 1)
 
 
 class Literal(Symbol):
@@ -144,6 +214,7 @@ class State:
     def tree(self):
         return {
             'label': self.rule.name,
+            'data': self.data,
             'nodes': [child.tree if isinstance(child, State) else {'label': child} for child in self.inp]
         }
 
@@ -158,10 +229,10 @@ class State:
     def consumeTerminal(self, inp: str, token_pos: int) -> Optional['State']:
         log("consumeTerminal {} using {} expecting {}".format(inp, self.rule, self.rule.symbols[self.expect] if len(
             self.rule.symbols) > self.expect else '>END<'))
-        if len(self.rule.symbols) > self.expect and self.rule.symbols[self.expect].test(inp, position=token_pos, state=self):
+        if len(self.rule.symbols) > self.expect and self.rule.symbols[self.expect].test(inp, token_pos, self):
             log("Terminal consumed")
             try:
-                return self.nextState([inp], self.rule.symbols[self.expect].finish(inp, self), ['Consume terminal {!r}({}) with {!r}'.format(inp, token_pos, self.rule.symbols[self.expect])])
+                return self.nextState([inp], self.rule.symbols[self.expect].finish(inp, token_pos, self), ['Consume terminal {!r}({}) with {!r}'.format(inp, token_pos, self.rule.symbols[self.expect])])
             except Exception as e:
                 raise Exception('Exception while trying to consume {!r} with {!r}'.format(inp, self.rule.symbols[self.expect])) from e
         else:

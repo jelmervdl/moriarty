@@ -1,7 +1,7 @@
 import re
 from grammar.shared import adjective, preposition
 from grammar.shared.keywords import keywords
-from parser import Rule, RuleRef, Symbol, passthru
+from parser import Rule, RuleRef, Symbol, passthru, Span
 from interpretation import Interpretation
 import english
 from decorators import memoize
@@ -28,8 +28,9 @@ class NounParser(Symbol):
         else:
             return english.is_singular(literal)
 
-    def finish(self, literal: str, state: 'State'):
-        return Interpretation(local=Noun(literal, self.is_plural))
+    def finish(self, literal: str, position: int, state: 'State'):
+        span = super().finish(literal, position, state)
+        return Interpretation(local=Noun(span, self.is_plural))
 
 
 class Noun(object):
@@ -48,7 +49,7 @@ class Noun(object):
 
     def __str__(self):
         noun = english.pluralize(self.literal) if self.is_plural else self.literal
-        return " ".join(map(str, self.adjectives + (noun,) + self.prep_phrase))
+        return Span(" ").join(map(Span, self.adjectives + (noun,) + self.prep_phrase))
 
     def __repr__(self):
         return "Noun({}, {})".format(" ".join(map(str, self.adjectives + (self.literal,) + self.prep_phrase)), self.grammatical_number)

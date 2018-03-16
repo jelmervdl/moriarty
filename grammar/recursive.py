@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from typing import List
-from parser import RuleRef, Literal
+from parser import RuleRef, Literal, Span
 from argumentation import Argument, Relation
 from interpretation import Rule, Interpretation, Expression
 from grammar.macros import and_rules
@@ -65,7 +65,7 @@ class PartialRelation(object):
             because she is a bird, anything that is a bird can fly.'
             """
             scope = Scope()
-            subject = Instance(pronoun='something', scope=scope)
+            subject = Instance(pronoun=Span('something'), scope=scope)
             
             if self.type == Relation.SUPPORT:
                 object = claim.object

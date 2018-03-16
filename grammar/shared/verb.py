@@ -52,7 +52,7 @@ class VerbParser(Symbol):
     def __repr__(self) -> str:
         return "/{}/".format(self.expression.pattern)
 
-    def finish(self, literal: str, state: State):
+    def finish(self, literal: str, position: int, state: State):
         return Interpretation(local=Verb(literal))
 
 

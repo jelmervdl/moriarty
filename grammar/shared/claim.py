@@ -3,7 +3,7 @@ from parser import Rule, RuleRef, passthru, Literal
 from argumentation import Argument
 from interpretation import Interpretation
 from datastructures import Sequence
-
+from debug import Boolean, print_comparator
 
 class Scope(object):
     """
@@ -52,32 +52,33 @@ class Claim(object):
     def __str__(self):
         return "{subject!s} {verb!s} {object!s}".format(**self.__dict__)
 
+    @print_comparator
     def is_same(self, other: 'Claim', argument: Argument) -> bool:
         if not isinstance(other, Claim):
-            return False
+            return Boolean(False, 'other not a claim')
 
         if self.id == other.id:
-            return True
+            return Boolean(True, 'same id')
 
         if self.scope != other.scope:
-            return False
+            return Boolean(False, 'different scope')
         
         if self.verb != other.verb:
-            return False
+            return Boolean(False, 'different verb')
         
         if isinstance(self.subject, instance.Instance) and isinstance(other.subject, instance.Instance):
             if not self.subject.is_same(other.subject, argument):
-                return False
+                return Boolean(False, 'different subject instance')
         elif self.subject != other.subject:
-            return False
+            return Boolean(False, 'different subject string')
 
         if hasattr(self.object, 'is_same'):
             if not self.object.is_same(other.object, argument):
-                return False
+                return Boolean(False, 'different object instance')
         elif self.object != other.object:
-            return False
+            return Boolean(False, 'different object string')
 
-        return True
+        return Boolean(True, 'no false eh')
 
     def is_preferred_over(self, other: 'Claim', argument: Argument):
         return self.scope and not other.scope \

@@ -5,24 +5,9 @@ from interpretation import Interpretation, Literal, Expression
 from datastructures import Sequence
 import english
 from decorators import memoize
-
+from debug import Boolean, print_comparator
 
 counter = Sequence()
-
-
-class Boolean(object):
-    def __init__(self, value, reason = None):
-        self.value = bool(value)
-        self.reason = reason
-
-    def __bool__(self):
-        return self.value
-
-    def __str__(self):
-        return '{} because {}'.format('Yes' if self.value else 'No', self.reason)
-
-    def __repr__(self):
-        return "<{!r}: {!s}>".format(self.value, self.reason)
 
 
 class Instance(object):
@@ -63,29 +48,30 @@ class Instance(object):
     def is_same(self, other: 'Instance', argument: Argument) -> bool:
         return argument.get_instance(self) == argument.get_instance(other)
 
+    @print_comparator
     def could_be(self, other: 'Instance') -> bool:
         if isinstance(other, GroupInstance):
             return Boolean(False, '{}/{}: different class'.format(self.id, other.id))
         elif self.scope != other.scope:
             return Boolean(False, '{}/{}: different scope'.format(self.id, other.id))
         elif self.pronoun and self.pronoun.lower() == 'something':
-            return Boolean(other.pronoun and other.pronoun.lower() == 'it', '{}/{}: my pronoun is something, other pronoun is it'.format(self.id, other.id))
+            return Boolean(other.pronoun and other.pronoun.after(self.pronoun) is not False and other.pronoun.lower() == 'it', '{}/{}: my pronoun is something, other pronoun is it'.format(self.id, other.id))
         elif self.pronoun and self.pronoun.lower() == 'someone':
-            return Boolean(other.pronoun and other.pronoun.lower() in ('he', 'she'), '{}/{}: my pronoun is someone, other pronoun is he/she'.format(self.id, other.id))
+            return Boolean(other.pronoun and other.pronoun.after(self.pronoun) is not False and other.pronoun.lower() in ('he', 'she'), '{}/{}: my pronoun is someone, other pronoun is he/she'.format(self.id, other.id))
         elif self.name is not None:
-            if other.name is not None:
+            if other.name is not None and other.name.after(self.name) is not False:
                 return Boolean(self.name == other.name, '{}/{}: same name'.format(self.id, other.id))
             elif self.pronoun is None:
-                return Boolean(other.pronoun and other.pronoun.lower() in ('he', 'she'), '{}/{}: I have a name but my pronoun is None and other pronoun is he/she'.format(self.id, other.id))
+                return Boolean(other.pronoun and other.pronoun.after(self.name) is not False and other.pronoun.lower() in ('he', 'she'), '{}/{}: I have a name but my pronoun is None and other pronoun is he/she'.format(self.id, other.id))
             else:
-                return Boolean(other.pronoun and self.pronoun.lower() == other.pronoun.lower(), '{}/{}: I have a name, but same pronoun'.format(self.id, other.id))
+                return Boolean(other.pronoun and other.pronoun.after(self.pronoun) is not False and self.pronoun.lower() == other.pronoun.lower(), '{}/{}: I have a name, but same pronoun'.format(self.id, other.id))
         elif self.noun is not None:
             if other.noun is not None:
-                return Boolean(self.noun == other.noun, '{}/{}: same noun'.format(self.id, other.id))
+                return Boolean(self.noun.before(other.noun) and self.noun == other.noun, '{}/{}: same noun'.format(self.id, other.id))
             else:
-                return Boolean(other.pronoun.lower() in ('he', 'she', 'it'), '{}/{}: other noun is none but pronoun is he/she/it'.format(self.id, other.id))
-        elif self.pronoun and self.pronoun.lower() in ('he', 'she', 'it'):
-            return Boolean(other.pronoun and self.pronoun.lower() == other.pronoun.lower(), '{}/{}: same pronoun'.format(self.id, other.id))
+                return Boolean(other.pronoun and other.pronoun.after(self.noun) is not False and other.pronoun.lower() in ('he', 'she', 'it'), '{}/{}: other noun is none but pronoun is he/she/it'.format(self.id, other.id))
+        elif self.pronoun and self.pronoun.lower() in ('he', 'she', 'it') and not other.name and not other.noun:
+            return Boolean(other.pronoun and other.pronoun.after(self.pronoun) is not False and self.pronoun.lower() == other.pronoun.lower(), '{}/{}: same pronoun'.format(self.id, other.id))
         else:
             return Boolean(False, '{}/{}: undefined case'.format(self.id, other.id))
 
@@ -107,9 +93,9 @@ class Instance(object):
 
     def update(self, name: str = None, noun: str = None, pronoun: str = None, scope = None) -> 'Instance':
         return Instance(
-            name=name if name is not None else self.name,
-            noun=noun if noun is not None else self.noun,
-            pronoun=pronoun if pronoun is not None else self.pronoun,
+            name=self.name if self.name and (name is None or name.after(self.name) is not False) else name,
+            noun=self.noun if self.noun and (noun is None or noun.after(self.noun) is not False) else noun,
+            pronoun=self.pronoun if self.pronoun and (pronoun is None or pronoun.after(self.pronoun)) else pronoun,
             origin=self,
             scope=scope if scope is not None else self.scope)
 

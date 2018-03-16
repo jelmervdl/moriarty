@@ -33,16 +33,16 @@ class Interpretation(object):
 
 
 class Symbol(parser.Symbol):
-    def finish(self, literal: str, state: parser.State):
-        return Interpretation(local=literal)
+    def finish(self, literal: str, position: int, state: parser.State):
+        return Interpretation(local=super().finish(literal, position, state))
 
 
 class Literal(parser.Literal):
-    def finish(self, literal: str, state: parser.State):
-        return Interpretation(local=literal)
+    def finish(self, literal: str, position: int, state: parser.State):
+        return Interpretation(local=super().finish(literal, position, state))
 
 
-class Expression(parser.Literal):
+class Expression(Literal):
     def __init__(self, expression: str) -> None:
         self.expression = re.compile(expression)
 
@@ -51,6 +51,3 @@ class Expression(parser.Literal):
 
     def __repr__(self) -> str:
         return "/{}/".format(self.expression.pattern)
-
-    def finish(self, literal: str, state: parser.State):
-        return Interpretation(local=literal)
