@@ -187,7 +187,7 @@ jQuery(function($) {
 
     function treeElement(tree) {
         const label = $('<span>').text(tree.label);
-        const leaf = $('<li>').append(label);
+        const leaf = $('<li>').append(label).data('state', tree.data);
 
         if ('nodes' in tree)
             leaf.append($('<ul>').append(tree.nodes.map(treeElement)));
@@ -220,21 +220,19 @@ jQuery(function($) {
         return label.toLowerCase().replace(/_/g, '-');
     }
 
-    function networkifyParse(parse, i) {
-        var $canvas = $('<canvas>').prop('tabIndex', 1);
-        
+    function graphifyParse(state, $canvas) {
         var graph = new Graph($canvas.get(0));
 
         var claims = {}, relations = {};
 
-        parse.data.claims.forEach(function(claim) {
+        state.claims.forEach(function(claim) {
             claims[claim.id] = graph.addClaim(claim.text, {assumption: claim.assumption, scope: claim.scope});
         });
 
         // Make sure we first do all relations targeting claims, and only then
         // the ones targeting relations, so that the targets of the last group
         // already exists.
-        parse.data.relations
+        state.relations
             .sort(function(a, b) {
                 var as = a.target.cls == 'claim' ? 0 : 1;
                 var bs = b.target.cls == 'claim' ? 0 : 1;
@@ -275,6 +273,14 @@ jQuery(function($) {
         graph.on('drop', function() {
             graph.fitVertically(10);
         });
+
+        return graph;
+    }
+
+    function networkifyParse(parse, i) {
+        const $canvas = $('<canvas>').prop('tabIndex', 1);
+        
+        const graph = graphifyParse(parse.data, $canvas);
 
         const panel = $('<div>');
 
@@ -455,6 +461,52 @@ jQuery(function($) {
             );
         }));
     }
+
+    $('body').on('click', '.tree li > span', function(e) {
+        const state = $(this).closest('li').data('state');
+
+        const $modal = $('\
+            <div class="modal fade" tabindex="-1" role="dialog">\
+              <div class="modal-dialog" role="document">\
+                <div class="modal-content">\
+                  <div class="modal-header">\
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>\
+                  </div>\
+                  <div class="modal-body">\
+                    <ul class="nav nav-tabs">\
+                      <li class="active"><a href="#modal-info-json" data-toggle="tab">Raw</a></li>\
+                    </ul>\
+                    <div class="tab-content">\
+                      <div class="tab-pane active" id="modal-info-json"></div>\
+                  </div>\
+                </div>\
+              </div>\
+            </div>');
+
+        $('<h4 class="modal-title">')
+            .text($(this).text())
+            .appendTo($modal.find('.modal-header'));
+        
+        $('<pre>')
+            .text(JSON.stringify(state, null, 2))
+            .appendTo($modal.find('#modal-info-json'));
+
+        if (state.claims.length > 0) {
+            const tab = $('<li><a href="#modal-info-graph" data-toggle="tab">Diagram</a></li>').appendTo($modal.find('.nav-tabs'));
+            const content = $('<div class="tab-pane" id="modal-info-graph"><canvas></canvas></div>').appendTo($modal.find('.tab-content'));
+            graphifyParse(state, content.find('canvas'));
+
+            $modal.on('shown.bs.modal', function() {
+                tab.find('a').tab('show');
+            });
+        }
+
+        $modal.on('hidden.bs.modal', function() {
+            $modal.remove();
+        });
+
+        $modal.modal('show');
+    });
 
     $('body').on('click', '.history-toggle', updateHistory);
 
