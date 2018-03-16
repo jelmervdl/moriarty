@@ -66,18 +66,12 @@ class Claim(object):
         if self.verb != other.verb:
             return Boolean(False, 'different verb')
         
-        if isinstance(self.subject, instance.Instance) and isinstance(other.subject, instance.Instance):
-            if not self.subject.is_same(other.subject, argument):
-                return Boolean(False, 'different subject instance')
-        elif self.subject != other.subject:
-            return Boolean(False, 'different subject string')
-
-        if hasattr(self.object, 'is_same'):
-            if not self.object.is_same(other.object, argument):
-                return Boolean(False, 'different object instance')
-        elif self.object != other.object:
-            return Boolean(False, 'different object string')
-
+        if not self.subject.is_same(other.subject, argument):
+            return Boolean(False, 'different subject instance')
+   
+        if not self.object.is_same(other.object, argument):
+            return Boolean(False, 'different object instance')
+       
         return Boolean(True, 'no false eh')
 
     def is_preferred_over(self, other: 'Claim', argument: Argument):
@@ -86,9 +80,9 @@ class Claim(object):
 
     def text(self, argument: Argument) -> str:
         return "{subject!s} {verb!s} {object!s}".format(
-            subject=self.subject.text(argument) if hasattr(self.subject, 'text') else str(self.subject),
+            subject=self.subject.text(argument),
             verb=self.verb,
-            object=self.object.text(argument) if hasattr(self.object, 'text') else str(self.object))
+            object=self.object.text(argument))
 
     def update(self, cls=None, **kwargs):
         if cls is None:

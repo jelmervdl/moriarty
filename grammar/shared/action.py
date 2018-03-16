@@ -28,15 +28,15 @@ class Action(object):
 
 
     def text(self, argument):
-        if self.object and hasattr(self.object, 'text'):
+        if self.object:
             return "{!s} {!s}".format(self.verb, self.object.text(argument))
         else:
-            return str(self)
+            return str(self.verb)
 
     def is_same(self, other, argument):
         return isinstance(other, Action) \
             and self.verb == other.verb \
-            and (self.object.is_same(other.object, argument) if hasattr(self.object, 'is_same') else self.object == other.object)
+            and self.object.is_same(other.object, argument)
 
     @property
     def singular(self):

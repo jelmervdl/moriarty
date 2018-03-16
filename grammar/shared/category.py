@@ -13,12 +13,13 @@ class Category(object):
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.literal == other.literal
-    
-    def __str__(self):
+    def text(self, argument):
         return "{}".format(self.literal)
 
     def __repr__(self):
         return "Category({!r})".format(self.literal)
+    def is_same(self, other, argument):
+        return isinstance(other, self.__class__) and self.literal == other.literal
 
     @property
     def singular(self):

@@ -3,6 +3,7 @@ from grammar.shared import noun
 from english import indefinite_article
 from interpretation import Interpretation, Expression
 from decorators import memoize
+from debug import Boolean
 
 class Prototype(object):
     def __init__(self, noun, article=None):
@@ -16,19 +17,24 @@ class Prototype(object):
         return isinstance(other, self.__class__) \
             and self.noun == other.noun \
             and (self.article is None or other.article is None or self.article == other.article)
+
+    def is_same(self, other, argument):
+        return isinstance(other, self.__class__) \
+            and self.noun.is_same(other.noun, argument) \
+            and (self.article is None or other.article is None or self.article == other.article)
     
-    def __str__(self):
+    def text(self, argument):
         if self.noun.grammatical_number is 'singular':
             if self.article:
                 article = self.article
             else:
-                article = indefinite_article(str(self.noun))
-            return "{} {!s}".format(article, self.noun)
+                article = indefinite_article(str(self.noun.text(argument)))
+            return "{} {!s}".format(article, self.noun.text(argument))
         else:
             if self.article:
-                return "{} {!s}".format(self.article, self.noun.plural)
+                return "{} {!s}".format(self.article, self.noun.plural.text(argument))
             else:
-                return str(self.noun.plural)
+                return str(self.noun.plural.text(argument))
 
     def __repr__(self):
         return "Prototype(noun={!r}{})".format(self.noun, ' article=' + self.article if self.article else '')

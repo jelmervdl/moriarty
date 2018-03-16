@@ -24,7 +24,7 @@ class PrepositionPhrase(object):
         return "PP({!r} {!r})".format(self.preposition, self.object)
 
     def text(self, argument):
-        return "{!s} {!s}".format(self.preposition, self.object.text(argument) if hasattr(self.object, 'text') else self.object)
+        return "{!s} {!s}".format(self.preposition, self.object.text(argument))
 
     def is_same(self, other, argument):
         return isinstance(other, PrepositionPhrase) \

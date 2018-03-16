@@ -44,7 +44,7 @@ class GeneralClaim(Claim):
                 and condition.verb is not None \
                 and condition.verb.literal in ('is', 'are') \
                 and isinstance(condition.object, Prototype):
-                return "{a!s} {verb!s} {b!s}".format(a=condition.object, verb=self.verb, b=self.object)
+                return "{a!s} {verb!s} {b!s}".format(a=condition.object.text(argument), verb=self.verb, b=self.object.text(argument))
 
         return "{} {} {}".format(
             super().text(argument),
