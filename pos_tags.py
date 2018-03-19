@@ -100,6 +100,12 @@ sentences = [
 #     'Socrates is mortal because men are mortal.',
 # ]
 
+hasl0_sentences = [
+    'Socrates is mortal because he is a man and men are mortal.',
+    'The object is red because the object appears red but it is illuminated by a red light.',
+    'Tweety can fly because he is a bird. He is a bird because he has wings.'
+]
+
 premises = [
     'Socrates is mortal',
     'he is a man',
