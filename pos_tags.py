@@ -460,7 +460,7 @@ en_grammar = Grammar([
 ])
 
 hasl0_grammar = en_grammar + [
-    Rule('sentences',   [RuleRef('sentence'), RuleRef('sentence')], lambda state, data: data[0] + data[1]),
+    Rule('sentences',   [RuleRef('sentences'), RuleRef('sentence')], lambda state, data: data[0] + data[1]),
     Rule('sentences',   [RuleRef('sentence')], passthru),
     Rule('sentence',    [RuleRef('argument'), Literal('.')], passthru),
 
@@ -481,7 +481,7 @@ hasl0_grammar = en_grammar + [
     Rule('minor-premises', [RuleRef('minor-premise')],
         lambda state, data: (data[0],)),
     Rule('minor-premises', [RuleRef('minor-premise-list'), Literal('and'), RuleRef('minor-premise')],
-        lambda state, data: data[0] + [data[2]]),
+        lambda state, data: (*data[0], data[2])),
     Rule('minor-premise-list', [RuleRef('minor-premise')],
         lambda state, data: (data[0],)),
     Rule('minor-premise-list', [RuleRef('minor-premise-list'), Literal(','), RuleRef('minor-premise')],
@@ -503,7 +503,7 @@ def support(conclusion, marker, minors):
     """a *- b+"""
     return Argument(premises=(conclusion, *minors), relations=[Relation('attack', minors, conclusion)])
 
-@hasl0_grammar.rule('warranted-support', [RuleRef('premise'), Literal('because'), RuleRef('minor-premises'), Literal('and'), RuleRef('major-premise')])
+@hasl0_grammar.rule('warranted-support', [RuleRef('premise'), Literal('because'), RuleRef('minor-premise-list'), Literal('and'), RuleRef('major-premise')])
 def warranted_support_minor_major(conclusion, marker, minors, conj, major):
     """(a <- b+) <- c"""
     support = Relation('support', minors, conclusion)
