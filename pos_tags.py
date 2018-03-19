@@ -517,6 +517,21 @@ def warranted_support_major_minor(conclusion, marker, major, conj, minors):
     warrant = Relation('support', (major,), support)
     return Argument(premises=(conclusion, major, *minors), relations=(support, warrant))
 
+@hasl0_grammar.rule('warranted-attack', [RuleRef('premise'), Literal('because'), RuleRef('minor-premise-list'), Literal('and'), RuleRef('major-premise')])
+def warranted_attack_minor_major(conclusion, marker, minors, conj, major):
+    """(a <- b+) <- c"""
+    attack = Relation('attack', minors, conclusion)
+    warrant = Relation('support', (major,), attack)
+    return Argument(premises=(conclusion, *minors, major), relations=(attack, warrant))
+
+@hasl0_grammar.rule('warranted-attack', [RuleRef('premise'), Literal('because'), RuleRef('major-premise'), Literal('and'), RuleRef('minor-premises')])
+def warranted_attack_major_minor(conclusion, marker, major, conj, minors):
+    """(a <- c+) <- b"""
+    attack = Relation('attack', minors, conclusion)
+    warrant = Relation('support', (major,), attack)
+    return Argument(premises=(conclusion, major, *minors), relations=(attack, warrant))
+
+
 """
 > (a because b) but c: (a<-b)<-c
 Tweety is a bird because Tweety can fly but planes can also fly
