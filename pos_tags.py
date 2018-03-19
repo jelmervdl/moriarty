@@ -436,9 +436,11 @@ en_grammar = Grammar([
     Rule('instance', [RuleRef('def-dt'), Tag('NNP?')],
         lambda state, data: Entity(noun=data[0] + data[1])),
 
+    Rule('object', [Tag('NNS?')], merge),
     Rule('object', [Tag('JJ')], merge),
     Rule('object', [Tag('DT'), Tag('NN')], merge),
     Rule('object', [Tag('DT'), Tag('JJ'), Tag('NN')], merge),
+    Rule('object', [RuleRef('vbn')], merge),
 
     Rule('prototype-sg', [RuleRef('indef-dt'), Tag('NN')], merge),
     Rule('prototype-sg', [RuleRef('indef-dt'), Tag('NN'), RuleRef('vbn')], merge),
