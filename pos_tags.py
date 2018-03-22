@@ -100,13 +100,17 @@ sentences = [
 #     'Socrates is mortal because men are mortal.',
 # ]
 
+reed_sentences = [
+    'Bob Sturges can not have a telephone because his name is not listed in the phone book.'
+]
+
 hasl0_sentences = [
     'Socrates is mortal because he is a man and men are mortal.',
     'The object is red because the object appears red but it is illuminated by a red light.',
     'Tweety can fly because he is a bird. He is a bird because he has wings.'
 ]
 
-premises = [
+claims = [
     'Socrates is mortal',
     'he is a man',
     'men are mortal',
@@ -289,7 +293,7 @@ class Entity(object):
 
 
 
-class Premise(object):
+class Claim(object):
     def __init__(self, subj, verb, obj, negated=False):
         self.subj = subj
         self.verb = verb
@@ -320,7 +324,7 @@ class Premise(object):
             and self.negated != other.negated
 
     def update(self, mapping):
-        return Premise(mapping[self.subj], mapping[self.verb], mapping[self.obj], self.negated)
+        return Claim(mapping[self.subj], mapping[self.verb], mapping[self.obj], self.negated)
 
 
 class Relation(object):
@@ -347,18 +351,18 @@ class Relation(object):
 
 
 class ArgumentData(NamedTuple):
-    premises: Tuple[Premise, ...]
+    claims: Tuple[Claim, ...]
     relations: Tuple[Relation, ...]
     
     def __repr__(self):
-        return "Premises:\n{}\nRelations:\n{}".format(
-            "\n".join(str(p) for p in self.premises),
+        return "Claims:\n{}\nRelations:\n{}".format(
+            "\n".join(str(p) for p in self.claims),
             "\n".join(str(r) for r in self.relations))
 
 
 class Argument(ArgumentData):
-    def __new__(cls, premises = tuple(), relations = tuple()):
-        return super().__new__(cls, tuple(premises), tuple(relations))
+    def __new__(cls, claims = tuple(), relations = tuple()):
+        return super().__new__(cls, tuple(claims), tuple(relations))
 
     def consolidate(self, mapping):
         def replace(old, new, list):
@@ -367,7 +371,7 @@ class Argument(ArgumentData):
                 if id(el[1]) in old_ids:
                     el[1] = new
 
-        entities = [[id(entity), entity] for entity in sorted((entity for entity in chain.from_iterable(premise.entities for premise in self.premises) if entity.pos is not None), key=lambda entity: entity.pos)]
+        entities = [[id(entity), entity] for entity in sorted((entity for entity in chain.from_iterable(claim.entities for claim in self.claims) if entity.pos is not None), key=lambda entity: entity.pos)]
 
         c = len(entities)
         for m, entity in enumerate(entities[:c]):
@@ -381,15 +385,15 @@ class Argument(ArgumentData):
 
         mapping += Mapping(entities)
 
-        entries = [[id(premise), premise] for premise in self.premises]
+        entries = [[id(claim), claim] for claim in self.claims]
 
-        # Update all premises with the new entities
+        # Update all claims with the new entities
         for entry in entries[0:len(entries)]: # to prevent iterating over new items
             updated = entry[1].update(mapping)
             entry[1] = updated
             entries.append([id(updated), updated])
 
-        # Merge all premises that are (or have become) equal
+        # Merge all claims that are (or have become) equal
         for m, entry in enumerate(entries):
             for n, other_entry in enumerate(entries[m:], m):
                 if entry[1] == other_entry[1]:
@@ -404,7 +408,7 @@ class Argument(ArgumentData):
             mapping[relation] = updated
 
         return Argument(
-            premises=tuple(entry[1] for entry in entries if entry[0] == id(entry[1])),
+            claims=tuple(entry[1] for entry in entries if entry[0] == id(entry[1])),
             relations=tuple(relations)), mapping
 
 
@@ -433,6 +437,7 @@ def merge(state, data):
 
 en_grammar = Grammar([
     Rule('name', [Tag('NNP')], merge),
+    Rule('name', [RuleRef('name'), Tag('NNP')], merge), # longer names
     Rule('name', [Literal('Tweety')], merge),
     
     Rule('instance', [RuleRef('name')],
@@ -441,18 +446,32 @@ en_grammar = Grammar([
         lambda state, data: Entity(pronoun=data[0])),
     Rule('instance', [RuleRef('def-dt'), Tag('NNP?')],
         lambda state, data: Entity(noun=data[0] + data[1])),
+    Rule('instance', [Tag('PRP\$'), Tag('NNP?')], # his name
+        lambda state, data: Entity(noun=data[0] + data[1])),
 
-    Rule('object', [Tag('NNS?')], merge),
+    Rule('noun-sg', [Tag('NN')], merge),
+    Rule('noun-sg', [Tag('NN'), RuleRef('noun-sg')], merge),
+
+    Rule('noun-pl', [Tag('NNS')], merge),
+    Rule('noun-pl', [Tag('NNS'), RuleRef('noun-pl')], merge),
+
+    Rule('noun', [RuleRef('noun-sg')], merge),
+    Rule('noun', [RuleRef('noun-pl')], merge),
+
+    Rule('object', [RuleRef('noun')], merge),
     Rule('object', [Tag('JJ')], merge),
-    Rule('object', [Tag('DT'), Tag('NN')], merge),
-    Rule('object', [Tag('DT'), Tag('JJ'), Tag('NN')], merge),
+    Rule('object', [Tag('DT'), RuleRef('noun')], merge),
+    Rule('object', [Tag('DT'), Tag('JJ'), RuleRef('noun')], merge),
     Rule('object', [RuleRef('vbn')], merge),
 
-    Rule('prototype-sg', [RuleRef('indef-dt'), Tag('NN')], merge),
-    Rule('prototype-sg', [RuleRef('indef-dt'), Tag('NN'), RuleRef('vbn')], merge),
+    Rule('ability', [Tag('VB')], merge),
+    Rule('ability', [Tag('VB'), RuleRef('object')], merge),
 
-    Rule('prototype-pl', [Tag('NNS')], merge),
-    Rule('prototype-pl', [Tag('NNS'), RuleRef('vbn')], merge),
+    Rule('prototype-sg', [RuleRef('indef-dt'), RuleRef('noun-sg')], merge),
+    Rule('prototype-sg', [RuleRef('indef-dt'), RuleRef('noun-sg'), RuleRef('vbn')], merge),
+
+    Rule('prototype-pl', [RuleRef('noun-pl')], merge),
+    Rule('prototype-pl', [RuleRef('noun-pl'), RuleRef('vbn')], merge),
 
     Rule('vbn', [Tag('VBN')], passthru),
     Rule('vbn', [Tag('VBN'), RuleRef('prep-phrase')], merge),
@@ -472,27 +491,27 @@ hasl0_grammar = en_grammar + [
     Rule('sentences',   [RuleRef('sentence')], passthru),
     Rule('sentence',    [RuleRef('argument'), Literal('.')], passthru),
 
-    Rule('minor-premise', [RuleRef('instance'), Tag('VBZ'), RuleRef('object')],
-        lambda state, data: Premise(data[0], data[1], data[2])),
-    Rule('minor-premise', [RuleRef('instance'), Tag('MD'), Tag('VB')],
-        lambda state, data: Premise(data[0], data[1], data[2])),
+    Rule('minor-claim', [RuleRef('instance'), Tag('VBZ'), RuleRef('object')],
+        lambda state, data: Claim(data[0], data[1], data[2])),
+    Rule('minor-claim', [RuleRef('instance'), Tag('MD'), Tag('VB')],
+        lambda state, data: Claim(data[0], data[1], data[2])),
     
-    Rule('major-premise', [Tag('NNS'), Tag('VB[PD]'), RuleRef('object')],
-        lambda state, data: Premise(data[0], data[1], data[2])),
-    Rule('major-premise', [Tag('NNS'), Tag('MD'), Tag('VB')],
-        lambda state, data: Premise(data[0], data[1], data[2])),
+    Rule('major-claim', [Tag('NNS'), Tag('VB[PD]'), RuleRef('object')],
+        lambda state, data: Claim(data[0], data[1], data[2])),
+    Rule('major-claim', [Tag('NNS'), Tag('MD'), Tag('VB')],
+        lambda state, data: Claim(data[0], data[1], data[2])),
     
-    Rule('premise', [RuleRef('major-premise')], passthru),
-    Rule('premise', [RuleRef('minor-premise')], passthru),
+    Rule('claim', [RuleRef('major-claim')], passthru),
+    Rule('claim', [RuleRef('minor-claim')], passthru),
 
 
-    Rule('minor-premises', [RuleRef('minor-premise')],
+    Rule('minor-claims', [RuleRef('minor-claim')],
         lambda state, data: (data[0],)),
-    Rule('minor-premises', [RuleRef('minor-premise-list'), Literal('and'), RuleRef('minor-premise')],
+    Rule('minor-claims', [RuleRef('minor-claim-list'), Literal('and'), RuleRef('minor-claim')],
         lambda state, data: (*data[0], data[2])),
-    Rule('minor-premise-list', [RuleRef('minor-premise')],
+    Rule('minor-claim-list', [RuleRef('minor-claim')],
         lambda state, data: (data[0],)),
-    Rule('minor-premise-list', [RuleRef('minor-premise-list'), Literal(','), RuleRef('minor-premise')],
+    Rule('minor-claim-list', [RuleRef('minor-claim-list'), Literal(','), RuleRef('minor-claim')],
         lambda state, data: (*data[0], data[2])),
 
     Rule('argument',    [RuleRef('support')], passthru),
@@ -501,43 +520,43 @@ hasl0_grammar = en_grammar + [
     Rule('argument',    [RuleRef('undercutter')], passthru),
 ]
 
-@hasl0_grammar.rule('support', [RuleRef('premise'), Literal('because'), RuleRef('minor-premises')])
+@hasl0_grammar.rule('support', [RuleRef('claim'), Literal('because'), RuleRef('minor-claims')])
 def support(conclusion, marker, minors):
     """a <- b+"""
-    return Argument(premises=(conclusion,) + minors, relations=(Relation('support', minors, conclusion),))
+    return Argument(claims=(conclusion,) + minors, relations=(Relation('support', minors, conclusion),))
 
-@hasl0_grammar.rule('attack', [RuleRef('premise'), Literal('but'), RuleRef('minor-premises')])
+@hasl0_grammar.rule('attack', [RuleRef('claim'), Literal('but'), RuleRef('minor-claims')])
 def support(conclusion, marker, minors):
     """a *- b+"""
-    return Argument(premises=(conclusion, *minors), relations=[Relation('attack', minors, conclusion)])
+    return Argument(claims=(conclusion, *minors), relations=[Relation('attack', minors, conclusion)])
 
-@hasl0_grammar.rule('warranted-support', [RuleRef('premise'), Literal('because'), RuleRef('minor-premise-list'), Literal('and'), RuleRef('major-premise')])
+@hasl0_grammar.rule('warranted-support', [RuleRef('claim'), Literal('because'), RuleRef('minor-claim-list'), Literal('and'), RuleRef('major-claim')])
 def warranted_support_minor_major(conclusion, marker, minors, conj, major):
     """(a <- b+) <- c"""
     support = Relation('support', minors, conclusion)
     warrant = Relation('support', (major,), support)
-    return Argument(premises=(conclusion, *minors, major), relations=(support, warrant))
+    return Argument(claims=(conclusion, *minors, major), relations=(support, warrant))
 
-@hasl0_grammar.rule('warranted-support', [RuleRef('premise'), Literal('because'), RuleRef('major-premise'), Literal('and'), RuleRef('minor-premises')])
+@hasl0_grammar.rule('warranted-support', [RuleRef('claim'), Literal('because'), RuleRef('major-claim'), Literal('and'), RuleRef('minor-claims')])
 def warranted_support_major_minor(conclusion, marker, major, conj, minors):
     """(a <- c+) <- b"""
     support = Relation('support', minors, conclusion)
     warrant = Relation('support', (major,), support)
-    return Argument(premises=(conclusion, major, *minors), relations=(support, warrant))
+    return Argument(claims=(conclusion, major, *minors), relations=(support, warrant))
 
-@hasl0_grammar.rule('warranted-attack', [RuleRef('premise'), Literal('because'), RuleRef('minor-premise-list'), Literal('and'), RuleRef('major-premise')])
+@hasl0_grammar.rule('warranted-attack', [RuleRef('claim'), Literal('because'), RuleRef('minor-claim-list'), Literal('and'), RuleRef('major-claim')])
 def warranted_attack_minor_major(conclusion, marker, minors, conj, major):
     """(a <- b+) <- c"""
     attack = Relation('attack', minors, conclusion)
     warrant = Relation('support', (major,), attack)
-    return Argument(premises=(conclusion, *minors, major), relations=(attack, warrant))
+    return Argument(claims=(conclusion, *minors, major), relations=(attack, warrant))
 
-@hasl0_grammar.rule('warranted-attack', [RuleRef('premise'), Literal('because'), RuleRef('major-premise'), Literal('and'), RuleRef('minor-premises')])
+@hasl0_grammar.rule('warranted-attack', [RuleRef('claim'), Literal('because'), RuleRef('major-claim'), Literal('and'), RuleRef('minor-claims')])
 def warranted_attack_major_minor(conclusion, marker, major, conj, minors):
     """(a <- c+) <- b"""
     attack = Relation('attack', minors, conclusion)
     warrant = Relation('support', (major,), attack)
-    return Argument(premises=(conclusion, major, *minors), relations=(attack, warrant))
+    return Argument(claims=(conclusion, major, *minors), relations=(attack, warrant))
 
 
 """
@@ -546,12 +565,14 @@ Tweety is a bird because Tweety can fly but planes can also fly
 Tweety is a bird because Tweety can fly but Tweety was thrown
 Conclusie: zinloos om iets achter te zetten -> geval apart. Also de enige manier om deze te construeren.
 """
-@hasl0_grammar.rule('undercutter', [RuleRef('premise'), Literal('because'), RuleRef('minor-premises'), Literal('but'), RuleRef('premise')])
+@hasl0_grammar.rule('undercutter', [RuleRef('claim'), Literal('because'), RuleRef('minor-claims'), Literal('but'), RuleRef('claim')])
 def undercutter(conclusion, because, minors, but, attack):
     """(a <- b+) *- c (c can be both minor and major)"""
     support = Relation('support', minors, conclusion)
     undercutter = Relation('attack', (attack,), support)
-    return Argument(premises=(conclusion, *minors, attack), relations=(support, undercutter))
+    return Argument(claims=(conclusion, *minors, attack), relations=(support, undercutter))
+
+# test(parser.Parser(hasl0_grammar, 'sentences'), hasl0_sentences)
 
 ###
 ### Recursion
@@ -569,32 +590,32 @@ class HASL1Grammar(Grammar):
 
 class StateData(NamedTuple):
     argument: Argument
-    premise: Premise # salient premise
+    claim: Claim # salient claim
     mapping: Mapping
 
     def __repr__(self):
-        return "Salient premise:\n{}\nArgument:\n{}".format(indent(str(self.premise), "  "), indent(repr(self.argument), "  "))
+        return "Salient claim:\n{}\nArgument:\n{}".format(indent(str(self.claim), "  "), indent(repr(self.argument), "  "))
 
     
 
 class State(StateData):
-    def __new__(cls, argument = Argument(), premise = None, mapping = Mapping([])):
-        return super().__new__(cls, argument, premise, mapping)
+    def __new__(cls, argument = Argument(), claim = None, mapping = Mapping([])):
+        return super().__new__(cls, argument, claim, mapping)
     
     def __add__(self, other):
         other_argument = other.argument if isinstance(other, State) else other
         return State(
             Argument(
-                premises = self.argument.premises + other_argument.premises,
+                claims = self.argument.claims + other_argument.claims,
                 relations = self.argument.relations + other_argument.relations,
             ),
-            self.premise, # is the first "sentence" the salient premise?
+            self.claim, # is the first "sentence" the salient claim?
             (self.mapping + other.mapping) if isinstance(other, State) else self.mapping
         )
 
     def consolidate(self):
         argument, mapping = self.argument.consolidate(self.mapping)
-        return State(argument, mapping[self.premise], mapping)
+        return State(argument, mapping[self.claim], mapping)
 
 
 hasl1_grammar = HASL1Grammar([]) + en_grammar + [
@@ -602,109 +623,109 @@ hasl1_grammar = HASL1Grammar([]) + en_grammar + [
     Rule('sentences',   [RuleRef('sentence')], passthru),
     Rule('sentence',    [RuleRef('argument'), Literal('.')], passthru),
 
-    Rule('argument',    [RuleRef('argued-minor-premise')], passthru),
-    Rule('argument',    [RuleRef('argued-major-premise')], passthru),
+    Rule('argument',    [RuleRef('minor-argument')], passthru),
+    Rule('argument',    [RuleRef('major-argument')], passthru),
 ]
 
-@hasl1_grammar.rule('argued-minor-premises', [RuleRef('argued-minor-premise')])
-def hasl1_argued_minor_premises_single(minor):
-    assert isinstance(minor.premise, Premise)
-    return State(premise=(minor.premise,)) + minor
+@hasl1_grammar.rule('minor-arguments', [RuleRef('minor-argument')])
+def hasl1_argued_minor_claims_single(minor):
+    assert isinstance(minor.claim, Claim)
+    return State(claim=(minor.claim,)) + minor
 
-@hasl1_grammar.rule('argued-minor-premises', [RuleRef('minor-premise-list'), Literal('and'), RuleRef('argued-minor-premise')])
-def hasl1_argued_minor_premises_multiple(list, conj, minor):
-    assert isinstance(minor.premise, Premise)
-    return State(premise=(*list.premise, minor.premise)) + list + minor
+@hasl1_grammar.rule('minor-arguments', [RuleRef('minor-claim-list'), Literal('and'), RuleRef('minor-argument')])
+def hasl1_argued_minor_claims_multiple(list, conj, minor):
+    assert isinstance(minor.claim, Claim)
+    return State(claim=(*list.claim, minor.claim)) + list + minor
 
-@hasl1_grammar.rule('minor-premise-list', [RuleRef('minor-premise')])
-def hasl1_minor_premises_list_single(minor):
-    assert isinstance(minor.premise, Premise)
-    return State(premise=(minor.premise,)) + minor
+@hasl1_grammar.rule('minor-claim-list', [RuleRef('minor-claim')])
+def hasl1_minor_claims_list_single(minor):
+    assert isinstance(minor.claim, Claim)
+    return State(claim=(minor.claim,)) + minor
 
-@hasl1_grammar.rule('minor-premise-list', [RuleRef('minor-premise-list'), Literal(','), RuleRef('minor-premise')])
-def hasl1_minor_premises_list_multiple(list, conj, minor):
-    assert isinstance(minor.premise, Premise)
-    return State(premise=(*list.premise, minor.premise)) + list + minor
+@hasl1_grammar.rule('minor-claim-list', [RuleRef('minor-claim-list'), Literal(','), RuleRef('minor-claim')])
+def hasl1_minor_claims_list_multiple(list, conj, minor):
+    assert isinstance(minor.claim, Claim)
+    return State(claim=(*list.claim, minor.claim)) + list + minor
 
 
-@hasl1_grammar.rule('minor-premise', [RuleRef('instance'), Tag('VBZ'), Tag('RB'), RuleRef('object')])
-def hasl1_minor_premise_vbz_obj(subj, verb, neg, obj):
-    premise = Premise(subj, verb, obj, negated=True)
-    return State(Argument(premises=(premise,)), premise)
+@hasl1_grammar.rule('minor-claim', [RuleRef('instance'), Tag('VBZ'), Tag('RB'), RuleRef('object')])
+def hasl1_minor_claim_vbz_obj(subj, verb, neg, obj):
+    claim = Claim(subj, verb, obj, negated=True)
+    return State(Argument(claims=(claim,)), claim)
 
-@hasl1_grammar.rule('minor-premise', [RuleRef('instance'), Tag('MD'), Tag('RB'), Tag('VB')])
-def hasl1_negated_minor_premise_md_vb(subj, verb, neg, obj):
-    premise = Premise(subj, verb, obj, negated=True)
-    return State(Argument(premises=(premise,)), premise)
+@hasl1_grammar.rule('minor-claim', [RuleRef('instance'), Tag('MD'), Tag('RB'), RuleRef('ability')])
+def hasl1_negated_minor_claim_md_vb(subj, verb, neg, obj):
+    claim = Claim(subj, verb, obj, negated=True)
+    return State(Argument(claims=(claim,)), claim)
 
-@hasl1_grammar.rule('minor-premise', [RuleRef('instance'), Tag('VB[DZ]'), RuleRef('vbn')])
-def hasl1_minor_premise_vbdz_vbn(subj, verb, obj):
-    premise = Premise(subj, verb, obj)
-    return State(Argument(premises=[premise]), premise)
+@hasl1_grammar.rule('minor-claim', [RuleRef('instance'), Tag('VB[DZ]'), RuleRef('vbn')])
+def hasl1_minor_claim_vbdz_vbn(subj, verb, obj):
+    claim = Claim(subj, verb, obj)
+    return State(Argument(claims=[claim]), claim)
 
-@hasl1_grammar.rule('argued-minor-premise', [RuleRef('minor-premise'), Literal('because'), RuleRef('argued-minor-premises')])
+@hasl1_grammar.rule('minor-argument', [RuleRef('minor-claim'), Literal('because'), RuleRef('minor-arguments')])
 def hasl1_support_minor(conclusion, because, minors):
     """a <- b+"""
-    support = Relation('support', minors.premise, conclusion.premise)
+    support = Relation('support', minors.claim, conclusion.claim)
     return conclusion + minors + Argument(relations=(support,))
 
-@hasl1_grammar.rule('argued-major-premise', [RuleRef('major-premise'), Literal('because'), RuleRef('argued-minor-premises')])
+@hasl1_grammar.rule('major-argument', [RuleRef('major-claim'), Literal('because'), RuleRef('minor-arguments')])
 def hasl1_support_major(conclusion, because, minors):
     """A <- b+"""
-    support = Relation('support', minors.premises, conclusion.premise)
+    support = Relation('support', minors.claims, conclusion.claim)
     return conclusion + minors + Argument(relations=(support,))
 
-@hasl1_grammar.rule('argued-minor-premise', [RuleRef('minor-premise'), Literal('because'), RuleRef('major-premise'), Literal('and'), RuleRef('argued-minor-premises')])
+@hasl1_grammar.rule('minor-argument', [RuleRef('minor-claim'), Literal('because'), RuleRef('major-claim'), Literal('and'), RuleRef('minor-arguments')])
 def hasl1_warranted_support_major_minor(conclusion, because, major, conj, minors):
     """(a <- c) <- B"""
-    support = Relation('support', minors.premise, conclusion.premise)
-    warrant = Relation('support', (major.premise,), support)
+    support = Relation('support', minors.claim, conclusion.claim)
+    warrant = Relation('support', (major.claim,), support)
     return conclusion + major + minors + Argument(relations=(support, warrant))
 
-@hasl1_grammar.rule('argued-minor-premise', [RuleRef('minor-premise'), Literal('because'), RuleRef('minor-premise-list'), Literal('and'), RuleRef('argued-major-premise')])
+@hasl1_grammar.rule('minor-argument', [RuleRef('minor-claim'), Literal('because'), RuleRef('minor-claim-list'), Literal('and'), RuleRef('major-argument')])
 def hasl1_warranted_support_minor_major(conclusion, because, minors, conj, major):
     """(a <- b) <- C"""
-    support = Relation('support', minors.premise, conclusion.premise)
-    warrant = Relation('support', (major.premise,), support)
+    support = Relation('support', minors.claim, conclusion.claim)
+    warrant = Relation('support', (major.claim,), support)
     return conclusion + minors + major + Argument(relations=(support, warrant))
 
-@hasl1_grammar.rule('argued-minor-premise', [RuleRef('minor-premise')])
-def hasl1_minor_premise(minor):
+@hasl1_grammar.rule('minor-argument', [RuleRef('minor-claim')])
+def hasl1_minor_claim(minor):
     """a"""
     return minor
 
-@hasl1_grammar.rule('argued-major-premise', [RuleRef('major-premise')])
-def hasl1_major_premise(major):
+@hasl1_grammar.rule('major-argument', [RuleRef('major-claim')])
+def hasl1_major_claim(major):
     """A"""
     return major
 
 
-@hasl1_grammar.rule('argued-minor-premise', [RuleRef('argued-minor-premise'), Literal('but'), RuleRef('argued-minor-premise')])
+@hasl1_grammar.rule('minor-argument', [RuleRef('minor-argument'), Literal('but'), RuleRef('minor-argument')])
 def hasl1_attack_minor(conclusion, but, minor):
     """a *- b but a can also be argued"""
     merged = (conclusion + minor).consolidate()
-    if merged.mapping[conclusion.premise].counters(merged.mapping[minor.premise]):
+    if merged.mapping[conclusion.claim].counters(merged.mapping[minor.claim]):
         attacks = (
-            Relation('attack', (minor.premise,), conclusion.premise),
-            Relation('attack', (conclusion.premise,), minor.premise)
+            Relation('attack', (minor.claim,), conclusion.claim),
+            Relation('attack', (conclusion.claim,), minor.claim)
         )
     else:
         attacks = (
-            Relation('attack', (minor.premise,), conclusion.premise),
+            Relation('attack', (minor.claim,), conclusion.claim),
         )
     return conclusion + minor + Argument(relations=attacks)
 
-@hasl1_grammar.rule('argued-major-premise', [RuleRef('argued-major-premise'), Literal('but'), RuleRef('argued-minor-premise')])
+@hasl1_grammar.rule('major-argument', [RuleRef('major-argument'), Literal('but'), RuleRef('minor-argument')])
 def hasl1_attack_major(conclusion, but, minor):
     """A *- b but A can also be argued"""
-    attack = Relation('attack', (minor.premise,), conclusion.premise)
+    attack = Relation('attack', (minor.claim,), conclusion.claim)
     return conclusion + minor + Argument(relations=(attack,))
 
 ###
 ### Enthymeme
 ###
 
-class MajorPremise(Premise):
+class MajorClaim(Claim):
     def __init__(self, *args, conditions=tuple(), **kwargs):
         super().__init__(*args, **kwargs)
         self.conditions = tuple(conditions)
@@ -713,94 +734,94 @@ class MajorPremise(Premise):
         return super().__str__() + ' if ' + english.join(self.conditions)
 
     def update(self, mapping):
-        return MajorPremise(mapping[self.subj], mapping[self.verb], mapping[self.obj],
+        return MajorClaim(mapping[self.subj], mapping[self.verb], mapping[self.obj],
             negated=self.negated,
             conditions=tuple(condition.update(mapping) for condition in self.conditions))
 
-@hasl1_grammar.rule('minor-premise', [RuleRef('instance'), Tag('VBZ'), RuleRef('object')])
-def hasl1_minor_premise_vbz_obj(subj, verb, obj):
-    premise = Premise(subj, verb, obj)
-    return State(Argument(premises=(premise,)), premise)
+@hasl1_grammar.rule('minor-claim', [RuleRef('instance'), Tag('VBZ'), RuleRef('object')])
+def hasl1_minor_claim_vbz_obj(subj, verb, obj):
+    claim = Claim(subj, verb, obj)
+    return State(Argument(claims=(claim,)), claim)
 
-@hasl1_grammar.rule('minor-premise', [RuleRef('instance'), Tag('MD'), Tag('VB')])
-def hasl1_minor_premise_md_vb(subj, verb, obj):
-    premise =Premise(subj, verb, obj)
-    return State(Argument(premises=(premise,)), premise)
+@hasl1_grammar.rule('minor-claim', [RuleRef('instance'), Tag('MD'), Tag('VB')])
+def hasl1_minor_claim_md_vb(subj, verb, obj):
+    claim =Claim(subj, verb, obj)
+    return State(Argument(claims=(claim,)), claim)
 
-@hasl1_grammar.rule('major-premise', [RuleRef('prototype-sg'), Tag('VBZ'), RuleRef('object')])
-def hasl1_major_premise_vbp_obj(cond, verb, obj):
-    """Parse major premise as rule: a man is mortal"""
+@hasl1_grammar.rule('major-claim', [RuleRef('prototype-sg'), Tag('VBZ'), RuleRef('object')])
+def hasl1_major_claim_vbp_obj(cond, verb, obj):
+    """Parse major claim as rule: a man is mortal"""
     subj = Entity()
-    conclusion = MajorPremise(subj, verb, obj, conditions=(Premise(subj, Span(None, None, ['is']), cond),))
-    return State(Argument(premises=(conclusion,)), conclusion)
+    conclusion = MajorClaim(subj, verb, obj, conditions=(Claim(subj, Span(None, None, ['is']), cond),))
+    return State(Argument(claims=(conclusion,)), conclusion)
 
-@hasl1_grammar.rule('major-premise', [RuleRef('prototype-pl'), Tag('VBP'), RuleRef('object')])
-def hasl1_major_premise_vbp_obj(cond, verb, obj):
-    """Parse major premise as rule: men are mortal"""
+@hasl1_grammar.rule('major-claim', [RuleRef('prototype-pl'), Tag('VBP'), RuleRef('object')])
+def hasl1_major_claim_vbp_obj(cond, verb, obj):
+    """Parse major claim as rule: men are mortal"""
     subj = Entity()
-    conclusion = MajorPremise(subj, verb, obj, conditions=(Premise(subj, Span(None, None, ['is']), cond),))
-    return State(Argument(premises=(conclusion,)), conclusion)
+    conclusion = MajorClaim(subj, verb, obj, conditions=(Claim(subj, Span(None, None, ['is']), cond),))
+    return State(Argument(claims=(conclusion,)), conclusion)
 
-@hasl1_grammar.rule('major-premise', [RuleRef('prototype-sg'), Tag('MD'), Tag('VB')])
-def hasl1_major_premise_mb_vb(cond, verb, obj):
-    """Parse major premise as rule: a bird can fly"""
+@hasl1_grammar.rule('major-claim', [RuleRef('prototype-sg'), Tag('MD'), RuleRef('ability')])
+def hasl1_major_claim_mb_vb(cond, verb, obj):
+    """Parse major claim as rule: a bird can fly"""
     subj = Entity()
-    conclusion = MajorPremise(subj, verb, obj, conditions=(Premise(subj, Span(None, None, ['is']), cond),))
-    return State(Argument(premises=(conclusion,)), conclusion)
+    conclusion = MajorClaim(subj, verb, obj, conditions=(Claim(subj, Span(None, None, ['is']), cond),))
+    return State(Argument(claims=(conclusion,)), conclusion)
 
-@hasl1_grammar.rule('major-premise', [RuleRef('prototype-pl'), Tag('MD'), Tag('VB')])
-def hasl1_major_premise_mb_vb(cond, verb, obj):
-    """Parse major premise as rule: birds can fly"""
+@hasl1_grammar.rule('major-claim', [RuleRef('prototype-pl'), Tag('MD'), RuleRef('ability')])
+def hasl1_major_claim_mb_vb(cond, verb, obj):
+    """Parse major claim as rule: birds can fly"""
     subj = Entity()
-    conclusion = MajorPremise(subj, verb, obj, conditions=(Premise(subj, Span(None, None, ['is']), cond),))
-    return State(Argument(premises=(conclusion,)), conclusion)
+    conclusion = MajorClaim(subj, verb, obj, conditions=(Claim(subj, Span(None, None, ['is']), cond),))
+    return State(Argument(claims=(conclusion,)), conclusion)
 
-@hasl1_grammar.rule('major-premise', [RuleRef('prototype-pl'), Tag('VBP'), Tag('RB'), RuleRef('object')])
-def hasl1_negated_major_premise_vbp_obj(cond, verb, neg, obj):
-    """Parse major premise as rule: men are not mortal"""
+@hasl1_grammar.rule('major-claim', [RuleRef('prototype-pl'), Tag('VBP'), Tag('RB'), RuleRef('object')])
+def hasl1_negated_major_claim_vbp_obj(cond, verb, neg, obj):
+    """Parse major claim as rule: men are not mortal"""
     subj = Entity()
-    conclusion = MajorPremise(subj, verb, obj, conditions=(Premise(subj, Span(None, None, ['is']), cond, negated=True),))
-    return State(Argument(premises=(conclusion,)), conclusion)
+    conclusion = MajorClaim(subj, verb, obj, conditions=(Claim(subj, Span(None, None, ['is']), cond, negated=True),))
+    return State(Argument(claims=(conclusion,)), conclusion)
 
-@hasl1_grammar.rule('major-premise', [RuleRef('prototype-pl'), Tag('MD'), Tag('RB'), Tag('VB')])
-def hasl1_negated_major_premise_mb_vb(cond, verb, neg, obj):
-    """Parse major premise as rule: birds can not fly"""
+@hasl1_grammar.rule('major-claim', [RuleRef('prototype-pl'), Tag('MD'), Tag('RB'), RuleRef('ability')])
+def hasl1_negated_major_claim_mb_vb(cond, verb, neg, obj):
+    """Parse major claim as rule: birds can not fly"""
     subj = Entity()
-    conclusion = MajorPremise(subj, verb, obj, conditions=(Premise(subj, Span(None, None, ['is']), cond, negated=True),))
-    return State(Argument(premises=(conclusion,)), conclusion)
+    conclusion = MajorClaim(subj, verb, obj, conditions=(Claim(subj, Span(None, None, ['is']), cond, negated=True),))
+    return State(Argument(claims=(conclusion,)), conclusion)
 
-@hasl1_grammar.rule('major-premise', [RuleRef('prototype-sg'), Tag('MD'), Tag('RB'), Tag('VB')])
-def hasl1_negated_major_premise_mb_vb(cond, verb, neg, obj):
-    """Parse major premise as rule: a bird can not fly"""
+@hasl1_grammar.rule('major-claim', [RuleRef('prototype-sg'), Tag('MD'), Tag('RB'), RuleRef('ability')])
+def hasl1_negated_major_claim_mb_vb(cond, verb, neg, obj):
+    """Parse major claim as rule: a bird can not fly"""
     subj = Entity()
-    conclusion = MajorPremise(subj, verb, obj, conditions=(Premise(subj, Span(None, None, ['is']), cond, negated=True),))
-    return State(Argument(premises=(conclusion,)), conclusion)
+    conclusion = MajorClaim(subj, verb, obj, conditions=(Claim(subj, Span(None, None, ['is']), cond, negated=True),))
+    return State(Argument(claims=(conclusion,)), conclusion)
 
-@hasl1_grammar.rule('argued-minor-premise', [RuleRef('minor-premise'), Literal('because'), RuleRef('argued-major-premise')])
+@hasl1_grammar.rule('minor-argument', [RuleRef('minor-claim'), Literal('because'), RuleRef('major-argument')])
 def hasl1_support_major_missing_minor(conclusion, because, major):
-    minors = [Premise(conclusion.premise.subj, condition.verb, condition.obj, negated=condition.negated) for condition in major.premise.conditions]
-    support = Relation('support', tuple(minors), conclusion.premise)
-    warrant = Relation('support', [major.premise], support)
-    return conclusion + major + Argument(premises=minors, relations=[support, warrant])
+    minors = [Claim(conclusion.claim.subj, condition.verb, condition.obj, negated=condition.negated) for condition in major.claim.conditions]
+    support = Relation('support', tuple(minors), conclusion.claim)
+    warrant = Relation('support', [major.claim], support)
+    return conclusion + major + Argument(claims=minors, relations=[support, warrant])
 
 
-@hasl1_grammar.rule('argued-minor-premise', [RuleRef('minor-premise'), Literal('because'), RuleRef('argued-minor-premises')])
+@hasl1_grammar.rule('minor-argument', [RuleRef('minor-claim'), Literal('because'), RuleRef('minor-arguments')])
 def hasl1_support_major_missing_major(conclusion, because, minors):
     subj = Entity()
-    conditions = [Premise(subj, minor.verb, minor.obj) for minor in minors.premise]
-    major = MajorPremise(subj, conclusion.premise.verb, conclusion.premise.obj, conditions=tuple(conditions))
-    support = Relation('support', minors.premise, conclusion.premise)
+    conditions = [Claim(subj, minor.verb, minor.obj, negated=minor.negated) for minor in minors.claim]
+    major = MajorClaim(subj, conclusion.claim.verb, conclusion.claim.obj, negated=conclusion.claim.negated, conditions=tuple(conditions))
+    support = Relation('support', minors.claim, conclusion.claim)
     warrant = Relation('support', [major], support)
-    return conclusion + minors + Argument(premises=[major], relations=[support, warrant])
+    return conclusion + minors + Argument(claims=[major], relations=[support, warrant])
 
-@hasl1_grammar.rule('argued-minor-premise', [RuleRef('minor-premise-list'), Literal('and'), RuleRef('argued-major-premise')])
+@hasl1_grammar.rule('minor-argument', [RuleRef('minor-claim-list'), Literal('and'), RuleRef('major-argument')])
 def hasl1_support_major_missing_conclusion(minors, conj, major):
-    subj = minors.premise[0].subj
-    conclusion = Premise(subj, major.premise.verb, major.premise.obj)
-    expected_minors = [Premise(subj, condition.verb, condition.obj, negated=condition.negated) for condition in major.premise.conditions]
-    support = Relation('support', [*minors.premise, *expected_minors], conclusion)
-    warrant = Relation('support', [major.premise], support)
-    return State(premise=conclusion) + minors + major + Argument(premises=[conclusion, *expected_minors], relations=[support, warrant])
+    subj = minors.claim[0].subj
+    conclusion = Claim(subj, major.claim.verb, major.claim.obj, negated=major.claim.negated)
+    expected_minors = [Claim(subj, condition.verb, condition.obj, negated=condition.negated) for condition in major.claim.conditions]
+    support = Relation('support', [*minors.claim, *expected_minors], conclusion)
+    warrant = Relation('support', [major.claim], support)
+    return State(claim=conclusion) + minors + major + Argument(claims=[conclusion, *expected_minors], relations=[support, warrant])
 
 
 
