@@ -214,7 +214,7 @@ class State:
     def tree(self):
         return {
             'label': self.rule.name,
-            'data': self.data,
+            # 'data': self.data,
             'nodes': [child.tree if isinstance(child, State) else {'label': child} for child in self.inp]
         }
 
