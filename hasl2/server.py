@@ -2,7 +2,7 @@ import traceback
 from functools import wraps
 from flask import Flask, render_template_string, request, jsonify, send_from_directory
 
-from nlpg_grammar import parse, reverse
+from hasl2 import parse, reverse
 from nlpg_diagram import Diagram
 
 

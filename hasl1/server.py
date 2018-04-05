@@ -10,12 +10,19 @@ import os
 import flask
 import spacy
 
-import sys
-sys.path.insert(0, '../')
-
 import parser
-from pos_tags import hasl0_grammar, hasl1_grammar, Claim, Relation, Argument, Entity, Span, id
+from hasl1.grammar import hasl0_grammar, hasl1_grammar, Claim, Relation, Argument, Entity, Span, id
 from flask import Flask, render_template, request, jsonify
+
+
+def unique(iterable, key = lambda x: x):
+    elements = []
+    seen = set()
+    for el in iterable:
+        if key(el) not in seen:
+            elements.append(el)
+            seen.add(key(el))
+    return elements
 
 
 class TokenizeError(Exception):
@@ -117,7 +124,7 @@ def api_parse_sentence():
 
         p = parser.Parser(grammar, 'sentences')
         parses = p.parse(tokens)
-        reply['parses'] = parses
+        reply['parses'] = unique(parses, key=lambda parse: parse['data'])
 
         if len(reply['parses']) > 20:
             reply['warning'] = 'There were {} parses, but cut off at {}'.format(len(reply['parses']), 20)
@@ -131,6 +138,6 @@ def api_parse_sentence():
         response.status_code = 400
         return response
 
-
-if __name__ == '__main__':
+def run():
     app.run(extra_files=sentence_files)
+
