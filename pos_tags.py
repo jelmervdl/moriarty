@@ -1,13 +1,23 @@
-import spacy
-import english
+#!/usr/bin/env python
+
+import sys
 import traceback
+import operator
+import re
+from pprint import pprint
+from functools import reduce
+from itertools import chain
+from typing import NamedTuple, Tuple
 
-nlp = spacy.load('en', disable=['parser', 'ner', 'textcat'])
+import spacy
+
+import english
+import parser
+from parser import Rule, RuleRef, passthru
 
 
-
-
-
+def merge(state, data):
+    return reduce(operator.__add__, data)
 
 
 def indent(text, prefix='\t'):
@@ -19,6 +29,15 @@ def unique(seq):
     return [x for x in seq if not (x in seen or seen.add(x))]
 
 
+def singular_verb(verb):
+    mapping = {
+        'are': 'is',
+        'can': 'can',
+    }
+    singular = mapping[verb.text] if verb.text in mapping else verb.tokens[0].lemma_ + 's'
+    return Span(verb.start, verb.end, [singular])
+
+
 class Stamper(object):
     def __init__(self):
         self.seq = 0
@@ -28,17 +47,19 @@ class Stamper(object):
         self.seq += 1
         return self.seq
 
+    def read(self, obj):
+        if not hasattr(obj, self.attr):
+            raise Exception("Object {!r} has no id yet".format(obj))
+        return getattr(obj, self.attr)
+
     def __call__(self, obj):
         if not hasattr(obj, self.attr):
             setattr(obj, self.attr, self.next())
         return getattr(obj, self.attr)
 
+
 id = Stamper()
 
-def read_id(obj):
-    if not hasattr(obj, id.attr):
-        raise Exception("Object {!r} has no id yet".format(obj))
-    return id(obj)
 
 def print_pos_tags(doc):
     el_cnt = 3
@@ -119,34 +140,21 @@ claims = [
 ]
 
 
-import parser
-from parser import Rule, RuleRef, passthru
-from pprint import pprint
-from functools import reduce
-from itertools import chain
-from typing import NamedTuple, Tuple, Dict, Any
-import operator
-import re
-
-
 class Mapping(object):
-    def __init__(self, entries):
+    def __init__(self, entries = []):
         self.entries = dict(entries)
         for key in self.entries.keys():
-            while read_id(self.entries[key]) != read_id(self.entries[id(self.entries[key])]):
-                self.entries[key] = self.entries[read_id(self.entries[key])]
+            while id.read(self.entries[key]) != id.read(self.entries[id(self.entries[key])]):
+                self.entries[key] = self.entries[id.read(self.entries[key])]
 
     def __add__(self, other):
         return Mapping(chain(self.entries.items(), other.entries.items()))
 
     def __getitem__(self, obj):
-        if isinstance(obj, tuple):
-            return tuple(self[el] for el in obj)
         if isinstance(obj, list):
             return list(self[el] for el in obj)
         else:
-            debug("Looking for {}{!s}: {}".format(id(obj), obj, 'found' if id(obj) in self.entries else 'not found'))
-            return self.entries[read_id(obj)] if id(obj) in self.entries else obj
+            return self.entries[id.read(obj)] if id(obj) in self.entries else obj
 
     def __setitem__(self, obj, replacement):
         self.entries[id(obj)] = replacement
