@@ -5,21 +5,10 @@ import traceback
 nlp = spacy.load('en', disable=['parser', 'ner', 'textcat'])
 
 
-class Debug(object):
-    def __init__(self):
-        self.counter = 0
 
-    def __enter__(self):
-        self.counter += 1
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.counter -= 1
 
-    def __call__(self, text):
-        if self.counter > 0:
-            print(text)
 
-debug = Debug()
 
 def indent(text, prefix='\t'):
     return '\n'.join(prefix + line for line in text.split('\n'))
