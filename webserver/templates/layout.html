@@ -36,14 +36,14 @@
                             <ul class="dropdown-menu history-dropdown"></ul>
                         </div>
                         <div class="input-group-btn">
-                            <button type="submit" class="btn btn-default">Parse <span class="current-grammar">simple</span></button>
+                            <button type="submit" class="btn btn-default">Parse using <span class="current-grammar"></span></button>
                             <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <span class="caret"></span>
                             </button>
                             <ul class="dropdown-menu grammar-dropdown">
-                                <li><label><input type="radio" name="grammar" value="simple" checked> Simple</label></li>
-                                <li><label><input type="radio" name="grammar" value="recursive"> Recursive</label></li>
-                                <li><label><input type="radio" name="grammar" value="recursive_fallback"> Recursive with fallback</label></li>
+                                {% for grammar in grammars %}
+                                    <li><label><input type="radio" name="grammar" value="{{grammar}}"> {{grammar}}</label></li>
+                                {% endfor %}
                             </ul>
                         </div>
                     </div>

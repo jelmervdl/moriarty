@@ -354,18 +354,18 @@ jQuery(function($) {
                 })));
         });
 
-        view('list of individuals/instances', 'instances', 'glyphicon-tags', function() {
-            this.append($('<pre>').text(JSON.stringify(parse.data.instances, null, '\t')));
+        view('list of entities', 'entities', 'glyphicon-tags', function() {
+            this.append($('<pre>').text(JSON.stringify(parse.data.entities, null, '\t')));
         });
 
         return panel;
     }
 
-    function listInstances(parse) {
-        return $('<ul>').addClass('instance-list').append(parse.instances.map(function(instance) {
+    function listEntities(parse) {
+        return $('<ul>').addClass('entity-list').append(parse.entities.map(function(entity) {
             return  $(document.createDocumentFragment())
-                .append($('<li>').text(instance.repr))
-                .append($('<ul>').append(instance.occurrences.map(function(occurrence) {
+                .append($('<li>').text(entity.repr))
+                .append($('<ul>').append(entity.occurrences.map(function(occurrence) {
                     return $('<li>').text(occurrence.repr)
                 })));
         }));
@@ -435,9 +435,10 @@ jQuery(function($) {
     }
 
     function setDefaultGrammar(name) {
-        let grammar = grammars.get().find((grammar) => grammar.name == name);
+        const grammar = grammars.get().find((grammar) => grammar.name == name);
+        if (grammar === undefined) throw Error('Unknown grammar: ' + name);
         $("#parse-sentence-form input[name=grammar][value='" + name + "']").prop('checked', true);
-        $('#parse-sentence-form .current-grammar').text(grammar.label.toLowerCase());
+        $('#parse-sentence-form .current-grammar').text(grammar.label);
     }
 
     function addToHistory(sentence) {
@@ -515,9 +516,14 @@ jQuery(function($) {
         setDefaultGrammar($(this).val());
     });
 
-    if ('defaultGrammar' in window.localStorage)
-        setDefaultGrammar(window.localStorage.defaultGrammar);
-
+    setDefaultGrammar(grammars[grammars.length - 1].name);
+    try {
+        if ('defaultGrammar' in window.localStorage)
+            setDefaultGrammar(window.localStorage.defaultGrammar);
+    } catch (e) {
+        // No harm
+    }
+    
     $('body').on('click', '.dismissible button.close', function(e) {
         e.preventDefault();
         $(this).closest('.dismissible').remove();
