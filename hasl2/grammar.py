@@ -1,6 +1,8 @@
-from typing import NamedTuple, List, Optional, Any
-from nlpg import ruleset, rule, tlist, template, l, slot, empty, terminal, NoMatchException
 import re
+from functools import partial
+from itertools import takewhile
+from typing import NamedTuple, List, Optional, Any
+from hasl2.parser import ruleset, rule, tlist, template, l, slot, empty, terminal, NoMatchException, sparselist
 
 class Text(object):
 	def __init__(self, words):
@@ -231,11 +233,6 @@ class Action(Claim):
 		super().__init__(text=subject + verb + object.text)
 		
 
-from functools import partial
-from itertools import takewhile
-from nlpg import NoMatchException, sparselist
-
-
 class prepend(object):
 	def __init__(self, subject, object):
 		self.subject = subject
@@ -336,21 +333,21 @@ def concatenate(tokens):
 
 
 def parse(sentence, start = 'sentences'):
-	from nlpg import Parser
+	from hasl2.parser import Parser
 	parser = Parser(rules)
 	tokens = tokenize(rules.markers(), sentence)
 	return parser.parse(start, tokens)
 
 
 def reverse(tree, start = 'sentences'):
-	from nlpg import Parser
+	from hasl2.parser import Parser
 	parser = Parser(rules)
 	for realisation in parser.reverse(start, tree):
 		yield concatenate(map(str, realisation))
 
 
 if __name__ == '__main__':
-	from nlpg import Parser
+	from hasl2.parser import Parser
 	from nlpg_lc import LCParser
 	from pprint import pprint
 	from sys import exit

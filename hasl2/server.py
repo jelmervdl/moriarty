@@ -2,8 +2,8 @@ import traceback
 from functools import wraps
 from flask import Flask, render_template_string, request, jsonify, send_from_directory
 
-from hasl2 import parse, reverse
-from nlpg_diagram import Diagram
+from hasl2.grammar import parse, reverse
+from hasl2.diagram import Diagram
 
 
 def text_to_diagrams(text):
@@ -17,7 +17,7 @@ def diagram_to_texts(diagram):
 			yield realisation
 
 
-app = Flask(__name__, static_folder='webserver/static')
+app = Flask(__name__, static_folder='../hasl1/static')
 app.secret_key = 'notrelevant'
 app.debug = True
 
@@ -35,7 +35,7 @@ def handle_exceptions(fn):
 
 @app.route('/')
 def app_index():
-	with open('nlpg.html') as template:
+	with open('hasl2/hasl2.html') as template:
 		return render_template_string(template.read())
 
 @app.route('/api/diagram', methods=['POST'])
@@ -50,5 +50,10 @@ def app_diagram_to_text():
 	texts = list(diagram_to_texts(request.json['diagram']))
 	return jsonify(texts=texts)
 
-if __name__ == '__main__':
+
+def run():
 	app.run(port=5001)
+
+
+if __name__ == '__main__':
+	run()	

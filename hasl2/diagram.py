@@ -1,7 +1,7 @@
 from typing import List, Dict
 from enum import Enum
-from nlpg_grammar import Text, Claim, Argument, Support, Warrant, WarrantCondition, WarrantException
 from itertools import chain
+from hasl2.grammar import Text, Claim, Argument, Support, Warrant, WarrantCondition, WarrantException
 
 
 def one(iterable):
@@ -275,7 +275,7 @@ class Diagram(object):
 
 
 if __name__ == '__main__':
-	from nlpg_grammar import parse, reverse
+	from hasl2.grammar import parse, reverse
 	from deepdiff import DeepDiff
 	from pprint import pprint
 	import json
