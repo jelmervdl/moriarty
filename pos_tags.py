@@ -216,23 +216,35 @@ class Literal(parser.Symbol):
         return Span(position, position + 1, [literal])
 
 
-def test(p, sentences):
-    for sentence in sentences:
-        doc = nlp(sentence)
-        print_pos_tags(doc)
-        try:
-            parses = p.parse(doc)
-            print("There are {} parses".format(len(parses)))
-            for parse in parses:
-                print("Parse:")
-                pprint(parse['data'])
-                print("Tree:")
-                pprint(parse['tree'])
+if __name__ == '__main__':
+    nlp = spacy.load('en', disable=['parser', 'ner', 'textcat'])
 
-        except parser.ParseError as e:
-            print("Failure: {}".format(e))
-        print()
+    def test(p, sentences):
+        selection = frozenset(map(int, sys.argv[1:]))
+        for n, sentence in enumerate(sentences, 1):
+            if len(selection) > 0 and n not in selection:
+                continue
+            doc = nlp(sentence)
+            print("{})".format(n))
+            print_pos_tags(doc)
+            try:
+                parses = p.parse(doc)
+                print("There are {} parses".format(len(parses)))
+                datas = set(parse['data'] for parse in parses)
+                pprint(datas)
+                # for parse in parses:
+                #     print("Parse:")
+                #     pprint(parse['data'])
+                #     print("Tree:")
+                #     pprint(parse['tree'])
 
+            except parser.ParseError as e:
+                print("Failure: {}".format(e))
+            print()
+else:
+    def test(p, sentences):
+        """test as a no-op when pos_tags is loaded as library"""
+        pass
 
 class Entity(object):
     def __init__(self, name = None, noun = None, pronoun = None):
