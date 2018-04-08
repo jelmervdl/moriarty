@@ -91,6 +91,11 @@ class rule(object):
 		self.tokens = tokens
 		self.template = template
 
+	def __str__(self):
+		return '<{name} ::= {tokens}>'.format(
+			name = self.name,
+			tokens = ' '.join(map(str, self.tokens)) if len(self.tokens) > 0 else '∅')
+
 	def __repr__(self):
 		return "Rule<{}>{!r}".format(self.name, self.tokens)
 
@@ -112,6 +117,9 @@ class l(terminal):
 
 	def __repr__(self):
 		return 'l({})'.format(self.word)
+
+	def __str__(self):
+		return "`{}'".format(self.word)
 
 	def test(self, word):
 		return self.word == word
@@ -177,6 +185,8 @@ class slot(object):
 			return '${}'.format(self.index)
 
 	def consume(self, args):
+		if len(args) <= self.index:
+			raise Exception('no slot {} in list {!r}'.format(self.index, args))
 		val = args[self.index]
 		if self.attribute is not None:
 			val = getattr(val, self.attribute)
@@ -328,7 +338,7 @@ class Parser(object):
 				for acc, remaining_words in self._parse_rule(rule.tokens, words):
 					yield rule.template.consume(acc), remaining_words
 			except:
-				raise ParseException("Error while parsing {}<{!r}>".format(rule_name, rule))
+				raise ParseException("Error while parsing {!s}".format(rule))
 
 	def _parse_rule(self, tokens, words):
 		if len(tokens) == 0:
