@@ -138,6 +138,9 @@ class Diagram(object):
 		for support in argument.supports:
 			self.add_support(node, support)
 
+		if argument.attack:
+			self.add_attack(node, argument.attack)
+
 		return node
 
 	def add_support(self, node, support):
@@ -154,6 +157,13 @@ class Diagram(object):
 		if support.undercutter:
 			undercutter_node = self.add_argument(support.undercutter)
 			self.add_relation(sources=[undercutter_node], target=edge, type=Type.ATTACK)
+
+	def add_attack(self, node, attack):
+		datum_nodes = list(self.add_argument(claim) for claim in attack.claims)
+		edge = self.add_relation(
+			sources=datum_nodes,
+			target=node,
+			type=Type.ATTACK)
 
 	def add_warrant(self, warrant):
 		node = self.add_claim(warrant.claim)
@@ -209,7 +219,8 @@ class Diagram(object):
 	def to_argument(self, claim):
 		return Argument(
 			claim=self.to_claim(claim),
-			supports=tuple(self.to_support(support) for support in self.find_relations(target=claim, type=Type.SUPPORT)))
+			supports=tuple(self.to_support(support) for support in self.find_relations(target=claim, type=Type.SUPPORT)),
+			attack=one(self.to_argument(attack['sources'][0]) for attack in self.find_relations(target=claim, type=Type.ATTACK)))
 
 	def to_support(self, support):
 		return Support(

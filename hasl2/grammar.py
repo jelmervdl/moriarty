@@ -43,6 +43,11 @@ class Claim(object):
 class Argument(NamedTuple):
 	claim: Claim
 	supports: List['Support']
+	attack: Optional['Attack']
+
+
+class Attack(NamedTuple):
+	claims: List[Argument]
 
 
 class Support(NamedTuple):
@@ -83,14 +88,16 @@ class Word(terminal):
 			raise NoMatchException('Word not a unit')
 		return word
 
+	def __repr__(self):
+		return '<text-unit>'
+
 def and_rule(name, single, cc=l('and')):
-	comma = name + '_'
+	comma = '{}-list'.format(name)
 	return [
 		rule(name, [single], tlist(head=slot(0))),
-		rule(name, [single, cc, single], tlist(head=[slot(0),slot(2)])),
 		rule(name, [comma], slot(0)),
 		rule(comma, [single, l(','), comma], tlist(head=slot(0), tail=slot(2))),
-		rule(comma, [single, l(','), single, l(','), cc, single], tlist(head=[slot(0), slot(2), slot(5)])),
+		rule(comma, [single, cc, single], tlist(head=[slot(0), slot(2)])),
 	]
 
 rules = ruleset([
@@ -106,15 +113,15 @@ rules = ruleset([
 		['argument', l('.')],
 		slot(0)),
 
-	rule('sentence',
-		['warrant', l('.')],
-		slot(0)),
+	# rule('sentence',
+	# 	['warrant', l('.')],
+	# 	slot(0)),
 	
 	] + and_rule('arguments', 'argument') + [
 	
 	rule('argument',
-		['claim', 'supports?'],
-		template(Argument, claim=slot(0), supports=slot(1))),
+		['claim', 'supports?', 'attack?'],
+		template(Argument, claim=slot(0), supports=slot(1), attack=slot(2))),
 
 	rule('claim',
 		['word'],
@@ -125,6 +132,30 @@ rules = ruleset([
 	rule('word',
 		[Word()],
 		slot(0)),
+
+	rule('attack?',
+		[],
+		empty()),
+
+	rule('attack?',
+		['attack'],
+		slot(0)),
+	
+	rule('attack-marker',
+		[l('but')],
+		slot(0)),
+
+	rule('attack-marker',
+		[l('except')],
+		slot(0)),
+
+	rule('attack-marker',
+		[l('except'), l('that')],
+		slot(0)),
+
+	rule('attack',
+		['attack-marker', 'arguments'],
+		template(Attack, claims=slot(1))),
 
 	rule('supports?',
 		[],
@@ -143,7 +174,7 @@ rules = ruleset([
 		[],
 		empty()),
 	rule('undercutter?',
-		[l('except'), 'argument'],
+		['attack-marker', 'argument'],
 		slot(1)),
 
 	rule('warrant?',
