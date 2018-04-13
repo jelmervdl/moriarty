@@ -1,6 +1,7 @@
 import re
-from functools import partial
+from functools import partial, reduce
 from itertools import takewhile
+import operator
 from typing import NamedTuple, List, Optional, Any
 from hasl2.parser import ruleset, rule, tlist, template, l, slot, empty, terminal, NoMatchException, sparselist
 
@@ -100,6 +101,24 @@ def and_rule(name, single, cc=l('and')):
 		rule(comma, [single, cc, single], tlist(head=[slot(0), slot(2)])),
 	]
 
+
+class word_merge(object):
+	def __init__(self, *args):
+		self.parts = args
+
+	def consume(self, words):
+		out = Text([])
+		for part in self.parts:
+			if isinstance(part, Text):
+				out += part
+			else:
+				out += part.consume(words)
+		return out
+
+	def reverse(self, word):
+		raise NoMatchException('Not implemented')
+
+
 rules = ruleset([
 	rule('sentences',
 		['sentence', 'sentences'],
@@ -113,9 +132,9 @@ rules = ruleset([
 		['argument', l('.')],
 		slot(0)),
 
-	# rule('sentence',
-	# 	['warrant', l('.')],
-	# 	slot(0)),
+	rule('sentence',
+		['warrant', l('.')],
+		slot(0)),
 	
 	] + and_rule('arguments', 'argument') + [
 	
@@ -132,6 +151,14 @@ rules = ruleset([
 	rule('word',
 		[Word()],
 		slot(0)),
+ 
+	### Begin experiment to support discourse markers inside text
+
+	rule('word',
+		[Word(), l('or'), 'word'],
+		word_merge(slot(0), Text(['or']), slot(2))),
+
+	### End experiment
 
 	rule('attack?',
 		[],
