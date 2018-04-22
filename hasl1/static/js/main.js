@@ -160,7 +160,11 @@ jQuery(function($) {
 
     function stringifyTokens(tokens) {
         return $('<div>').addClass('tokenized').append($.map(tokens, function(token, i) {
-            return $('<span>').addClass('token').attr('data-pos', i + 1).text(token);
+            return $('<span>')
+                .addClass('token')
+                .attr('data-pos', i + 1)
+                .text(token.text)
+                .prop('title', token.tag);
         }));
     }
 
@@ -186,7 +190,9 @@ jQuery(function($) {
     var globalIDCounter = 0;
 
     function treeElement(tree) {
-        const label = $('<span>').text(tree.label);
+        const label = typeof tree.label === 'string'
+            ? $('<span>').text(tree.label)
+            : $('<span>').text(tree.label.text).prop('title', tree.label.tag);
         const leaf = $('<li>').append(label).data('state', tree.data);
 
         if ('nodes' in tree)

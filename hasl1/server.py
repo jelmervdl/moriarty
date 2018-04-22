@@ -76,7 +76,7 @@ class JSONEncoder(flask.json.JSONEncoder):
         elif isinstance(o, spacy.tokens.doc.Doc):
             return list(o)
         elif isinstance(o, spacy.tokens.token.Token):
-            return str(o)
+            return dict(text=str(o), tag=o.tag_)
         elif isinstance(o, frozenset):
             return list(o)
         else:
