@@ -170,15 +170,15 @@ rules = ruleset([
 	
 	rule('attack-marker',
 		[l('but')],
-		slot(0)),
+		empty()),
 
 	rule('attack-marker',
 		[l('except')],
-		slot(0)),
+		empty()),
 
 	rule('attack-marker',
 		[l('except'), l('that')],
-		slot(0)),
+		empty()),
 
 	rule('attack',
 		['attack-marker', 'arguments'],
@@ -465,5 +465,7 @@ if __name__ == '__main__':
 
 	# Undercutter :)
 	parse('This ball is red because it looks red and balls are red when they look red except the light is red.')
+
+	parse('A because B and C if D and E or if E and F.')
 
 
