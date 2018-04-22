@@ -1,7 +1,7 @@
 from typing import List, Dict
 from enum import Enum
 from itertools import chain
-from hasl2.grammar import Text, Claim, Argument, Support, Warrant, WarrantCondition, WarrantException
+from hasl2.grammar import Text, Claim, Argument, Support, Attack, Warrant, WarrantCondition, WarrantException
 
 
 def one(iterable):
@@ -198,10 +198,11 @@ class Diagram(object):
 
 	def to_arguments(self) -> List[Argument]:
 		# TODO: split up the argument into multiple arguments
-		# TODO: the root can be either an argument or a warrant!
 		yield tuple(self.to_argument(claim) for claim in self.find_roots())
 
-		top_warrants = tuple(self.to_warrant({'sources': [claim]}) for claim in self.find_roots())
+		top_warrants = [self.to_warrant({'sources': [claim]}) for claim in self.find_roots() if not self.has_relations(target=claim, type=Type.ATTACK)]
+
+
 		
 		# Find all warrant conditions that themselves have conditions
 		# Use an index as we will add the newly found warrants to the list as
@@ -210,23 +211,29 @@ class Diagram(object):
 		while i < len(top_warrants):
 			for condition in top_warrants[i].conditions:
 				for claim in condition.claims:
-					if self.has_relations(target=claim._ref, type=Type.SUPPORT):
-						top_warrants += (self.to_warrant({'sources': [claim._ref]}),)
+					if self.has_relations(target=claim._ref, type=Type.SUPPORT) \
+						and not self.has_relations(target=claim._ref, type=Type.ATTACK):
+						top_warrants.append(self.to_warrant({'sources': [claim._ref]}))
 			i += 1
 		
-		yield top_warrants
+		if len(top_warrants) > 0:
+			yield top_warrants
 	
 	def to_argument(self, claim):
 		return Argument(
 			claim=self.to_claim(claim),
 			supports=tuple(self.to_support(support) for support in self.find_relations(target=claim, type=Type.SUPPORT)),
-			attack=one(self.to_argument(attack['sources'][0]) for attack in self.find_relations(target=claim, type=Type.ATTACK)))
+			attack=one(self.to_attack(attack['sources']) for attack in self.find_relations(target=claim, type=Type.ATTACK)))
 
 	def to_support(self, support):
 		return Support(
 			datums=tuple(self.to_argument(datum) for datum in support['sources']),
 			warrant=one(self.to_warrant(warrant) for warrant in self.find_relations(target=support, type=Type.SUPPORT)),
 			undercutter=one(self.to_argument(undercutter['sources'][0]) for undercutter in self.find_relations(target=support, type=Type.ATTACK)))
+
+	def to_attack(self, claims):
+		return Attack(
+			claims=tuple(self.to_argument(claim) for claim in claims))
 
 	def to_warrant(self, warrant):
 		return Warrant(
