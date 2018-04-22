@@ -16,6 +16,13 @@ import parser
 from parser import Rule, RuleRef, passthru
 
 
+def coalesce(*args):
+    for arg in args:
+        if arg is not None:
+            return arg
+    return None
+
+
 def merge(state, data):
     return reduce(operator.__add__, data)
 
@@ -162,13 +169,13 @@ class Mapping(object):
 
 
 class Span(object):
-    def __init__(self, start, end, tokens):
+    def __init__(self, start = None, end = None, tokens = []):
         self.start = start
         self.end = end
         self.tokens = tokens
 
     def __add__(self, other):
-        return Span(self.start, other.end, self.tokens + other.tokens)
+        return Span(coalesce(self.start, other.start), coalesce(other.end, self.end), self.tokens + other.tokens)
 
     def __str__(self):
         return self.text
@@ -501,12 +508,18 @@ en_grammar = Grammar([
         lambda state, data: Entity(name=data[0])),
     Rule('instance', [Tag('PRP')],
         lambda state, data: Entity(pronoun=data[0])),
-    Rule('instance', [RuleRef('def-dt'), Tag('NNP?')],
-        lambda state, data: Entity(noun=data[0] + data[1])),
-    Rule('instance', [RuleRef('def-dt'), Tag('NNP?'), RuleRef('prep-phrase')],
+    Rule('instance', [RuleRef('def-dt'), RuleRef('adjectives?'), RuleRef('noun')],
         lambda state, data: Entity(noun=data[0] + data[1] + data[2])),
+    Rule('instance', [RuleRef('def-dt'), RuleRef('adjectives?'), RuleRef('noun'), RuleRef('prep-phrase')],
+        lambda state, data: Entity(noun=data[0] + data[1] + data[2] + data[3])),
     Rule('instance', [Tag('PRP\\$'), Tag('NNP?')], # his name
         lambda state, data: Entity(noun=data[0] + data[1])),
+
+    Rule('adjectives?', [RuleRef('adjectives')], merge),
+    Rule('adjectives?', [], lambda state, data: Span()),
+
+    Rule('adjectives', [Tag('JJ')], merge),
+    Rule('adjectives', [Tag('JJ'), RuleRef('adjectives')], merge),
 
     Rule('noun-sg', [Tag('NN')], merge),
     Rule('noun-sg', [Tag('NN'), RuleRef('noun-sg')], merge),
@@ -520,14 +533,15 @@ en_grammar = Grammar([
     Rule('object', [RuleRef('name')], merge),
     Rule('object', [RuleRef('noun')], merge),
     Rule('object', [RuleRef('instance')], lambda state, data: data[0].span),
-    Rule('object', [Tag('JJ')], merge),
-    Rule('object', [Tag('JJ'), RuleRef('prep-phrase')], merge),
-    Rule('object', [Tag('DT'), RuleRef('noun')], merge),
-    Rule('object', [Tag('DT'), RuleRef('name')], merge),
-    Rule('object', [Tag('DT'), Tag('JJ'), RuleRef('name')], merge),
-    Rule('object', [Tag('DT'), Tag('JJ'), RuleRef('noun')], merge),
-    Rule('object', [RuleRef('vbn')], merge), # (is) born, (can) fly
+    Rule('object', [RuleRef('adjectives')], merge),
+    Rule('object', [RuleRef('adjectives'), RuleRef('prep-phrase')], merge),
+    Rule('object', [Tag('DT'), RuleRef('adjectives?'), RuleRef('noun')], merge),
+    Rule('object', [Tag('DT'), RuleRef('adjectives?'), RuleRef('name')], merge),
+    # Rule('object', [RuleRef('vbn')], merge), # (is) born, (can) fly
     Rule('object', [RuleRef('object'), RuleRef('vbn')], merge), # a man born in Bermuda
+    Rule('object', [RuleRef('object'), RuleRef('prep-phrase')], merge), # an act of John
+
+    Rule('object', [Tag('VBG'), RuleRef('object')], merge), # encouraging waste
 
     Rule('object', [Tag('JJR?'), Tag('IN'), Tag('CD'), Tag('NN')], merge), # less than 2%
 
