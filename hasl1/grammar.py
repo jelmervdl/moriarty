@@ -578,14 +578,16 @@ en_grammar = Grammar([
 ])
 
 hasl0_grammar = en_grammar + [
-    Rule('minor-claim', [RuleRef('instance'), Tag('VBZ'), RuleRef('object')],
+    Rule('minor-claim', [RuleRef('instance'), Tag('VB[DZ]'), RuleRef('object')],
         lambda state, data: Claim(data[0], data[1], data[2])),
-    Rule('minor-claim', [RuleRef('instance'), Tag('MD'), Tag('VB')],
+    Rule('minor-claim', [RuleRef('instance'), Tag('MD'), Tag('VBN?')],
         lambda state, data: Claim(data[0], data[1], data[2])),
+    Rule('minor-claim', [RuleRef('instance'), Tag('MD'), Tag('VB'), Tag('VBN?')],
+        lambda state, data: Claim(data[0], data[1], data[2] + data[3])),
     
     Rule('major-claim', [Tag('NNS'), Tag('VB[PD]'), RuleRef('object')],
         lambda state, data: Claim(data[0], data[1], data[2])),
-    Rule('major-claim', [Tag('NNS'), Tag('MD'), Tag('VB')],
+    Rule('major-claim', [Tag('NNS'), Tag('MD'), Tag('VBN?')],
         lambda state, data: Claim(data[0], data[1], data[2])),
     
     Rule('claim', [RuleRef('major-claim')], passthru),
