@@ -711,6 +711,39 @@ def hasl1_warranted_support_minor_major(conclusion, because, minors, conj, major
     warrant = Relation('support', [major.root], support)
     return Argument(claims=[conclusion, *minors, *major.claims], relations=[*major.relations, support, warrant])
 
+# a because b and because c?
+# <specific-argument> ::= <specific-claim> <reasons>
+
+# <reasons> ::= <reason-list> `and' <reason>
+
+# <reason-list> ::= <reason-list> `,' <reason>
+# \alt <reason>
+
+# <reason> ::= `because' <specific-argument>
+
+@hasl1_grammar.rule('minor-argument', [RuleRef('minor-claim'), RuleRef('reasons')])
+def hasl1_minr_argument_support_reasons(conclusion, reasons):
+    reasons_claims = reduce(lambda claims, reason: claims + reason, reasons, tuple())
+    supports = list(Relation('support', reason, conclusion) for reason in reasons)
+    return Argument(claims=[conclusion, *reasons_claims], relations=[*supports])
+
+@hasl1_grammar.rule('reasons', [RuleRef('reason-list'), Literal('and'), RuleRef('reason')])
+def hasl1_reasons(reasons, conj, reason):
+    return (*reasons, reason)
+
+@hasl1_grammar.rule('reason-list', [RuleRef('reason-list'), Literal(','), RuleRef('reason')])
+def hasl1_reasonlist_recursive(reasons, conj, reason):
+    return (*reasons, reason)
+
+@hasl1_grammar.rule('reason-list', [RuleRef('reason')])
+def hasl1_reasonlist_base_case(reason):
+    return (reason,)
+
+@hasl1_grammar.rule('reason', [Literal('because'), RuleRef('minor-claims')])
+def hasl1_reason(because, claims):
+    return claims
+
+
 @hasl1_grammar.rule('minor-argument', [RuleRef('minor-claim')])
 def hasl1_minor_claim(minor):
     """a"""
