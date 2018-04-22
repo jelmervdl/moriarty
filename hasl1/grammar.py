@@ -662,7 +662,7 @@ def hasl1_argued_minor_claims_single(minor):
 
 @hasl1_grammar.rule('minor-arguments', [RuleRef('minor-claim-list'), Literal('and'), RuleRef('minor-argument')])
 def hasl1_argued_minor_claims_multiple(list, conj, minor):
-    return Argument(claims=[*list, minor], relations=list.relations)
+    return Argument(claims=[*list, *minor.claims], relations=minor.relations)
 
 @hasl1_grammar.rule('minor-claim-list', [RuleRef('minor-claim')])
 def hasl1_minor_claims_list_single(minor):
