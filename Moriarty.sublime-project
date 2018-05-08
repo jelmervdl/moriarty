@@ -2,15 +2,15 @@
 	"folders":
 	[
 		{
-			"name": "webserver",
-			"path": "./webserver"
+			"name": "HASL/1",
+			"path": "hasl1"
 		},
 		{
-			"name": "grammar",
-			"path": "./grammar"
+			"name": "HASL/2",
+			"path": "hasl2"
 		},
 		{
-			"name": "source",
+			"name": "Root",
 			"path": "."
 		}
 	],
