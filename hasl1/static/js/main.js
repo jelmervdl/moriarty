@@ -258,9 +258,13 @@ jQuery(function($) {
 
                 switch (relation.target.cls) {
                     case 'claim':
+                        if (!(relation.target.id in claims))
+                            throw new Error("Could not find target claim '" + relation.target.id + "'")
                         target = claims[relation.target.id];
                         break;
                     case 'relation':
+                        if (!(relation.target.id in relations))
+                            throw new Error("Could not find target relation '" + relation.target.id + "'")
                         target = relations[relation.target.id];
                         break;
                     default:

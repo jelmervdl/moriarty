@@ -267,7 +267,7 @@ Graph.prototype = {
 	addRelation: function(claim, target, type, data) {
 		if (Array.isArray(claim)) {
 			if (claim.length === 0) {
-				return null;
+				throw new Error('No source claims provided');
 			}
 			else if (claim.length > 1) {
 				// We need a compound statement to merge stuff
