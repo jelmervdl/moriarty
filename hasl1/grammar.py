@@ -200,14 +200,15 @@ class Span(object):
 
 
 class Tag(parser.Symbol):
-    def __init__(self, tag):
+    def __init__(self, tag, exclude = frozenset()):
         self.tag = re.compile(tag)
+        self.exclude = frozenset(exclude)
 
     def __repr__(self):
         return '<{}>'.format(self.tag.pattern)
 
     def test(self, literal, position, state):
-        return self.tag.fullmatch(literal.tag_)
+        return self.tag.fullmatch(literal.tag_) and str(literal) not in self.exclude
 
     def finish(self, literal, position, state):
         return Span(position, position + 1, [literal])
@@ -536,13 +537,15 @@ en_grammar = Grammar([
     Rule('noun', [RuleRef('noun-sg')], merge),
     Rule('noun', [RuleRef('noun-pl')], merge),
 
+    Rule('dt', [Tag('DT', exclude={'no'})], merge),
+    
     Rule('object', [RuleRef('name')], merge),
     Rule('object', [RuleRef('noun')], merge),
     Rule('object', [RuleRef('instance')], lambda state, data: data[0].span),
     Rule('object', [RuleRef('adjectives')], merge),
     Rule('object', [RuleRef('adjectives'), RuleRef('prep-phrase')], merge),
-    Rule('object', [Tag('DT'), RuleRef('adjectives?'), RuleRef('noun')], merge),
-    Rule('object', [Tag('DT'), RuleRef('adjectives?'), RuleRef('name')], merge),
+    Rule('object', [RuleRef('dt'), RuleRef('adjectives?'), RuleRef('noun')], merge),
+    Rule('object', [RuleRef('dt'), RuleRef('adjectives?'), RuleRef('name')], merge),
     # Rule('object', [RuleRef('vbn')], merge), # (is) born, (can) fly
     Rule('object', [RuleRef('object'), RuleRef('vbn')], merge), # a man born in Bermuda
     Rule('object', [RuleRef('object'), RuleRef('prep-phrase')], merge), # an act of John
@@ -551,9 +554,8 @@ en_grammar = Grammar([
 
     Rule('object', [Tag('JJR?'), Tag('IN'), Tag('CD'), Tag('NN')], merge), # less than 2%
 
-    Rule('ability', [Tag('VB')], merge),
-    Rule('ability', [Tag('VB'), RuleRef('object')], merge),
-    Rule('ability', [Tag('VB'), RuleRef('vbn')], merge),
+    Rule('ability', [Tag('VBN?')], merge), # fly, born
+    Rule('ability', [Tag('VBN?'), RuleRef('prep-phrase')], merge), #fly in the air
 
     Rule('prototype-sg', [RuleRef('indef-dt'), RuleRef('noun-sg')], merge),
     Rule('prototype-sg', [RuleRef('indef-dt'), RuleRef('noun-sg'), RuleRef('vbn')], merge),
@@ -581,19 +583,36 @@ en_grammar = Grammar([
 
     Rule('adverbs', [Tag('RB')], merge),
     Rule('adverbs', [RuleRef('adverbs'), Tag('RB')], merge),
+
+    Rule('verb-sg', [Tag('MD')], merge), # can
+    Rule('verb-pl', [Tag('MD')], merge), # can
+    
+    Rule('verb-sg', [Tag('VBZ')], merge), # is, has
+    Rule('verb-pl', [Tag('VBP')], merge), # are, have
+
+    Rule('verb-sg', [Tag('VBD')], merge), # became
+    Rule('verb-pl', [Tag('VBD')], merge), # became
+    
+    Rule('neg-verb-sg', [Tag('MD'), Literal('not')], merge), # can not
+    Rule('neg-verb-pl', [Tag('MD'), Literal('not')], merge), # can not
+    Rule('neg-verb-sg', [Tag('VBZ'), Literal('no')], merge), # has no
+    Rule('neg-verb-pl', [Tag('VBP'), Literal('no')], merge), # have no
 ])
 
 hasl0_grammar = en_grammar + [
-    Rule('minor-claim', [RuleRef('instance'), Tag('VB[DZ]'), RuleRef('object')],
+    Rule('minor-claim', [RuleRef('instance'), RuleRef('verb-sg'), RuleRef('object')], # Tweety has a wing, Tweety is a bird
         lambda state, data: Claim(data[0], data[1], data[2])),
-    Rule('minor-claim', [RuleRef('instance'), Tag('MD'), Tag('VBN?')],
+    Rule('minor-claim', [RuleRef('instance'), RuleRef('verb-sg'), RuleRef('ability')], # Tweety will be born
         lambda state, data: Claim(data[0], data[1], data[2])),
-    Rule('minor-claim', [RuleRef('instance'), Tag('MD'), Tag('VB'), Tag('VBN?')],
-        lambda state, data: Claim(data[0], data[1], data[2] + data[3])),
+
+    Rule('minor-claim', [RuleRef('instance'), RuleRef('neg-verb-sg'), RuleRef('object')], # Tweety has a wing, Tweety is a bird
+        lambda state, data: Claim(data[0], data[1], data[2])),
+    Rule('minor-claim', [RuleRef('instance'), RuleRef('neg-verb-sg'), RuleRef('ability')], # Tweety will be born
+        lambda state, data: Claim(data[0], data[1], data[2])),
     
-    Rule('major-claim', [Tag('NNS'), Tag('VB[PD]'), RuleRef('object')],
+    Rule('major-claim', [Tag('NNS'), RuleRef('verb-pl'), RuleRef('object')],
         lambda state, data: Claim(data[0], data[1], data[2])),
-    Rule('major-claim', [Tag('NNS'), Tag('MD'), Tag('VBN?')],
+    Rule('major-claim', [Tag('NNS'), RuleRef('verb-pl'), RuleRef('ability')],
         lambda state, data: Claim(data[0], data[1], data[2])),
     
     Rule('claim', [RuleRef('major-claim')], passthru),
@@ -694,18 +713,6 @@ def hasl1_minor_claims_list_single(minor):
 def hasl1_minor_claims_list_multiple(list, conj, minor):
     return (*list, minor)
 
-
-@hasl1_grammar.rule('minor-claim', [RuleRef('instance'), Tag('VBZ'), RuleRef('adverbs'), RuleRef('object')])
-def hasl1_minor_claim_vbz_obj(subj, verb, neg, obj):
-    return Claim(subj, verb, obj, negated=True)
-
-@hasl1_grammar.rule('minor-claim', [RuleRef('instance'), Tag('MD'), RuleRef('adverbs'), RuleRef('ability')])
-def hasl1_negated_minor_claim_md_vb(subj, verb, neg, obj):
-    return Claim(subj, verb, obj, negated=True)
-
-@hasl1_grammar.rule('minor-claim', [RuleRef('instance'), Tag('VB[DZ]'), RuleRef('vbn')])
-def hasl1_minor_claim_vbdz_vbn(subj, verb, obj):
-    return Claim(subj, verb, obj)
 
 @hasl1_grammar.rule('minor-argument', [RuleRef('minor-claim'), Literal('because'), RuleRef('minor-arguments')])
 def hasl1_support_minor(conclusion, because, minors):
@@ -823,55 +830,41 @@ class MajorClaim(Claim):
             assumed=self.assumed,
             conditions=tuple(condition.update(mapping) for condition in self.conditions))
 
-@hasl1_grammar.rule('minor-claim', [RuleRef('instance'), Tag('VBZ'), RuleRef('object')])
-def hasl1_minor_claim_vbz_obj(subj, verb, obj):
-    return Claim(subj, verb, obj)
-
-@hasl1_grammar.rule('minor-claim', [RuleRef('instance'), Tag('MD'), Tag('VB')])
-def hasl1_minor_claim_md_vb(subj, verb, obj):
-    return Claim(subj, verb, obj)
-
-@hasl1_grammar.rule('major-claim', [RuleRef('prototype-sg'), Tag('VBZ'), RuleRef('object')])
+@hasl1_grammar.rule('major-claim', [RuleRef('prototype-sg'), RuleRef('verb-sg'), RuleRef('object')])
 def hasl1_major_claim_vbp_obj(cond, verb, obj):
     """Parse major claim as rule: a man is mortal"""
     subj = Entity()
     return MajorClaim(subj, singular_verb(verb), obj, conditions=(Claim(subj, Span(None, None, ['is']), cond),))
 
-@hasl1_grammar.rule('major-claim', [RuleRef('prototype-pl'), Tag('VBP'), RuleRef('object')])
+@hasl1_grammar.rule('major-claim', [RuleRef('prototype-pl'), RuleRef('verb-pl'), RuleRef('object')])
 def hasl1_major_claim_vbp_obj(cond, verb, obj):
     """Parse major claim as rule: men are mortal"""
     subj = Entity()
     return MajorClaim(subj, singular_verb(verb), obj, conditions=(Claim(subj, Span(None, None, ['is']), cond),))
 
-@hasl1_grammar.rule('major-claim', [RuleRef('prototype-sg'), Tag('MD'), RuleRef('ability')])
+@hasl1_grammar.rule('major-claim', [RuleRef('prototype-sg'), RuleRef('verb-sg'), RuleRef('ability')])
 def hasl1_major_claim_mb_vb(cond, verb, obj):
     """Parse major claim as rule: a bird can fly"""
     subj = Entity()
     return MajorClaim(subj, singular_verb(verb), obj, conditions=(Claim(subj, Span(None, None, ['is']), cond),))
 
-@hasl1_grammar.rule('major-claim', [RuleRef('prototype-pl'), Tag('MD'), RuleRef('ability')])
+@hasl1_grammar.rule('major-claim', [RuleRef('prototype-pl'), RuleRef('verb-pl'), RuleRef('ability')])
 def hasl1_major_claim_mb_vb(cond, verb, obj):
     """Parse major claim as rule: birds can fly"""
     subj = Entity()
     return MajorClaim(subj, singular_verb(verb), obj, conditions=(Claim(subj, Span(None, None, ['is']), cond),))
 
-@hasl1_grammar.rule('major-claim', [RuleRef('prototype-pl'), Tag('VBP'), RuleRef('adverbs'), RuleRef('object')])
+@hasl1_grammar.rule('major-claim', [RuleRef('prototype-pl'), RuleRef('verb-neg-pl'), RuleRef('object')])
 def hasl1_negated_major_claim_vbp_obj(cond, verb, neg, obj):
     """Parse major claim as rule: men are not mortal"""
     subj = Entity()
-    return MajorClaim(subj, singular_verb(verb), obj, conditions=(Claim(subj, Span(None, None, ['is']), cond, negated=True),))
+    return MajorClaim(subj, singular_verb(verb), obj, conditions=(Claim(subj, Span(None, None, ['is']), cond),), negated=True)
 
-@hasl1_grammar.rule('major-claim', [RuleRef('prototype-pl'), Tag('MD'), RuleRef('adverbs'), RuleRef('ability')])
+@hasl1_grammar.rule('major-claim', [RuleRef('prototype-pl'), RuleRef('verb-neg-pl'), RuleRef('ability')])
 def hasl1_negated_major_claim_mb_vb(cond, verb, neg, obj):
     """Parse major claim as rule: birds can not fly"""
     subj = Entity()
-    return MajorClaim(subj, singular_verb(verb), obj, conditions=(Claim(subj, Span(None, None, ['is']), cond, negated=True),))
-
-@hasl1_grammar.rule('major-claim', [RuleRef('prototype-sg'), Tag('MD'), RuleRef('adverbs'), RuleRef('ability')])
-def hasl1_negated_major_claim_mb_vb(cond, verb, neg, obj):
-    """Parse major claim as rule: a bird can not fly"""
-    subj = Entity()
-    return MajorClaim(subj, singular_verb(verb), obj, conditions=(Claim(subj, Span(None, None, ['is']), cond, negated=True),))
+    return MajorClaim(subj, singular_verb(verb), obj, conditions=(Claim(subj, Span(None, None, ['is']), cond),), negated=True)
 
 ##
 ## Real enthymeme resolution rules
