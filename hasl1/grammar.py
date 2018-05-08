@@ -362,6 +362,7 @@ class Relation(object):
         self.type = type
         
         assert all(isinstance(source, Claim) for source in sources)
+        assert len(sources) > 0
         self.sources = tuple(sources)
 
         assert isinstance(target, Claim) or isinstance(target, Relation)
@@ -404,7 +405,11 @@ class Argument(object):
 
     @property
     def roots(self):
-        return [claim for claim in self.claims if all(claim not in relation.sources for relation in self.relations)]
+        roots = [claim for claim in self.claims if all(claim not in relation.sources for relation in self.relations)]
+        if len(roots) == 0:
+            print(repr(self))
+            raise Exception('Cannot determine roots of argument')
+        return roots
 
     @property
     def root(self):
