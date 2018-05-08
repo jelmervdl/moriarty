@@ -40,6 +40,7 @@ def singular_verb(verb):
     mapping = {
         'are': 'is',
         'can': 'can',
+        'have': 'has',
     }
     singular = mapping[verb.text] if verb.text in mapping else verb.tokens[0].lemma_ + 's'
     return Span(verb.start, verb.end, [singular])
