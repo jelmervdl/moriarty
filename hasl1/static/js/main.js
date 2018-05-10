@@ -191,7 +191,7 @@ jQuery(function($) {
 
     function treeElement(tree) {
         const label = typeof tree.label === 'string'
-            ? $('<span>').text(tree.label)
+            ? $('<span>').text(tree.label).prop('title', tree.tooltip)
             : $('<span>').text(tree.label.text).prop('title', tree.label.tag);
         const leaf = $('<li>').append(label).data('state', tree.data);
 
@@ -232,7 +232,7 @@ jQuery(function($) {
         var claims = {}, relations = {};
 
         state.claims.forEach(function(claim) {
-            claims[claim.id] = graph.addClaim(claim.text, {assumption: claim.assumption, scope: claim.scope});
+            claims[claim.id] = graph.addClaim(claim.text, {assumption: claim.assumption, scope: claim.scope, tooltip: claim.tooltip});
         });
 
         // Make sure we first do all relations targeting claims, and only then

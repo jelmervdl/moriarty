@@ -6,6 +6,8 @@ from typing import List, Optional, Any, Callable, Union, cast
 from collections import OrderedDict
 import functools
 import re
+import inspect
+import os
 
 import traceback
 
@@ -150,14 +152,22 @@ class RuleRef(Symbol):
 
 
 class Rule:
-    def __init__(self, name: str, symbols: List[Symbol], callback: Optional[Callable[[Any, int], Any]] = None) -> None:
+    def __init__(self, name: str, symbols: List[Symbol], callback: Optional[Callable[[Any, int], Any]] = None, file=None, line=None) -> None:
         self.name = name
         self.symbols = symbols
         if callback is not None:
             self.callback = callback
         else:
             self.callback = lambda state, data: RuleInstance(self, data)  # flatten(data)
-
+        if file is not None or line is not None:
+            self.file = file
+            self.line = line
+        else:
+            previous_frame = inspect.currentframe().f_back
+            (filename, line_number, function_name, lines, index) = inspect.getframeinfo(previous_frame)
+            self.file = filename
+            self.line = line_number
+        
     def __repr__(self, with_cursor_at: int = None) -> str:
         if with_cursor_at is not None:
             return "{} ⇒ {} ● {}".format(
@@ -166,6 +176,13 @@ class Rule:
                 " ".join(map(repr, self.symbols[with_cursor_at:])))
         else:
             return "{} ⇒ {}".format(self.name, " ".join(map(repr, self.symbols)))
+
+    @property
+    def tooltip(self):
+        return "{file}: {line}\n{repr}".format(
+            file=os.path.relpath(self.file, os.path.dirname(__file__)),
+            line=self.line,
+            repr=repr(self))
 
     def consume(self, state: 'State'):
         return self
@@ -214,6 +231,7 @@ class State:
     def tree(self):
         return {
             'label': self.rule.name,
+            'tooltip': self.rule.tooltip,
             # 'data': self.data,
             'nodes': [child.tree if isinstance(child, State) else {'label': child} for child in self.inp]
         }

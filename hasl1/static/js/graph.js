@@ -436,6 +436,9 @@ Graph.prototype = {
 					this.selectedClaims = [];
 					this.update();
 				}
+				else if (claim) {
+					console.log(claim);
+				}
 			}
 		}
 		else if (this.selectedClaims.length > 0) {

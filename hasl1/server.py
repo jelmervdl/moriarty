@@ -54,7 +54,8 @@ class JSONEncoder(flask.json.JSONEncoder):
                 'cls': 'claim',
                 'id': id(o),
                 'assumption': o.assumed,
-                'text': str(o)
+                'text': str(o),
+                'tooltip': o.tooltip
             }
         elif isinstance(o, Relation):
             return {
