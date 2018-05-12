@@ -593,15 +593,18 @@ en_grammar = Grammar([
     Rule('adverbs', [Tag('RB')], merge),
     Rule('adverbs', [RuleRef('adverbs'), Tag('RB')], merge),
 
-    Rule('verb-sg', [Tag('MD'), Tag('VB')], merge), # can fly
-    Rule('verb-pl', [Tag('MD'), Tag('VB')], merge), # can fly
-    
     Rule('verb-sg', [Tag('VBZ')], merge), # is, has
     Rule('verb-pl', [Tag('VBP')], lambda state, data: singular_verb(data[0])), # are, have
 
     Rule('verb-sg', [Tag('VBD')], merge), # became
     Rule('verb-pl', [Tag('VBD')], merge), # became
 
+    Rule('verb-sg', [Tag('MD'), Tag('VB')], merge), # can fly
+    Rule('verb-pl', [Tag('MD'), Tag('VB')], merge), # can fly
+
+    Rule('verb-sg', [Tag('MD'), Tag('VB'), Tag('VBN')], merge), # should be abolished
+    Rule('verb-pl', [Tag('MD'), Tag('VB'), Tag('VBN')], merge), # should be abolished
+    
     Rule('verb-sg', [Tag('VBZ'), Tag('VBN')], merge), # has eaten
     Rule('verb-pl', [Tag('VBP'), Tag('VBN')], lambda state, data: singular_verb(data[0]) + data[1]), # are, have eaten
     
