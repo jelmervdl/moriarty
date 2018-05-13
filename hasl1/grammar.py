@@ -543,7 +543,7 @@ en_grammar = Grammar([
         lambda state, data: Entity(noun=data[0] + data[1] + data[2])),
     Rule('instance', [RuleRef('def-dt'), RuleRef('adjectives?'), RuleRef('noun'), RuleRef('prep-phrase')],
         lambda state, data: Entity(noun=data[0] + data[1] + data[2] + data[3])),
-    Rule('instance', [Tag('PRP\\$'), Tag('NNP?')], # his name
+    Rule('instance', [Tag('PRP\\$'), RuleRef('noun')], # his name
         lambda state, data: Entity(noun=data[0] + data[1])),
 
     Rule('adjectives?', [RuleRef('adjectives')], merge),
@@ -553,10 +553,10 @@ en_grammar = Grammar([
     Rule('adjectives', [Tag('JJ'), RuleRef('adjectives')], merge),
 
     Rule('noun-sg', [Tag('NN')], merge),
-    Rule('noun-sg', [Tag('NN'), RuleRef('noun-sg')], merge),
+    Rule('noun-sg', [RuleRef('noun'), Tag('NN')], merge),
 
     Rule('noun-pl', [Tag('NNS')], merge),
-    Rule('noun-pl', [Tag('NNS'), RuleRef('noun-pl')], merge),
+    Rule('noun-pl', [RuleRef('noun'), Tag('NNS')], merge),
 
     Rule('noun', [RuleRef('noun-sg')], merge),
     Rule('noun', [RuleRef('noun-pl')], merge),
@@ -572,8 +572,6 @@ en_grammar = Grammar([
     Rule('noun-phrase', [RuleRef('name')], merge),
     Rule('noun-phrase', [RuleRef('noun')], merge),
     Rule('noun-phrase', [RuleRef('instance')], lambda state, data: data[0].span),
-    Rule('noun-phrase', [RuleRef('adjectives')], merge),
-    Rule('noun-phrase', [RuleRef('adjectives'), RuleRef('prep-phrase')], merge),
     Rule('noun-phrase', [RuleRef('dt'), RuleRef('adjectives?'), RuleRef('noun')], merge),
     Rule('noun-phrase', [RuleRef('dt'), RuleRef('adjectives?'), RuleRef('name')], merge),
     # Rule('noun-phrase', [RuleRef('vbn')], merge), # (is) born, (can) fly
@@ -599,9 +597,7 @@ en_grammar = Grammar([
     Rule('prep-phrase?', [RuleRef('prep-phrase')], passthru),
     Rule('prep-phrase?', [], empty),
 
-    Rule('prep-phrase', [Tag('IN'), Tag('NNP')], merge), # for "In Bermuda"
     Rule('prep-phrase', [Tag('IN'), RuleRef('noun-phrase')], merge), # for "by a red light"
-    # Rule('prep-phrase', [RuleRef('adverbs'), Tag('TO'), Tag('VB'), RuleRef('noun-phrase')], merge),
 
     Rule('that-phrase-sg?', [RuleRef('that-phrase-sg')], passthru),
     Rule('that-phrase-sg?', [], empty),
@@ -617,9 +613,6 @@ en_grammar = Grammar([
     Rule('sentences',   [RuleRef('sentences'), RuleRef('sentence')], lambda state, data: data[0] + data[1]),
     Rule('sentences',   [RuleRef('sentence')], passthru),
     Rule('sentence',    [RuleRef('argument'), Literal('.')], passthru),
-
-    Rule('adverbs', [Tag('RB')], merge),
-    Rule('adverbs', [RuleRef('adverbs'), Tag('RB')], merge),
 
     Rule('verb-sg', [Tag('VBZ')], merge), # is, has, appears
     Rule('verb-pl', [Tag('VBP')], lambda state, data: singular_verb(data[0])), # are, have
@@ -652,6 +645,8 @@ en_grammar = Grammar([
     Rule('verb-phrase-pl', [RuleRef('verb-pl'), RuleRef('adjectives')], merge), # appear red
 
     Rule('neg-verb-phrase-sg', [RuleRef('neg-verb-sg'), RuleRef('noun-phrase?')], merge), # cannot fly a plane
+
+    Rule('neg-verb-phrase-pl', [RuleRef('neg-verb-pl'), RuleRef('noun-phrase?')], merge), # cannot fly a plane
 ])
 
 hasl0_grammar = en_grammar + [
