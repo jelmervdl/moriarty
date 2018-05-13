@@ -537,7 +537,7 @@ en_grammar = Grammar([
     
     Rule('instance', [RuleRef('name')],
         lambda state, data: Entity(name=data[0])),
-    Rule('instance', [Tag('PRP')],
+    Rule('instance', [Tag('PRP')], # "I"
         lambda state, data: Entity(pronoun=data[0])),
     Rule('instance', [RuleRef('def-dt'), RuleRef('adjectives?'), RuleRef('noun')],
         lambda state, data: Entity(noun=data[0] + data[1] + data[2])),
@@ -561,7 +561,13 @@ en_grammar = Grammar([
     Rule('noun', [RuleRef('noun-sg')], merge),
     Rule('noun', [RuleRef('noun-pl')], merge),
 
+    Rule('dt?', [RuleRef('dt')], passthru), # Matches the optional qualifier (i.e. all, some, most)
+    Rule('dt?', [], empty), # And matches if there is no qualifier
+
     Rule('dt', [Tag('DT', exclude={'no'})], merge),
+
+    Rule('noun-phrase?', [RuleRef('noun-phrase')], passthru),
+    Rule('noun-phrase?', [], empty),
     
     Rule('noun-phrase', [RuleRef('name')], merge),
     Rule('noun-phrase', [RuleRef('noun')], merge),
@@ -578,25 +584,35 @@ en_grammar = Grammar([
 
     Rule('noun-phrase', [Tag('JJR?'), Tag('IN'), Tag('CD'), Tag('NN')], merge), # less than 2%
 
-    Rule('prototype-sg', [RuleRef('indef-dt'), RuleRef('noun-sg')], merge),
-    Rule('prototype-sg', [RuleRef('indef-dt'), RuleRef('noun-sg'), RuleRef('vbn')], merge),
-
-    Rule('prototype-pl', [RuleRef('noun-pl')], lambda state, data: Span(None, None, ['a']) + data[0].map(english.singularize)),
-    Rule('prototype-pl', [RuleRef('noun-pl'), RuleRef('vbn')], lambda state, data: Span(None, None, ['a']) + data[0].map(english.singularize) + data[1]),
-    Rule('prototype-pl', [RuleRef('noun-pl'), RuleRef('prep-phrase')], lambda state, data: Span(None, None, ['a']) + data[0].map(english.singularize) + data[1]),
+    Rule('prototype-sg', [RuleRef('indef-dt'), RuleRef('adjectives?'), RuleRef('noun-sg'), RuleRef('vbn')], merge),
+    Rule('prototype-sg', [RuleRef('indef-dt'), RuleRef('adjectives?'), RuleRef('noun-sg'), RuleRef('prep-phrase?'), RuleRef('that-phrase-sg?')], merge),
+    
+    Rule('prototype-pl', [RuleRef('dt?'), RuleRef('adjectives?'), RuleRef('noun-pl'), RuleRef('vbn')],
+        lambda state, data: Span(None, None, ['a']) + data[1] + data[2].map(english.singularize) + data[3]),
+    
+    Rule('prototype-pl', [RuleRef('dt?'), RuleRef('adjectives?'), RuleRef('noun-pl'), RuleRef('prep-phrase?')],
+        lambda state, data: Span(None, None, ['a']) + data[1] + data[2].map(english.singularize) + data[3]),
 
     Rule('vbn', [Tag('VBN')], passthru),
     Rule('vbn', [Tag('VBN'), RuleRef('prep-phrase')], merge),
+
+    Rule('prep-phrase?', [RuleRef('prep-phrase')], passthru),
+    Rule('prep-phrase?', [], empty),
 
     Rule('prep-phrase', [Tag('IN'), Tag('NNP')], merge), # for "In Bermuda"
     Rule('prep-phrase', [Tag('IN'), RuleRef('noun-phrase')], merge), # for "by a red light"
     # Rule('prep-phrase', [RuleRef('adverbs'), Tag('TO'), Tag('VB'), RuleRef('noun-phrase')], merge),
 
-    Rule('def-dt', [Literal('The')], passthru),
-    Rule('def-dt', [Literal('the')], passthru),
-    Rule('def-dt', [Literal('this')], passthru),
+    Rule('that-phrase-sg?', [RuleRef('that-phrase-sg')], passthru),
+    Rule('that-phrase-sg?', [], empty),
 
-    Rule('indef-dt', [Literal('a')], passthru),
+    Rule('that-phrase-sg', [Tag('WDT'), RuleRef('verb-phrase-sg')], merge), # "that appears red"
+    Rule('that-phrase-pl', [Tag('WDT'), RuleRef('verb-phrase-pl')], merge), # "that appear red"
+
+    Rule('def-dt', [Literal('[Tt]he')], passthru),
+    Rule('def-dt', [Literal('[Tt]his')], passthru),
+
+    Rule('indef-dt', [Literal('[Aa]n?')], passthru),
 
     Rule('sentences',   [RuleRef('sentences'), RuleRef('sentence')], lambda state, data: data[0] + data[1]),
     Rule('sentences',   [RuleRef('sentence')], passthru),
@@ -605,7 +621,7 @@ en_grammar = Grammar([
     Rule('adverbs', [Tag('RB')], merge),
     Rule('adverbs', [RuleRef('adverbs'), Tag('RB')], merge),
 
-    Rule('verb-sg', [Tag('VBZ')], merge), # is, has
+    Rule('verb-sg', [Tag('VBZ')], merge), # is, has, appears
     Rule('verb-pl', [Tag('VBP')], lambda state, data: singular_verb(data[0])), # are, have
 
     Rule('verb-sg', [Tag('VBD')], merge), # became
@@ -619,20 +635,23 @@ en_grammar = Grammar([
     
     Rule('verb-sg', [Tag('VBZ'), Tag('VBN')], merge), # has eaten
     Rule('verb-pl', [Tag('VBP'), Tag('VBN')], lambda state, data: singular_verb(data[0]) + data[1]), # are, have eaten
+
+    Rule('verb-sg', [Tag('VBZ'), Tag('VBN'), Tag('VBN')], merge), # has become naturalized
+    Rule('verb-pl', [Tag('VBP'), Tag('VBN'), Tag('VBN')], lambda state, data: singular_verb(data[0]) + data[1] + data[2]), # have become naturalized
     
-    Rule('neg-verb-sg', [Tag('MD'), Literal('not')], merge), # can not
-    Rule('neg-verb-pl', [Tag('MD'), Literal('not')], merge), # can not
+    Rule('neg-verb-sg', [Tag('MD'), Literal('not'), Tag('VB')], merge), # can not fly, should not swim
+    Rule('neg-verb-pl', [Tag('MD'), Literal('not'), Tag('VB')], merge), # can not fly
 
     Rule('neg-verb-sg', [Tag('VBZ'), Literal('not?')], merge), # has no, is not
     Rule('neg-verb-pl', [Tag('VBP'), Literal('no')], lambda state, data: singular_verb(data[0]) + data[1]), # have no
 
-    Rule('verb-phrase-sg', [RuleRef('verb-sg')], merge), # can fly
-    Rule('verb-phrase-pl', [RuleRef('verb-pl')], merge), # can fly
+    Rule('verb-phrase-sg', [RuleRef('verb-sg'), RuleRef('noun-phrase?'), RuleRef('prep-phrase?')], merge), # can fly (a plane) (in the sky)
+    Rule('verb-phrase-pl', [RuleRef('verb-pl'), RuleRef('noun-phrase?'), RuleRef('prep-phrase?')], merge),
 
-    Rule('verb-phrase-sg', [RuleRef('verb-sg'), RuleRef('noun-phrase')], merge), # can fly a plane
-    Rule('verb-phrase-pl', [RuleRef('verb-pl'), RuleRef('noun-phrase')], merge),
+    Rule('verb-phrase-sg', [RuleRef('verb-sg'), RuleRef('adjectives')], merge), # appears red
+    Rule('verb-phrase-pl', [RuleRef('verb-pl'), RuleRef('adjectives')], merge), # appear red
 
-    Rule('neg-verb-phrase-sg', [RuleRef('neg-verb-sg'), RuleRef('noun-phrase')], merge), # cannot fly a plane
+    Rule('neg-verb-phrase-sg', [RuleRef('neg-verb-sg'), RuleRef('noun-phrase?')], merge), # cannot fly a plane
 ])
 
 hasl0_grammar = en_grammar + [
