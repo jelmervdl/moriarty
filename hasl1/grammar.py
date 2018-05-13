@@ -686,7 +686,7 @@ hasl0_grammar = en_grammar + [
 
 @hasl0_grammar.rule('support', [RuleRef('claim'), Literal('because'), RuleRef('minor-claims')])
 def support(conclusion, marker, minors):
-    """a <- b+"""
+    """a <~ b+"""
     return Argument(claims=(conclusion,) + minors, relations=(Relation('support', minors, conclusion),))
 
 @hasl0_grammar.rule('attack', [RuleRef('claim'), Literal('but'), RuleRef('minor-claims')])
@@ -696,42 +696,42 @@ def support(conclusion, marker, minors):
 
 @hasl0_grammar.rule('warranted-support', [RuleRef('claim'), Literal('because'), RuleRef('minor-claim-list'), Literal('and'), RuleRef('major-claim')])
 def warranted_support_minor_major(conclusion, marker, minors, conj, major):
-    """(a <- b+) <- c"""
+    """(a <~ b+) <~ c"""
     support = Relation('support', minors, conclusion)
     warrant = Relation('support', (major,), support)
     return Argument(claims=(conclusion, *minors, major), relations=(support, warrant))
 
 @hasl0_grammar.rule('warranted-support', [RuleRef('claim'), Literal('because'), RuleRef('major-claim'), Literal('and'), RuleRef('minor-claims')])
 def warranted_support_major_minor(conclusion, marker, major, conj, minors):
-    """(a <- c+) <- b"""
+    """(a <~ c+) <~ b"""
     support = Relation('support', minors, conclusion)
     warrant = Relation('support', (major,), support)
     return Argument(claims=(conclusion, major, *minors), relations=(support, warrant))
 
 @hasl0_grammar.rule('warranted-attack', [RuleRef('claim'), Literal('because'), RuleRef('minor-claim-list'), Literal('and'), RuleRef('major-claim')])
 def warranted_attack_minor_major(conclusion, marker, minors, conj, major):
-    """(a <- b+) <- c"""
+    """(a <~ b+) <~ c"""
     attack = Relation('attack', minors, conclusion)
     warrant = Relation('support', (major,), attack)
     return Argument(claims=(conclusion, *minors, major), relations=(attack, warrant))
 
 @hasl0_grammar.rule('warranted-attack', [RuleRef('claim'), Literal('because'), RuleRef('major-claim'), Literal('and'), RuleRef('minor-claims')])
 def warranted_attack_major_minor(conclusion, marker, major, conj, minors):
-    """(a <- c+) <- b"""
+    """(a <~ c+) <~ b"""
     attack = Relation('attack', minors, conclusion)
     warrant = Relation('support', (major,), attack)
     return Argument(claims=(conclusion, major, *minors), relations=(attack, warrant))
 
 
 """
-> (a because b) but c: (a<-b)<-c
+> (a because b) but c: (a<~b)<~c
 Tweety is a bird because Tweety can fly but planes can also fly
 Tweety is a bird because Tweety can fly but Tweety was thrown
 Conclusie: zinloos om iets achter te zetten -> geval apart. Also de enige manier om deze te construeren.
 """
 @hasl0_grammar.rule('undercutter', [RuleRef('claim'), Literal('because'), RuleRef('minor-claims'), Literal('but'), RuleRef('claim')])
 def undercutter(conclusion, because, minors, but, attack):
-    """(a <- b+) *- c (c can be both minor and major)"""
+    """(a <~ b+) *- c (c can be both minor and major)"""
     support = Relation('support', minors, conclusion)
     undercutter = Relation('attack', (attack,), support)
     return Argument(claims=(conclusion, *minors, attack), relations=(support, undercutter))
@@ -766,26 +766,26 @@ def hasl1_minor_claims_list_multiple(list, conj, minor):
 
 @hasl1_grammar.rule('minor-argument', [RuleRef('minor-claim'), Literal('because'), RuleRef('minor-arguments')])
 def hasl1_support_minor(conclusion, because, minors):
-    """a <- b+"""
+    """a <~ b+"""
     support = Relation('support', minors.roots, conclusion)
     return Argument(claims=[conclusion, *minors.claims], relations=[support, *minors.relations])
 
 @hasl1_grammar.rule('major-argument', [RuleRef('major-claim'), Literal('because'), RuleRef('minor-arguments')])
 def hasl1_support_major(conclusion, because, minors):
-    """A <- b+"""
+    """A <~ b+"""
     support = Relation('support', minors.roots, conclusion)
     return Argument(claims=[conclusion, *minors.claims], relations=[support, *minors.relations])
 
 @hasl1_grammar.rule('minor-argument', [RuleRef('minor-claim'), Literal('because'), RuleRef('major-claim'), Literal('and'), RuleRef('minor-arguments')])
 def hasl1_warranted_support_major_minor(conclusion, because, major, conj, minors):
-    """(a <- c) <- B"""
+    """(a <~ c) <~ B"""
     support = Relation('support', minors.roots, conclusion)
     warrant = Relation('support', [major], support)
     return Argument(claims=[conclusion, major, *minors.claims], relations=[support, warrant, *minors.relations])
 
 @hasl1_grammar.rule('minor-argument', [RuleRef('minor-claim'), Literal('because'), RuleRef('minor-claim-list'), Literal('and'), RuleRef('major-argument')])
 def hasl1_warranted_support_minor_major(conclusion, because, minors, conj, major):
-    """(a <- b) <- C"""
+    """(a <~ b) <~ C"""
     support = Relation('support', minors, conclusion)
     warrant = Relation('support', [major.root], support)
     return Argument(claims=[conclusion, *minors, *major.claims], relations=[*major.relations, support, warrant])
@@ -957,19 +957,19 @@ def hasl1_support_major_missing_conclusion(minors, conj, major):
     return Argument(claims=[*minors, *expected_minors, *major.claims, conclusion], relations=[*major.relations, support, warrant])
 
 """
-> a because (b but c): a<-b; b*-c
+> a because (b but c): a<~b; b*-c
 Tweety can fly because Tweety is a bird but Tweety is a dog.
 Tweety can fly because Tweety is a bird but Tweety is a dog because birds do not have teeth because they have a beak.
 -> a because (b but (c because (d because e)))
 Conclusie: b but c returnt b.
 
-> (a because b).conclusion but c: a<-b; a*-c
+> (a because b).conclusion but c: a<~b; a*-c
 Tweety can fly because Tweety is a bird but Tweety is a penguin because Tweety has these features.
 (a because b).conclusion but (c because d).conclusion
 Conclusie: a because b returnt a.
 
 en eigenlijk ook nog
-a because b but c: (a<-x)<-b & alle bovenstaande varianten?
+a because b but c: (a<~x)<~b & alle bovenstaande varianten?
 
 (a because (b because (c because d)))
 """
