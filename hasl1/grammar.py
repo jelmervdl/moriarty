@@ -935,6 +935,10 @@ def hasl1_support_major_missing_minor(conclusion, because, major):
 
 @hasl1_grammar.rule('minor-argument', [RuleRef('minor-claim'), Literal('because'), RuleRef('minor-arguments')])
 def hasl1_support_major_missing_major(conclusion, because, minors):
+    # Special case: if the minor is the conclusion, but only assumed, just pass it on including the conclusion
+    # which will override the assumed conclusion.
+    if len(minors.roots) == 1 and minors.root == conclusion:
+        return Argument(claims=[conclusion, *minors.claims], relations=minors.relations)
     subj = Entity()
     conditions = [Claim(subj, minor.verb, negated=minor.negated, assumed=True) for minor in minors.roots]
     major = MajorClaim(subj, conclusion.verb, negated=conclusion.negated, conditions=tuple(conditions), assumed=True)
