@@ -657,7 +657,7 @@ en_grammar = Grammar([
 hasl0_grammar = en_grammar + [
     Rule('minor-claim', [RuleRef('instance'), RuleRef('verb-phrase-sg')], # Tweety has a wing, Tweety is a bird
         lambda state, data: Claim(data[0], data[1])),
-    Rule('minor-claim', [RuleRef('instance'), RuleRef('neg-vp-sg')], # Tweety has a wing, Tweety is a bird
+    Rule('minor-claim', [RuleRef('instance'), RuleRef('neg-verb-phrase-sg')], # Tweety has a wing, Tweety is a bird
         lambda state, data: Claim(data[0], data[1], negated=True)),
     
     Rule('major-claim', [RuleRef('prototype-sg'), RuleRef('verb-phrase-sg')],
