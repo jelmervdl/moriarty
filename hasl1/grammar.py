@@ -28,6 +28,10 @@ def merge(state, data):
     return reduce(operator.__add__, data)
 
 
+def empty(state, data):
+    return Span()
+
+
 def indent(text, prefix='\t'):
     return '\n'.join(prefix + line for line in text.split('\n'))
 
@@ -340,7 +344,7 @@ class Claim(object):
         return "{subj} {verb}".format(neg="not " if self.negated else "", **self.__dict__)
 
     def __repr__(self):
-        return "{ass}{neg}{subj!r} {verb!r}".format(ass="assume " if self.assumed else "", neg = "not " if self.negated else "", **self.__dict__)
+        return "{ass}{subj} {verb} ({file}:{line})".format(ass="assume " if self.assumed else "", neg = "not " if self.negated else "", **self.__dict__)
 
     def __hash__(self):
         return hash(str(self))
@@ -369,7 +373,7 @@ class Relation(object):
         'support': '~>'
     }
 
-    def __init__(self, type, sources, target):
+    def __init__(self, type, sources, target, file=None, line=None):
         assert type in self.arrows
         self.type = type
         
@@ -380,11 +384,18 @@ class Relation(object):
         assert isinstance(target, Claim) or isinstance(target, Relation)
         self.target = target
 
+        if file is not None:
+            self.file = file
+            self.line = line
+        else:
+            previous_frame = inspect.currentframe().f_back
+            (self.file, self.line, *_) = inspect.getframeinfo(previous_frame)
+
     def __str__(self):
         return "({} {} {})".format(' ^ '.join(str(s) for s in self.sources), self.arrows[self.type], self.target)
 
     def __repr__(self):
-        return "{} ({!r}) {} ({!r})".format(self.type, self.sources, self.arrows[self.type], self.target)
+        return "({} {} {}) ({}:{})".format(self.sources, self.arrows[self.type], self.target, self.file, self.line)
 
     def __hash__(self):
         return hash((self.type, self.sources, self.target))
@@ -398,7 +409,8 @@ class Relation(object):
     def update(self, mapping):
         return Relation(self.type,
             sources = tuple(mapping[source] for source in self.sources),
-            target = mapping[self.target])
+            target = mapping[self.target],
+            file = self.file, line = self.line)
 
 
 class Consolidation(NamedTuple):
@@ -417,7 +429,7 @@ class Argument(object):
 
     @property
     def roots(self):
-        roots = [claim for claim in self.claims if all(claim not in relation.sources for relation in self.relations)]
+        roots = [claim for claim in self.claims if all(claim not in relation.sources or all(source == relation.target for source in relation.sources) for relation in self.relations)]
         if len(roots) == 0:
             print(repr(self))
             raise Exception('Cannot determine roots of argument')
@@ -429,8 +441,8 @@ class Argument(object):
 
     def __repr__(self):
         return "Claims:\n{}\nRelations:\n{}".format(
-            indent("\n".join(str(p) for p in self.claims), "  "),
-            indent("\n".join(str(r) for r in self.relations), "  "))
+            indent("\n".join(repr(p) for p in self.claims), "  "),
+            indent("\n".join(repr(r) for r in self.relations), "  "))
 
     def __add__(self, other):
         return self.__class__(claims = self.claims + other.claims, relations = self.relations + other.relations)
@@ -535,7 +547,7 @@ en_grammar = Grammar([
         lambda state, data: Entity(noun=data[0] + data[1])),
 
     Rule('adjectives?', [RuleRef('adjectives')], merge),
-    Rule('adjectives?', [], lambda state, data: Span()),
+    Rule('adjectives?', [], empty),
 
     Rule('adjectives', [Tag('JJ')], merge),
     Rule('adjectives', [Tag('JJ'), RuleRef('adjectives')], merge),
