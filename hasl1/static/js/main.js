@@ -381,38 +381,38 @@ jQuery(function($) {
         }));
     }
 
-    function parsePanel(sentence, response)
-    {
-        return $('<div>')
+    function parseSentence(sentence, grammar, location) {
+        var panel = $('<div>')
             .addClass('parse panel panel-default dismissible')
             .append($('<div class="panel-heading">')
                 .append(closeButton())
-                .append(editButton(sentence, response.grammar || null))
-                .append(repeatButton(sentence, response.grammar || null))
-                .append(starButton(sentence, response.grammar || null))
-                .append(stringifyTokens(response.tokens || []))
+                .append(editButton(sentence, grammar || null))
+                .append(repeatButton(sentence, grammar || null))
+                .append(starButton(sentence, grammar || null))
                 .on('dblclick', function(e) {
                     e.preventDefault();
                     $(this).parent().find('.panel-collapse').collapse('toggle');
                 }));
-    }
 
-    function parseSentence(sentence, grammar, location) {
+        if (location) {
+            location.replaceWith(panel);
+        } else {
+            $('#parses').prepend(panel);
+        }
+
+        const body = $('<div class="panel-collapse collapse in">').appendTo(panel);
+
+        body.append('<span class="loading">Loading…</span>');
+
         $.get($('#parse-sentence-form').attr('action'), {sentence: sentence, grammar: grammar}, 'json')
             .always(function(response, status) {
                 // No consistency :(
                 if (status == 'error')
                     response = response.responseJSON || {};
 
-                var panel = parsePanel(sentence, response);
+                panel.find('.panel-heading').append(stringifyTokens(response.tokens || []));
 
-                if (location) {
-                    location.replaceWith(panel);
-                } else {
-                    $('#parses').prepend(panel);
-                }
-
-                const body = $('<div class="panel-collapse collapse in">').appendTo(panel);
+                body.empty();
 
                 if (response.warning)
                     alert(response.warning);
