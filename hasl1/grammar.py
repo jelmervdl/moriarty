@@ -655,27 +655,27 @@ en_grammar = Grammar([
 ])
 
 hasl0_grammar = en_grammar + [
-    Rule('minor-claim', [RuleRef('instance'), RuleRef('verb-phrase-sg')], # Tweety has a wing, Tweety is a bird
+    Rule('specific-claim', [RuleRef('instance'), RuleRef('verb-phrase-sg')], # Tweety has a wing, Tweety is a bird
         lambda state, data: Claim(data[0], data[1])),
-    Rule('minor-claim', [RuleRef('instance'), RuleRef('neg-verb-phrase-sg')], # Tweety has a wing, Tweety is a bird
+    Rule('specific-claim', [RuleRef('instance'), RuleRef('neg-verb-phrase-sg')], # Tweety has a wing, Tweety is a bird
         lambda state, data: Claim(data[0], data[1], negated=True)),
     
-    Rule('major-claim', [RuleRef('prototype-sg'), RuleRef('verb-phrase-sg')],
+    Rule('general-claim', [RuleRef('prototype-sg'), RuleRef('verb-phrase-sg')],
         lambda state, data: Claim(data[0], data[1])),
-    Rule('major-claim', [RuleRef('prototype-pl'), RuleRef('verb-phrase-pl')],
+    Rule('general-claim', [RuleRef('prototype-pl'), RuleRef('verb-phrase-pl')],
         lambda state, data: Claim(data[0], data[1])),
     
-    Rule('claim', [RuleRef('major-claim')], passthru),
-    Rule('claim', [RuleRef('minor-claim')], passthru),
+    Rule('claim', [RuleRef('general-claim')], passthru),
+    Rule('claim', [RuleRef('specific-claim')], passthru),
 
 
-    Rule('minor-claims', [RuleRef('minor-claim')],
+    Rule('specific-claims', [RuleRef('specific-claim')],
         lambda state, data: (data[0],)),
-    Rule('minor-claims', [RuleRef('minor-claim-list'), Literal('and'), RuleRef('minor-claim')],
+    Rule('specific-claims', [RuleRef('specific-claim-list'), Literal('and'), RuleRef('specific-claim')],
         lambda state, data: (*data[0], data[2])),
-    Rule('minor-claim-list', [RuleRef('minor-claim')],
+    Rule('specific-claim-list', [RuleRef('specific-claim')],
         lambda state, data: (data[0],)),
-    Rule('minor-claim-list', [RuleRef('minor-claim-list'), Literal(','), RuleRef('minor-claim')],
+    Rule('specific-claim-list', [RuleRef('specific-claim-list'), Literal(','), RuleRef('specific-claim')],
         lambda state, data: (*data[0], data[2])),
 
     Rule('argument',    [RuleRef('support')], passthru),
@@ -684,43 +684,43 @@ hasl0_grammar = en_grammar + [
     Rule('argument',    [RuleRef('undercutter')], passthru),
 ]
 
-@hasl0_grammar.rule('support', [RuleRef('claim'), Literal('because'), RuleRef('minor-claims')])
-def support(conclusion, marker, minors):
+@hasl0_grammar.rule('support', [RuleRef('claim'), Literal('because'), RuleRef('specific-claims')])
+def support(conclusion, marker, specifics):
     """a <~ b+"""
-    return Argument(claims=(conclusion,) + minors, relations=(Relation('support', minors, conclusion),))
+    return Argument(claims=(conclusion,) + specifics, relations=(Relation('support', specifics, conclusion),))
 
-@hasl0_grammar.rule('attack', [RuleRef('claim'), Literal('but'), RuleRef('minor-claims')])
-def support(conclusion, marker, minors):
+@hasl0_grammar.rule('attack', [RuleRef('claim'), Literal('but'), RuleRef('specific-claims')])
+def support(conclusion, marker, specifics):
     """a *- b+"""
-    return Argument(claims=(conclusion, *minors), relations=[Relation('attack', minors, conclusion)])
+    return Argument(claims=(conclusion, *specifics), relations=[Relation('attack', specifics, conclusion)])
 
-@hasl0_grammar.rule('warranted-support', [RuleRef('claim'), Literal('because'), RuleRef('minor-claim-list'), Literal('and'), RuleRef('major-claim')])
-def warranted_support_minor_major(conclusion, marker, minors, conj, major):
+@hasl0_grammar.rule('warranted-support', [RuleRef('claim'), Literal('because'), RuleRef('specific-claim-list'), Literal('and'), RuleRef('general-claim')])
+def warranted_support_specific_general(conclusion, marker, specifics, conj, general):
     """(a <~ b+) <~ c"""
-    support = Relation('support', minors, conclusion)
-    warrant = Relation('support', (major,), support)
-    return Argument(claims=(conclusion, *minors, major), relations=(support, warrant))
+    support = Relation('support', specifics, conclusion)
+    warrant = Relation('support', (general,), support)
+    return Argument(claims=(conclusion, *specifics, general), relations=(support, warrant))
 
-@hasl0_grammar.rule('warranted-support', [RuleRef('claim'), Literal('because'), RuleRef('major-claim'), Literal('and'), RuleRef('minor-claims')])
-def warranted_support_major_minor(conclusion, marker, major, conj, minors):
+@hasl0_grammar.rule('warranted-support', [RuleRef('claim'), Literal('because'), RuleRef('general-claim'), Literal('and'), RuleRef('specific-claims')])
+def warranted_support_general_specific(conclusion, marker, general, conj, specifics):
     """(a <~ c+) <~ b"""
-    support = Relation('support', minors, conclusion)
-    warrant = Relation('support', (major,), support)
-    return Argument(claims=(conclusion, major, *minors), relations=(support, warrant))
+    support = Relation('support', specifics, conclusion)
+    warrant = Relation('support', (general,), support)
+    return Argument(claims=(conclusion, general, *specifics), relations=(support, warrant))
 
-@hasl0_grammar.rule('warranted-attack', [RuleRef('claim'), Literal('because'), RuleRef('minor-claim-list'), Literal('and'), RuleRef('major-claim')])
-def warranted_attack_minor_major(conclusion, marker, minors, conj, major):
+@hasl0_grammar.rule('warranted-attack', [RuleRef('claim'), Literal('because'), RuleRef('specific-claim-list'), Literal('and'), RuleRef('general-claim')])
+def warranted_attack_specific_general(conclusion, marker, specifics, conj, general):
     """(a <~ b+) <~ c"""
-    attack = Relation('attack', minors, conclusion)
-    warrant = Relation('support', (major,), attack)
-    return Argument(claims=(conclusion, *minors, major), relations=(attack, warrant))
+    attack = Relation('attack', specifics, conclusion)
+    warrant = Relation('support', (general,), attack)
+    return Argument(claims=(conclusion, *specifics, general), relations=(attack, warrant))
 
-@hasl0_grammar.rule('warranted-attack', [RuleRef('claim'), Literal('because'), RuleRef('major-claim'), Literal('and'), RuleRef('minor-claims')])
-def warranted_attack_major_minor(conclusion, marker, major, conj, minors):
+@hasl0_grammar.rule('warranted-attack', [RuleRef('claim'), Literal('because'), RuleRef('general-claim'), Literal('and'), RuleRef('specific-claims')])
+def warranted_attack_general_specific(conclusion, marker, general, conj, specifics):
     """(a <~ c+) <~ b"""
-    attack = Relation('attack', minors, conclusion)
-    warrant = Relation('support', (major,), attack)
-    return Argument(claims=(conclusion, major, *minors), relations=(attack, warrant))
+    attack = Relation('attack', specifics, conclusion)
+    warrant = Relation('support', (general,), attack)
+    return Argument(claims=(conclusion, general, *specifics), relations=(attack, warrant))
 
 
 """
@@ -729,12 +729,12 @@ Tweety is a bird because Tweety can fly but planes can also fly
 Tweety is a bird because Tweety can fly but Tweety was thrown
 Conclusie: zinloos om iets achter te zetten -> geval apart. Also de enige manier om deze te construeren.
 """
-@hasl0_grammar.rule('undercutter', [RuleRef('claim'), Literal('because'), RuleRef('minor-claims'), Literal('but'), RuleRef('claim')])
-def undercutter(conclusion, because, minors, but, attack):
-    """(a <~ b+) *- c (c can be both minor and major)"""
-    support = Relation('support', minors, conclusion)
+@hasl0_grammar.rule('undercutter', [RuleRef('claim'), Literal('because'), RuleRef('specific-claims'), Literal('but'), RuleRef('claim')])
+def undercutter(conclusion, because, specifics, but, attack):
+    """(a <~ b+) *- c (c can be both specific and general)"""
+    support = Relation('support', specifics, conclusion)
     undercutter = Relation('attack', (attack,), support)
-    return Argument(claims=(conclusion, *minors, attack), relations=(support, undercutter))
+    return Argument(claims=(conclusion, *specifics, attack), relations=(support, undercutter))
 
 # test(parser.Parser(hasl0_grammar, 'sentences'), hasl0_sentences)
 
@@ -742,69 +742,69 @@ def undercutter(conclusion, because, minors, but, attack):
 ### Recursion
 ###
 
-hasl1_grammar = hasl0_grammar.without({'argument', 'major-claim'}) + [
-    Rule('argument',    [RuleRef('minor-argument')], passthru),
-    Rule('argument',    [RuleRef('major-argument')], passthru),
+hasl1_grammar = hasl0_grammar.without({'argument', 'general-claim'}) + [
+    Rule('argument',    [RuleRef('specific-argument')], passthru),
+    Rule('argument',    [RuleRef('general-argument')], passthru),
 ]
 
-@hasl1_grammar.rule('minor-arguments', [RuleRef('minor-argument')])
-def hasl1_argued_minor_claims_single(minor):
-    return minor
+@hasl1_grammar.rule('specific-arguments', [RuleRef('specific-argument')])
+def hasl1_argued_specific_claims_single(specific):
+    return specific
 
-@hasl1_grammar.rule('minor-arguments', [RuleRef('minor-claim-list'), Literal('and'), RuleRef('minor-argument')])
-def hasl1_argued_minor_claims_multiple(list, conj, minor):
-    return Argument(claims=[*list, *minor.claims], relations=minor.relations)
+@hasl1_grammar.rule('specific-arguments', [RuleRef('specific-claim-list'), Literal('and'), RuleRef('specific-argument')])
+def hasl1_argued_specific_claims_multiple(list, conj, specific):
+    return Argument(claims=[*list, *specific.claims], relations=specific.relations)
 
-@hasl1_grammar.rule('minor-claim-list', [RuleRef('minor-claim')])
-def hasl1_minor_claims_list_single(minor):
-    return (minor,)
+@hasl1_grammar.rule('specific-claim-list', [RuleRef('specific-claim')])
+def hasl1_specific_claims_list_single(specific):
+    return (specific,)
 
-@hasl1_grammar.rule('minor-claim-list', [RuleRef('minor-claim-list'), Literal(','), RuleRef('minor-claim')])
-def hasl1_minor_claims_list_multiple(list, conj, minor):
-    return (*list, minor)
+@hasl1_grammar.rule('specific-claim-list', [RuleRef('specific-claim-list'), Literal(','), RuleRef('specific-claim')])
+def hasl1_specific_claims_list_multiple(list, conj, specific):
+    return (*list, specific)
 
 
-@hasl1_grammar.rule('minor-argument', [RuleRef('minor-claim'), Literal('because'), RuleRef('minor-arguments')])
-def hasl1_support_minor(conclusion, because, minors):
+@hasl1_grammar.rule('specific-argument', [RuleRef('specific-claim'), Literal('because'), RuleRef('specific-arguments')])
+def hasl1_support_specific(conclusion, because, specifics):
     """a <~ b+"""
-    support = Relation('support', minors.roots, conclusion)
-    return Argument(claims=[conclusion, *minors.claims], relations=[support, *minors.relations])
+    support = Relation('support', specifics.roots, conclusion)
+    return Argument(claims=[conclusion, *specifics.claims], relations=[support, *specifics.relations])
 
-@hasl1_grammar.rule('major-argument', [RuleRef('major-claim'), Literal('because'), RuleRef('minor-arguments')])
-def hasl1_support_major(conclusion, because, minors):
+@hasl1_grammar.rule('general-argument', [RuleRef('general-claim'), Literal('because'), RuleRef('specific-arguments')])
+def hasl1_support_general(conclusion, because, specifics):
     """A <~ b+"""
-    support = Relation('support', minors.roots, conclusion)
-    return Argument(claims=[conclusion, *minors.claims], relations=[support, *minors.relations])
+    support = Relation('support', specifics.roots, conclusion)
+    return Argument(claims=[conclusion, *specifics.claims], relations=[support, *specifics.relations])
 
-@hasl1_grammar.rule('minor-argument', [RuleRef('minor-claim'), Literal('because'), RuleRef('major-claim'), Literal('and'), RuleRef('minor-arguments')])
-def hasl1_warranted_support_major_minor(conclusion, because, major, conj, minors):
+@hasl1_grammar.rule('specific-argument', [RuleRef('specific-claim'), Literal('because'), RuleRef('general-claim'), Literal('and'), RuleRef('specific-arguments')])
+def hasl1_warranted_support_general_specific(conclusion, because, general, conj, specifics):
     """(a <~ c) <~ B"""
-    support = Relation('support', minors.roots, conclusion)
-    warrant = Relation('support', [major], support)
-    return Argument(claims=[conclusion, major, *minors.claims], relations=[support, warrant, *minors.relations])
+    support = Relation('support', specifics.roots, conclusion)
+    warrant = Relation('support', [general], support)
+    return Argument(claims=[conclusion, general, *specifics.claims], relations=[support, warrant, *specifics.relations])
 
-@hasl1_grammar.rule('minor-argument', [RuleRef('minor-claim'), Literal('because'), RuleRef('minor-claim-list'), Literal('and'), RuleRef('major-argument')])
-def hasl1_warranted_support_minor_major(conclusion, because, minors, conj, major):
+@hasl1_grammar.rule('specific-argument', [RuleRef('specific-claim'), Literal('because'), RuleRef('specific-claim-list'), Literal('and'), RuleRef('general-argument')])
+def hasl1_warranted_support_specific_general(conclusion, because, specifics, conj, general):
     """(a <~ b) <~ C"""
-    support = Relation('support', minors, conclusion)
-    warrant = Relation('support', [major.root], support)
-    return Argument(claims=[conclusion, *minors, *major.claims], relations=[*major.relations, support, warrant])
+    support = Relation('support', specifics, conclusion)
+    warrant = Relation('support', [general.root], support)
+    return Argument(claims=[conclusion, *specifics, *general.claims], relations=[*general.relations, support, warrant])
 
-@hasl1_grammar.rule('minor-argument', [RuleRef('minor-claim'), Literal('because'), RuleRef('major-claim'), Literal('and'), RuleRef('minor-arguments'), Literal('but'), RuleRef('minor-argument')])
-def hasl1_warranted_support_major_minor_undercutter(conclusion, because, major, conj, minors, but, undercutter):
+@hasl1_grammar.rule('specific-argument', [RuleRef('specific-claim'), Literal('because'), RuleRef('general-claim'), Literal('and'), RuleRef('specific-arguments'), Literal('but'), RuleRef('specific-argument')])
+def hasl1_warranted_support_general_specific_undercutter(conclusion, because, general, conj, specifics, but, undercutter):
     """((a <~ c) <~ B) *- D"""
-    support = Relation('support', minors.roots, conclusion)
-    warrant = Relation('support', [major], support)
+    support = Relation('support', specifics.roots, conclusion)
+    warrant = Relation('support', [general], support)
     attack = Relation('attack', undercutter.roots, support)
-    return Argument(claims=[conclusion, major, *minors.claims, *undercutter.claims], relations=[support, warrant, attack, *minors.relations, *undercutter.relations])
+    return Argument(claims=[conclusion, general, *specifics.claims, *undercutter.claims], relations=[support, warrant, attack, *specifics.relations, *undercutter.relations])
 
-@hasl1_grammar.rule('minor-argument', [RuleRef('minor-claim'), Literal('because'), RuleRef('minor-claim-list'), Literal('and'), RuleRef('major-argument'), Literal('but'), RuleRef('minor-argument')])
-def hasl1_warranted_support_minor_major_undercutter(conclusion, because, minors, conj, major, but, undercutter):
+@hasl1_grammar.rule('specific-argument', [RuleRef('specific-claim'), Literal('because'), RuleRef('specific-claim-list'), Literal('and'), RuleRef('general-argument'), Literal('but'), RuleRef('specific-argument')])
+def hasl1_warranted_support_specific_general_undercutter(conclusion, because, specifics, conj, general, but, undercutter):
     """((a <~ b) <~ C) *- D"""
-    support = Relation('support', minors, conclusion)
-    warrant = Relation('support', [major.root], support)
+    support = Relation('support', specifics, conclusion)
+    warrant = Relation('support', [general.root], support)
     attack = Relation('attack', undercutter.roots, support)
-    return Argument(claims=[conclusion, *minors, *major.claims, *undercutter.claims], relations=[*major.relations, support, warrant, attack, *undercutter.relations])
+    return Argument(claims=[conclusion, *specifics, *general.claims, *undercutter.claims], relations=[*general.relations, support, warrant, attack, *undercutter.relations])
 
 
 
@@ -818,7 +818,7 @@ def hasl1_warranted_support_minor_major_undercutter(conclusion, because, minors,
 
 # <reason> ::= `because' <specific-argument>
 
-@hasl1_grammar.rule('minor-argument', [RuleRef('minor-claim'), RuleRef('reasons')])
+@hasl1_grammar.rule('specific-argument', [RuleRef('specific-claim'), RuleRef('reasons')])
 def hasl1_minr_argument_support_reasons(conclusion, reasons):
     reasons_claims = reduce(lambda claims, reason: claims + reason, reasons, tuple())
     supports = list(Relation('support', reason, conclusion) for reason in reasons)
@@ -836,55 +836,55 @@ def hasl1_reasonlist_recursive(reasons, conj, reason):
 def hasl1_reasonlist_base_case(reason):
     return (reason,)
 
-@hasl1_grammar.rule('reason', [Literal('because'), RuleRef('minor-claims')])
+@hasl1_grammar.rule('reason', [Literal('because'), RuleRef('specific-claims')])
 def hasl1_reason(because, claims):
     return claims
 
 
-@hasl1_grammar.rule('minor-argument', [RuleRef('minor-claim')])
-def hasl1_minor_claim(minor):
+@hasl1_grammar.rule('specific-argument', [RuleRef('specific-claim')])
+def hasl1_specific_claim(specific):
     """a"""
-    return Argument(claims=[minor])
+    return Argument(claims=[specific])
 
-@hasl1_grammar.rule('major-argument', [RuleRef('major-claim')])
-def hasl1_major_claim(major):
+@hasl1_grammar.rule('general-argument', [RuleRef('general-claim')])
+def hasl1_general_claim(general):
     """A"""
-    return Argument(claims=[major])
+    return Argument(claims=[general])
 
 
-@hasl1_grammar.rule('minor-argument', [RuleRef('minor-argument'), Literal('but'), RuleRef('minor-argument')])
-def hasl1_attack_minor(conclusion, but, minor):
+@hasl1_grammar.rule('specific-argument', [RuleRef('specific-argument'), Literal('but'), RuleRef('specific-argument')])
+def hasl1_attack_specific(conclusion, but, specific):
     """a *- b but a can also be argued"""
-    attacks = [Relation('attack', minor.roots, conclusion.root)]
-    return Argument(claims=[*conclusion.claims, *minor.claims], relations=[*conclusion.relations, *minor.relations, *attacks])
+    attacks = [Relation('attack', specific.roots, conclusion.root)]
+    return Argument(claims=[*conclusion.claims, *specific.claims], relations=[*conclusion.relations, *specific.relations, *attacks])
 
-# def hasl1_attack_minor(conclusion, but, minor):
+# def hasl1_attack_specific(conclusion, but, specific):
 #     """a *- b but a can also be argued"""
-#     merged = (conclusion + minor).consolidate()
-#     if merged.mapping[conclusion.root].counters(merged.mapping[minor.root]):
+#     merged = (conclusion + specific).consolidate()
+#     if merged.mapping[conclusion.root].counters(merged.mapping[specific.root]):
 #         attacks = [
-#             Relation('attack', [minor.root], conclusion.root),
-#             Relation('attack', [conclusion.root], minor.root)
+#             Relation('attack', [specific.root], conclusion.root),
+#             Relation('attack', [conclusion.root], specific.root)
 #         ]
 #     else:
 #         attacks = [
-#             Relation('attack', [minor.root], conclusion.root),
+#             Relation('attack', [specific.root], conclusion.root),
 #         ]
-#     return Argument(claims=[*conclusion.claims, *minor.claims], relations=[*conclusion.relations, *minor.relations, *attacks])
+#     return Argument(claims=[*conclusion.claims, *specific.claims], relations=[*conclusion.relations, *specific.relations, *attacks])
 
 
-@hasl1_grammar.rule('major-argument', [RuleRef('major-argument'), Literal('but'), RuleRef('argument')])
-def hasl1_attack_major(conclusion, but, minor):
+@hasl1_grammar.rule('general-argument', [RuleRef('general-argument'), Literal('but'), RuleRef('argument')])
+def hasl1_attack_general(conclusion, but, specific):
     """A *- b but A can also be argued"""
     assert len(conclusion.roots) == 1, 'Attacked claim has multiple root claims'
-    attack = Relation('attack', minor.roots, conclusion.root)
-    return Argument(claims=[*conclusion.claims, *minor.claims], relations=[*conclusion.relations, *minor.relations, attack])
+    attack = Relation('attack', specific.roots, conclusion.root)
+    return Argument(claims=[*conclusion.claims, *specific.claims], relations=[*conclusion.relations, *specific.relations, attack])
 
 ###
 ### Enthymeme
 ###
 
-class MajorClaim(Claim):
+class GeneralClaim(Claim):
     def __init__(self, *args, conditions=tuple(), file=None, line=None, **kwargs):
         if file is None:
             previous_frame = inspect.currentframe().f_back
@@ -896,65 +896,71 @@ class MajorClaim(Claim):
         return super().__str__() + ' if ' + english.join(self.conditions)
 
     def update(self, mapping):
-        return MajorClaim(mapping[self.subj], mapping[self.verb],
+        return GeneralClaim(mapping[self.subj], mapping[self.verb],
             negated=self.negated,
             assumed=self.assumed,
             file=self.file,
             line=self.line,
             conditions=tuple(condition.update(mapping) for condition in self.conditions))
 
-@hasl1_grammar.rule('major-claim', [RuleRef('prototype-sg'), RuleRef('verb-phrase-sg')])
-def hasl1_major_claim_vbp_obj(cond, vp):
-    """Parse major claim as rule: a man is mortal"""
+@hasl1_grammar.rule('general-claim', [RuleRef('prototype-sg'), RuleRef('verb-phrase-sg')])
+def hasl1_general_claim_vbp(cond, vp):
+    """Parse general claim as rule: a man is mortal"""
     subj = Entity()
-    return MajorClaim(subj, vp, conditions=(Claim(subj, Span(None, None, ['is']) + cond),))
+    return GeneralClaim(subj, vp, conditions=(Claim(subj, Span(None, None, ['is']) + cond),))
 
-@hasl1_grammar.rule('major-claim', [RuleRef('prototype-pl'), RuleRef('verb-phrase-pl')])
-def hasl1_major_claim_vbp_obj(cond, vp):
-    """Parse major claim as rule: men are mortal"""
+@hasl1_grammar.rule('general-claim', [RuleRef('prototype-sg'), RuleRef('neg-verb-phrase-sg')])
+def hasl1_negated_general_claim_vbp(cond, vp):
+    """Parse general claim as rule: a man is mortal"""
     subj = Entity()
-    return MajorClaim(subj, vp, conditions=(Claim(subj, Span(None, None, ['is']) + cond),))
+    return GeneralClaim(subj, vp, conditions=(Claim(subj, Span(None, None, ['is']) + cond),), negated=True)
 
-@hasl1_grammar.rule('major-claim', [RuleRef('prototype-pl'), RuleRef('verb-neg-pl'), RuleRef('object')])
-def hasl1_negated_major_claim_vbp_obj(cond, vp):
-    """Parse major claim as rule: men are not mortal"""
+@hasl1_grammar.rule('general-claim', [RuleRef('prototype-pl'), RuleRef('verb-phrase-pl')])
+def hasl1_general_claim_vbp(cond, vp):
+    """Parse general claim as rule: men are mortal"""
     subj = Entity()
-    return MajorClaim(subj, vp, conditions=(Claim(subj, Span(None, None, ['is']) + cond),), negated=True)
+    return GeneralClaim(subj, vp, conditions=(Claim(subj, Span(None, None, ['is']) + cond),))
+
+@hasl1_grammar.rule('general-claim', [RuleRef('prototype-pl'), RuleRef('neg-verb-phrase-pl')])
+def hasl1_negated_general_claim_vbp(cond, vp):
+    """Parse general claim as rule: men are not mortal"""
+    subj = Entity()
+    return GeneralClaim(subj, vp, conditions=(Claim(subj, Span(None, None, ['is']) + cond),), negated=True)
 
 ##
 ## Real enthymeme resolution rules
 ##
 
-@hasl1_grammar.rule('minor-argument', [RuleRef('minor-claim'), Literal('because'), RuleRef('major-argument')])
-def hasl1_support_major_missing_minor(conclusion, because, major):
-    minors = [Claim(conclusion.subj, condition.verb, negated=condition.negated, assumed=True) for condition in major.root.conditions]
-    support = Relation('support', minors, conclusion)
-    warrant = Relation('support', [major.root], support)
-    return Argument(claims=[conclusion, *major.claims, *minors], relations=[*major.relations, support, warrant])
+@hasl1_grammar.rule('specific-argument', [RuleRef('specific-claim'), Literal('because'), RuleRef('general-argument')])
+def hasl1_support_general_missing_specific(conclusion, because, general):
+    specifics = [Claim(conclusion.subj, condition.verb, negated=condition.negated, assumed=True) for condition in general.root.conditions]
+    support = Relation('support', specifics, conclusion)
+    warrant = Relation('support', [general.root], support)
+    return Argument(claims=[conclusion, *general.claims, *specifics], relations=[*general.relations, support, warrant])
 
 
-@hasl1_grammar.rule('minor-argument', [RuleRef('minor-claim'), Literal('because'), RuleRef('minor-arguments')])
-def hasl1_support_major_missing_major(conclusion, because, minors):
-    # Special case: if the minor is the conclusion, but only assumed, just pass it on including the conclusion
+@hasl1_grammar.rule('specific-argument', [RuleRef('specific-claim'), Literal('because'), RuleRef('specific-arguments')])
+def hasl1_support_general_missing_general(conclusion, because, specifics):
+    # Special case: if the specific is the conclusion, but only assumed, just pass it on including the conclusion
     # which will override the assumed conclusion.
-    if len(minors.roots) == 1 and minors.root == conclusion:
-        return Argument(claims=[conclusion, *minors.claims], relations=minors.relations)
+    if len(specifics.roots) == 1 and specifics.root == conclusion:
+        return Argument(claims=[conclusion, *specifics.claims], relations=specifics.relations)
     subj = Entity()
-    conditions = [Claim(subj, minor.verb, negated=minor.negated, assumed=True) for minor in minors.roots]
-    major = MajorClaim(subj, conclusion.verb, negated=conclusion.negated, conditions=tuple(conditions), assumed=True)
-    support = Relation('support', minors.roots, conclusion)
-    warrant = Relation('support', [major], support)
-    return Argument(claims=[major, conclusion, *minors.claims], relations=[*minors.relations, support, warrant])
+    conditions = [Claim(subj, specific.verb, negated=specific.negated, assumed=True) for specific in specifics.roots]
+    general = GeneralClaim(subj, conclusion.verb, negated=conclusion.negated, conditions=tuple(conditions), assumed=True)
+    support = Relation('support', specifics.roots, conclusion)
+    warrant = Relation('support', [general], support)
+    return Argument(claims=[general, conclusion, *specifics.claims], relations=[*specifics.relations, support, warrant])
 
 
-@hasl1_grammar.rule('minor-argument', [RuleRef('minor-claim-list'), Literal('and'), RuleRef('major-argument')])
-def hasl1_support_major_missing_conclusion(minors, conj, major):
-    subj = minors[0].subj
-    conclusion = Claim(subj, major.root.verb, negated=major.root.negated, assumed=True)
-    expected_minors = [Claim(subj, condition.verb, negated=condition.negated, assumed=True) for condition in major.root.conditions]
-    support = Relation('support', [*minors, *expected_minors], conclusion)
-    warrant = Relation('support', [major.root], support)
-    return Argument(claims=[*minors, *expected_minors, *major.claims, conclusion], relations=[*major.relations, support, warrant])
+@hasl1_grammar.rule('specific-argument', [RuleRef('specific-claim-list'), Literal('and'), RuleRef('general-argument')])
+def hasl1_support_general_missing_conclusion(specifics, conj, general):
+    subj = specifics[0].subj
+    conclusion = Claim(subj, general.root.verb, negated=general.root.negated, assumed=True)
+    expected_specifics = [Claim(subj, condition.verb, negated=condition.negated, assumed=True) for condition in general.root.conditions]
+    support = Relation('support', [*specifics, *expected_specifics], conclusion)
+    warrant = Relation('support', [general.root], support)
+    return Argument(claims=[*specifics, *expected_specifics, *general.claims, conclusion], relations=[*general.relations, support, warrant])
 
 """
 > a because (b but c): a<~b; b*-c
