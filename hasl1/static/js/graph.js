@@ -121,14 +121,17 @@ class Relation {
 	}
 
 	delete() {
-		// Delete the relation from the graph
+		// And also delete any relation that targets this relation
 		this.graph.relations.forEach(relation => {
 			if (relation.target === this)
 				relation.delete();
 		});
 
-		// And also delete any relation that targets this relation
+		// Delete the relation from the graph
 		this.graph.relations = this.graph.relations.filter(relation => relation !== this);
+
+		// Also filter it out of the selected relations
+		this.graph.selectedRelations = this.graph.selectedRelations.filter(relation => relation !== this);
 	}
 
 	get x() {
@@ -212,10 +215,13 @@ class Graph {
 		this.dragStartPosition = null;
 		this.wasDragging = false;
 		this.cursor = null;
+		this.elementUnderCursor = null;
 
 		this.listeners = {
 			'draw': [],
-			'drop': []
+			'drop': [],
+			'mouseover': [],
+			'mouseout': []
 		};
 
 		if ('addEventListener' in this.canvas) {
@@ -468,10 +474,21 @@ class Graph {
 				y: e.offsetY - this.style.padding,
 			};
 
-			if (this.findClaimAtPosition(cursor) || this.findRelationAtPosition(cursor, 5))
+			const elementUnderCursor = this.findClaimAtPosition(cursor) || this.findRelationAtPosition(cursor, 5);
+
+			if (elementUnderCursor)
 				this.canvas.style.cursor = 'pointer';
 			else
 				this.canvas.style.cursor = 'default';
+
+			if (this.elementUnderCursor !== elementUnderCursor) {
+				if (this.elementUnderCursor)
+					this.fire('mouseout', {target: this.elementUnderCursor})
+				if (elementUnderCursor)
+					this.fire('mouseover', {target: elementUnderCursor});
+
+				this.elementUnderCursor = elementUnderCursor;
+			}
 
 			if (e.altKey) {
 				this.cursor = {
@@ -654,8 +671,8 @@ class Graph {
 		this.listeners[eventName] = this.listeners[eventName].filter(registeredCallback => callback !== registeredCallback);
 	}
 
-	fire(eventName) {
-		this.listeners[eventName].forEach(callback => callback(this));
+	fire(eventName, event) {
+		this.listeners[eventName].forEach(callback => callback(event));
 	}
 
 	resize() {
@@ -840,15 +857,15 @@ class Graph {
 		this.selectedRelations.forEach(relation => {
 			const s = this.offsetPosition(relation.target, relation.claim);
 			const t = this.offsetPosition(relation.claim, relation.target);
+			ctx.lineWidth = scale * 3;
+			ctx.strokeStyle = color;
 			this.drawRelationLine(s, t, relation.type);
 		});
 	}
 
 	drawRelations()
 	{
-		const ctx = this.context,
-			relationColor = this.style.relation.color,
-			relationDash = this.style.relation.dash;
+		const ctx = this.context;
 
 		// Draw all the relation arrows
 		this.relations.forEach(relation => {
@@ -861,9 +878,11 @@ class Graph {
 
 			const t = this.offsetPosition(relation.claim, relation.target);
 
-			ctx.strokeStyle = relationColor(relation);
+			ctx.strokeStyle = this.style.relation.color(relation);
 
-			ctx.setLineDash(relationDash(relation));
+			ctx.setLineDash(this.style.relation.dash(relation));
+
+			ctx.lineWidth = this.style.scale * 1;
 
 			this.drawRelationLine(s, t, relation.type);
 		});
@@ -874,8 +893,6 @@ class Graph {
 		const ctx = this.context,
 			scale = this.style.scale,
 			arrowRadius = this.style.relation.size;
-
-		ctx.lineWidth = scale * 1;
 
 		ctx.beginPath();
 		ctx.moveTo(scale * s.x, scale * s.y);
@@ -952,6 +969,7 @@ class Graph {
 
 		const snapTarget = this.findClaimAtPosition(this.cursor, 5) || this.findRelationAtPosition(this.cursor, 5);
 
+		ctx.lineWidth = this.style.scale * 1;
 		this.drawRelationLine(
 			this.offsetPosition(snapTarget ? snapTarget : {center: this.cursor}, claim),
 			snapTarget ? this.offsetPosition(claim, snapTarget) : this.cursor,

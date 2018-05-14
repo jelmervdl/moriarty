@@ -162,3 +162,17 @@ body {
 	bottom: 0;
 	right: 15px;
 }
+
+.graph-tooltip {
+	position: absolute;
+	font-size: 10px;
+	padding: 4px;
+	background: #fce17e;
+	border: 1px solid #555;
+	color: #333;
+	pointer-events: none;
+}
+
+.graph-tooltip[aria-hidden=true] {
+	display: none;
+}
