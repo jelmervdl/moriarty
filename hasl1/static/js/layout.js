@@ -69,82 +69,82 @@ Graph.prototype.layout = function()
 	return layout;
 }
 
-function Spacer(width, height) {
-	this.x = null;
-	this.y = null;
-	this.width = width;
-	this.height = height;
-}
+class Spacer {
+	constructor(width, height) {
+		this.x = null;
+		this.y = null;
+		this.width = width;
+		this.height = height;
+	}
 
-Spacer.prototype.setPosition = function(x, y) {
-	// no-op
+	setPosition(x, y) {
+		// no-op
 
-	// ... but setting these anyway for the debug drawing
-	this.x = x;
-	this.y = y;
+		// ... but setting these anyway for the debug drawing
+		this.x = x;
+		this.y = y;
+	}
 };
 
-function Layout(direction)
-{
-	this.direction = direction;
-	this.elements = [];
-	this.parent = null;
-}
+class Layout {
+	constructor(direction)
+	{
+		this.direction = direction;
+		this.elements = [];
+		this.parent = null;
+	}
 
-Layout.HORIZONTAL = 1;
-Layout.VERTICAL = 2;
+	static get HORIZONTAL() {
+		return 1;
+	}
 
-Layout.spacing = {
-	horizontal: 20,
-	vertical: 20
-};
+	static get VERTICAL() {
+		return 2;
+	}
 
-Layout.prototype = {
 	add(box) {
 		if (box instanceof Layout)
 			box.parent = this;
 
 		this.elements.push(box);
-	},
+	}
 
 	addAll(boxes) {
 		boxes.forEach(this.add, this);
-	},
+	}
 
 	apply() {
 		this.setPosition(20, 20);
-	},
+	}
 
 	setPosition(x, y) {
 		// save x & y for rendering
 		this.x = x;
 		this.y = y;
 
-		var spacing = Layout.spacing;
-
 		// Then the left to right sweep
 		switch (this.direction) {
 			case Layout.HORIZONTAL:
 				let dx = 0;
 				let height = this.height;
-				this.elements.forEach(function(el) {
+				this.elements.forEach(el => {
 					// Align horizontally, so centre vertically
 					el.setPosition(x + dx, y + (height - el.height) / 2);
-					dx += el.width + spacing.horizontal;
+					dx += el.width + this.spacing.horizontal;
 				});
 				break;
 
 			case Layout.VERTICAL:
 				let dy = 0;
 				let width = this.width;
-				this.elements.forEach(function(el) {
+				this.elements.forEach(el => {
 					// Same, but now centre horizontally
 					el.setPosition(x + (width - el.width) / 2, y + dy);
-					dy += el.height + spacing.vertical;
+					dy += el.height + this.spacing.vertical;
 				});
 				break;
 		}
-	},
+	}
 	
 	drawOutline(graph, depth) {
 		var ctx = graph.context,
@@ -167,7 +167,7 @@ Layout.prototype = {
 			if ('drawOutline' in el)
 				el.drawOutline(graph, depth + 1);
 		});
-	},
+	}
 
 	get width() {
 		let widths = this.elements.map((el) => el.width);
@@ -175,12 +175,12 @@ Layout.prototype = {
 		switch (this.direction) {
 			case Layout.HORIZONTAL:
 				// total width of all boxes plus spacing in between
-				return widths.sum() + Math.max(this.elements.length - 1, 0) * Layout.spacing.horizontal;
+				return widths.sum() + Math.max(this.elements.length - 1, 0) * this.spacing.horizontal;
 
 			case Layout.VERTICAL:
 				return widths.max();
 		}
-	},
+	}
 
 	get height() {
 		let heights = this.elements.map((el) => el.height);
@@ -191,9 +191,9 @@ Layout.prototype = {
 
 			case Layout.VERTICAL:
 				// total heights of all the boxes plus spacing in between
-				return heights.sum() + Math.max(this.elements.length - 1, 0) * Layout.spacing.vertical;
+				return heights.sum() + Math.max(this.elements.length - 1, 0) * this.spacing.vertical;
 		}
-	},
+	}
 
 	get descendants() {
 		// assert that any element only occurs once in the whole tree
@@ -204,6 +204,11 @@ Layout.prototype = {
 		return extract(this);
 	}
 }
+
+Layout.prototype.spacing = {
+	horizontal: 20,
+	vertical: 20
+};
 
 function OutlinePainter(color) {
 	return function(graph, depth) {

@@ -12,26 +12,40 @@ var _requestAnimationFrame = (function() {
 	}
 })();
 
-function Claim(graph, text, data)
-{
-	this.graph = graph;
-	this.text = text;
-	this.data = data || {};
-	this.ax = 0;
-	this.ay = 0;
-	this.dx = 0;
-	this.dy = 0;
-	this.width = null;
-	this.height = null;
+(function (exports) {
+
+class Line {
+	constructor(start, end) {
+		this.start = start;
+		this.end = end;
+	}
+
+	distanceToPoint(point) {
+		const dx = this.end.x - this.start.x;
+		const dy = this.end.y - this.start.y;
+		return Math.abs(dy * point.x - dx * point.y + this.end.x * point.y - this.end.y * point.x) / Math.sqrt(dy * dy + dx * dx);
+	}
 }
 
-Claim.prototype = {
-	setPosition: function(x, y) {
+class Claim {
+	constructor(graph, text, data) {
+		this.graph = graph;
+		this.text = text;
+		this.data = data || {};
+		this.ax = 0;
+		this.ay = 0;
+		this.dx = 0;
+		this.dy = 0;
+		this.width = null;
+		this.height = null;
+	}
+
+	setPosition(x, y) {
 		this.ax = x;
 		this.ay = y;
-	},
+	}
 	
-	delete: function() {
+	delete() {
 		// Remove the claims from the graph
 		this.graph.claims = this.graph.claims.filter(claim => claim !== this);
 
@@ -43,15 +57,15 @@ Claim.prototype = {
 			if (relation.claim === this || relation.target === this)
 				relation.delete();
 		});
-	},
+	}
 	
 	get x() {
 		return this.ax + this.dx;
-	},
+	}
 	
 	get y() {
 		return this.ay + this.dy;
-	},
+	}
 
 	get center() {
 		return {
@@ -61,51 +75,57 @@ Claim.prototype = {
 	}
 }
 
-function Relation(graph, claim, target, type, data) {
-	this.graph = graph;
-	this.claim = claim;
-	this.target = target;
-	this.type = type;
-	this.data = data || {};
-}
+class Relation {
+	constructor(graph, claim, target, type, data) {
+		this.graph = graph;
+		this.claim = claim;
+		this.target = target;
+		this.type = type;
+		this.data = data || {};
+	}
 
-Relation.SUPPORT = 'support';
+	static get SUPPORT() {
+		return 'support';
+	}
 
-Relation.ATTACK = 'attack';
+	static get ATTACK() {
+		return 'attack';
+	}
 
-Relation.CONDITION = 'warrant';
+	static get CONDITION() {
+		return 'warrant';
+	}
 
-Relation.EXCEPTION = 'undercut';
+	static get EXCEPTION() {
+		return 'undercut';
+	}
 
-Relation.prototype = {
-	delete: function() {
+	delete() {
 		// Delete the relation from the graph
-		this.graph.relations.forEach(function(relation) {
+		this.graph.relations.forEach(relation => {
 			if (relation.target === this)
 				relation.delete();
-		}, this);
+		});
 
 		// And also delete any relation that targets this relation
-		this.graph.relations = this.graph.relations.filter(function(relation) {
-			return relation !== this;
-		}, this);
-	},
+		this.graph.relations = this.graph.relations.filter(relation => relation !== this);
+	}
 
 	get x() {
 		return this.claim.x + (this.target.x - this.claim.x) / 2;
-	},
+	}
 	
 	get y() {
 		return this.claim.y + (this.target.y - this.claim.y) / 2;
-	},
+	}
 	
 	get width() {
 		return 1;
-	},
+	}
 	
 	get height() {
 		return 1;
-	},
+	}
 	
 	get center() {
 		return {
@@ -157,125 +177,122 @@ class LetterSequence {
 }
 
 
-function Graph(canvas)
-{
-	this.canvas = canvas;
+class Graph {
+	constructor(canvas) {
+		this.canvas = canvas;
 
-	this.context = this.canvas.getContext('2d');
+		this.context = this.canvas.getContext('2d');
 
-	this.claims = [];
-	this.relations = [];
+		this.claims = [];
+		this.relations = [];
 
-	this.selectedClaims = [];
-	this.dragStartPosition = null;
-	this.wasDragging = false;
-	this.cursor = null;
+		this.selectedClaims = [];
+		this.dragStartPosition = null;
+		this.wasDragging = false;
+		this.cursor = null;
 
-	this.listeners = {
-		'draw': [],
-		'drop': []
-	};
+		this.listeners = {
+			'draw': [],
+			'drop': []
+		};
 
-	if ('addEventListener' in this.canvas) {
-		this.canvas.tabIndex = -1;
-		this.canvas.addEventListener('mousedown', this.onMouseDown.bind(this));
-		this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
-		this.canvas.addEventListener('mouseup', this.onMouseUp.bind(this));
-		this.canvas.addEventListener('mouseout', this.onMouseOut.bind(this));
-		this.canvas.addEventListener('dblclick', this.onDoubleClick.bind(this));
-		this.canvas.addEventListener('keydown', this.onKeyDown.bind(this));
-		this.canvas.addEventListener('keyup', this.onKeyUp.bind(this));
-		this.canvas.addEventListener('focus', this.update.bind(this));
-		this.canvas.addEventListener('blur', this.update.bind(this));
+		if ('addEventListener' in this.canvas) {
+			this.canvas.tabIndex = -1;
+			this.canvas.addEventListener('mousedown', this.onMouseDown.bind(this));
+			this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
+			this.canvas.addEventListener('mouseup', this.onMouseUp.bind(this));
+			this.canvas.addEventListener('mouseout', this.onMouseOut.bind(this));
+			this.canvas.addEventListener('dblclick', this.onDoubleClick.bind(this));
+			this.canvas.addEventListener('keydown', this.onKeyDown.bind(this));
+			this.canvas.addEventListener('keyup', this.onKeyUp.bind(this));
+			this.canvas.addEventListener('focus', this.update.bind(this));
+			this.canvas.addEventListener('blur', this.update.bind(this));
+		}
+
+		const scopeStyles = {};
+
+		const colours = [
+			"#ff0000", "#ffee00", "#5395a6", "#40002b", "#f20000", "#7f7920",
+			"#6c98d9", "#d9a3bf", "#e58273", "#807d60", "#3d3df2", "#ff408c",
+			"#ff8c40", "#5ccc33", "#110080", "#8c2331", "#e6c3ac", "#004d29",
+			"#282633", "#593c00", "#00bf99", "#b32daa"
+		];
+
+		this.style = {
+			scale: typeof window !== 'undefined' && 'devicePixelRatio' in window ? window.devicePixelRatio : 1.0,
+			padding: 20,
+			claim: {
+				padding: {
+					top: 3,
+					left: 10,
+					bottom: 10,
+					right: 10
+				},
+				fontSize: 13,
+				lineHeight: 16,
+				maxWidth: 300,
+				background: function(claim) {
+					return 'white';
+				},
+				fontColor: function(claim) {
+					return claim.data.assumption ? '#ccc' : 'black';
+				},
+				fontStyle: function(claim) {
+					return claim.data.assumption ? 'italic' : '';
+				},
+				border: function(claim) {
+					if (claim.data.scope) {
+						if (!(claim.data.scope in scopeStyles))
+							scopeStyles[claim.data.scope] = colours.pop();
+						
+						return scopeStyles[claim.data.scope];
+					}
+
+					return claim.data.assumption ? '#ccc' : 'black';
+				}
+			},
+			relation: {
+				size: 5,
+				color: function(relation) {
+					return relation.data.assumption ? '#ccc' : 'black';
+				},
+				dash: function(relation) {
+					return relation.type === Relation.CONDITION || relation.type === Relation.EXCEPTION ? [5, 5] : [];
+				}
+			}
+		};
+
+		// this.input = document.createElement('input');
+		// this.input.type = 'text';
+		// this.input.style.position = 'absolute';
+		// this.input.style.display = 'none';
+		// this.canvas.parentNode.appendChild(this.input);
+
+		if (typeof window !== 'undefined' && 'addEventListener' in window)
+			window.addEventListener('resize', this.resize.bind(this));
+
+		this.updateCanvasSize();
 	}
 
-	var scopeStyles = {};
-
-	var colours = [
-		"#ff0000", "#ffee00", "#5395a6", "#40002b", "#f20000", "#7f7920",
-		"#6c98d9", "#d9a3bf", "#e58273", "#807d60", "#3d3df2", "#ff408c",
-		"#ff8c40", "#5ccc33", "#110080", "#8c2331", "#e6c3ac", "#004d29",
-		"#282633", "#593c00", "#00bf99", "#b32daa"
-	];
-
-	this.style = {
-		scale: typeof window !== 'undefined' && 'devicePixelRatio' in window ? window.devicePixelRatio : 1.0,
-		padding: 20,
-		claim: {
-			padding: {
-				top: 3,
-				left: 10,
-				bottom: 10,
-				right: 10
-			},
-			fontSize: 13,
-			lineHeight: 16,
-			maxWidth: 300,
-			background: function(claim) {
-				return 'white';
-			},
-			fontColor: function(claim) {
-				return claim.data.assumption ? '#ccc' : 'black';
-			},
-			fontStyle: function(claim) {
-				return claim.data.assumption ? 'italic' : '';
-			},
-			border: function(claim) {
-				if (claim.data.scope) {
-					if (!(claim.data.scope in scopeStyles))
-						scopeStyles[claim.data.scope] = colours.pop();
-					
-					return scopeStyles[claim.data.scope];
-				}
-
-				return claim.data.assumption ? '#ccc' : 'black';
-			}
-		},
-		relation: {
-			size: 5,
-			color: function(relation) {
-				return relation.data.assumption ? '#ccc' : 'black';
-			},
-			dash: function(relation) {
-				return relation.type === Relation.CONDITION || relation.type === Relation.EXCEPTION ? [5, 5] : [];
-			}
-		}
-	};
-
-	// this.input = document.createElement('input');
-	// this.input.type = 'text';
-	// this.input.style.position = 'absolute';
-	// this.input.style.display = 'none';
-	// this.canvas.parentNode.appendChild(this.input);
-
-	if (typeof window !== 'undefined' && 'addEventListener' in window)
-		window.addEventListener('resize', this.resize.bind(this));
-
-	this.updateCanvasSize();
-}
-
-Graph.Claim = Claim;
-
-Graph.prototype = {
-	addClaim: function(text, data) {
-		let claim = new Claim(this, text, data);
+	addClaim(text, data) {
+		const claim = new Claim(this, text, data);
 		this.claims.push(claim);
 		this.update();
 		return claim;
-	},
+	}
 
-	addRelation: function(claim, target, type, data) {
+	addRelation(claim, target, type, data) {
 		if (Array.isArray(claim)) {
 			if (claim.length === 0) {
 				throw new Error('No source claims provided');
 			}
 			else if (claim.length > 1) {
 				// We need a compound statement to merge stuff
-				let compound = this.addClaim('&', {compound: true});
+				const compound = this.addClaim('&', {compound: true});
 
-				claim.forEach(function(claim) {
+				claim.forEach(claim => {
 					this.addRelation(claim, compound, null, data);
-				}, this);
+				});
 
 				return this.addRelation(compound, target, type, Object.assign({}, data, {merged: true}));
 			}
@@ -291,14 +308,14 @@ Graph.prototype = {
 		if (!(target instanceof Claim) && !(target instanceof Relation))
 			throw new TypeError('Target should be instance of Claim or Relation, is ' + typerepr(target));
 
-		var relation = new Relation(this, claim, target, type, data);
+		const relation = new Relation(this, claim, target, type, data);
 		this.relations.push(relation);
 		this.update();
 
 		return relation;
-	},
+	}
 
-	findRootClaims: function() {
+	findRootClaims() {
 		if (this.claims.length == 0)
 			return [];
 		
@@ -315,9 +332,9 @@ Graph.prototype = {
 
 		// Oh crap, only circular claims. Great! Let's just take the first one added.
 		return [this.claims[0]];
-	},
+	}
 
-	findRelations: function(criteria) {
+	findRelations(criteria) {
 		// You can pass in an array of conditions to get the joined set, for example
 		// when you pass in [{claim: x}, {target: x}], you get all relations that
 		// have either the claim or the target as x. When you pass in [{claim: x, target: x}]
@@ -335,18 +352,25 @@ Graph.prototype = {
 		};
 
 		return this.relations.filter(test);
-	},
+	}
 
-	findClaimAtPosition: function(pos) {
+	findClaimAtPosition(pos) {
 		return this.claims.find(claim => {
 			return pos.x > claim.x + this.style.padding
 				&& pos.y > claim.y + this.style.padding
 				&& pos.x < claim.x + this.style.padding + claim.width
 				&& pos.y < claim.y + this.style.padding + claim.height;
 		});
-	},
+	}
 
-	onMouseDown: function(e) {
+	findRelationAtPosition(pos){
+		return this.relations.find(relation => {
+			const line = new Line(relation.source.center, relation.target.center)
+			return line.distanceToPoint(pos) < 5;
+		})
+	}
+
+	onMouseDown(e) {
 		if (e.altKey)
 			return;
 
@@ -357,7 +381,7 @@ Graph.prototype = {
 			y: e.offsetY
 		};
 
-		let claim = this.findClaimAtPosition({x: e.offsetX, y: e.offsetY});
+		const claim = this.findClaimAtPosition({x: e.offsetX, y: e.offsetY});
 
 		if (claim && !this.selectedClaims.includes(claim)) {
 			if (e.shiftKey)
@@ -367,21 +391,20 @@ Graph.prototype = {
 
 			this.update();
 		}
-	},
+	}
 
-	onDoubleClick: function(e) {
-		let claim = this.findClaimAtPosition({x: e.offsetX, y: e.offsetY});
+	onDoubleClick(e) {
+		const claim = this.findClaimAtPosition({x: e.offsetX, y: e.offsetY});
 
 		if (claim)
 			return;
 
-		let text = prompt('ID');
-
+		const text = prompt('ID');
 		claim = this.addClaim(text);
 		claim.setPosition(e.offsetX, e.offsetY);
-	},
+	}
 
-	onMouseMove: function(e) {
+	onMouseMove(e) {
 		if (this.dragStartPosition === null) {
 			if (this.findClaimAtPosition({x: e.offsetX, y: e.offsetY}))
 				this.canvas.style.cursor = 'pointer';
@@ -414,9 +437,9 @@ Graph.prototype = {
 
 			this.update();
 		}
-	},
+	}
 
-	onMouseUp: function(e) {
+	onMouseUp(e) {
 		e.preventDefault();
 
 		this.canvas.style.cursor = 'default';
@@ -453,16 +476,16 @@ Graph.prototype = {
 		}
 		
 		this.dragStartPosition = null;
-	},
+	}
 
-	onMouseOut: function(e) {
+	onMouseOut(e) {
 		if (this.cursor) {
 			this.cursor = null;
 			this.update();
 		}
-	},
+	}
 
-	onKeyDown: function(e) {
+	onKeyDown(e) {
 		const stepSize = 2 * this.style.scale;
 
 		switch (e.keyCode) {
@@ -478,8 +501,8 @@ Graph.prototype = {
 				if (this.claims.length === 0)
 					return;
 
-				var direction = e.shiftKey ? -1 : 1;
-				var idx = -1;
+				const direction = e.shiftKey ? -1 : 1;
+				let idx = -1;
 				
 				// Find the first claim in selectedClaims
 				if (this.selectedClaims.length > 0)
@@ -531,9 +554,9 @@ Graph.prototype = {
 				this.update();
 				break;
 		}
-	},
+	}
 
-	onKeyUp: function(e) {
+	onKeyUp(e) {
 		switch (e.keyCode) {
 			case 16: // Shift
 			case 18: // Alt
@@ -541,27 +564,25 @@ Graph.prototype = {
 				this.update();
 				break;
 		}
-	},
+	}
 
-	on: function(eventName, callback) {
+	on(eventName, callback) {
 		this.listeners[eventName].push(callback);
-	},
+	}
 
-	off: function(eventName, callback) {
+	off(eventName, callback) {
 		this.listeners[eventName] = this.listeners[eventName].filter(registeredCallback => callback !== registeredCallback);
-	},
+	}
 
-	fire: function(eventName) {
+	fire(eventName) {
 		this.listeners[eventName].forEach(callback => callback(this));
-	},
+	}
 
-	resize: function() {
-		_requestAnimationFrame(() => {
-			this.draw();
-		});
-	},
+	resize() {
+		_requestAnimationFrame(this.draw.bind(this));
+	}
 
-	fit: function() {
+	fit() {
 		// Find initial offsets
 		const startX = this.claims.map(claim => claim.x).min();
 		const startY = this.claims.map(claim => claim.y).min();
@@ -574,9 +595,9 @@ Graph.prototype = {
 		});
 
 		this.resize();
-	},
+	}
 
-	fitVertically: function() {
+	fitVertically() {
 		// Find initial offsets
 		const startY = this.claims.map(claim => claim.y).min();
 
@@ -591,13 +612,13 @@ Graph.prototype = {
 		const height = this.claims.map(claim => claim.y + claim.height).max();
 
 		this.resize();
-	},
+	}
 
-	destroy: function() {
+	destroy() {
 		this.canvas.parentNode.removeChild(this.canvas);
-	},
+	}
 
-	updateCanvasSize: function(e) {
+	updateCanvasSize(e) {
 		const width = 2 * this.style.padding + this.claims.map(claim => claim.x + claim.width).max();
 
 		const height = 2 * this.style.padding + this.claims.map(claim => claim.y + claim.height).max();
@@ -609,9 +630,9 @@ Graph.prototype = {
 			this.canvas.style.width = width + 'px';
 			this.canvas.style.height = height + 'px';
 		}
-	},
+	}
 
-	updateClaimSizes: function() {
+	updateClaimSizes() {
 		this.context.font = (this.style.scale * this.style.claim.fontSize) + 'px sans-serif';
 
 		this.claims.forEach(claim => {
@@ -629,13 +650,13 @@ Graph.prototype = {
 				}
 			}
 		});
-	},
+	}
 
-	update: function() {
+	update() {
 		_requestAnimationFrame(this.draw.bind(this));
-	},
+	}
 
-	draw: function() {
+	draw() {
 		// Update the size of all the claim boxes
 		this.updateClaimSizes();
 
@@ -666,9 +687,9 @@ Graph.prototype = {
 		
 		// Undo the translation
 		this.context.setTransform(1, 0, 0, 1, 0, 0);
-	},
+	}
 
-	drawClaims: function()
+	drawClaims()
 	{
 		var ctx = this.context,
 			padding = this.style.claim.padding,
@@ -716,14 +737,13 @@ Graph.prototype = {
 					scale * (claim.y + padding.top + (i + 1) * lineHeight));
 			});
 		});
-	},
+	}
 
-	drawSelection: function()
+	drawSelection()
 	{
-		var ctx = this.context,
-			scale = this.style.scale;
-
-		var color = typeof document !== 'undefined' && document.activeElement == this.canvas ? 'blue' : 'gray';
+		const ctx = this.context;
+		const scale = this.style.scale;
+		const color = typeof document !== 'undefined' && document.activeElement == this.canvas ? 'blue' : 'gray';
 
 		ctx.lineWidth = scale * 3;
 		ctx.strokeStyle = color;
@@ -736,11 +756,11 @@ Graph.prototype = {
 				scale * (claim.width + 4),
 				scale * (claim.height + 4));
 		});
-	},
+	}
 
-	drawRelations: function()
+	drawRelations()
 	{
-		let ctx = this.context,
+		const ctx = this.context,
 			relationColor = this.style.relation.color,
 			relationDash = this.style.relation.dash;
 
@@ -750,10 +770,10 @@ Graph.prototype = {
 			// when drawing an arrow, we draw it towards the border, and not the center
 			// where it will be behind the actual box.
 
-			var s = this.offsetPosition(relation.target, relation.claim);
+			const s = this.offsetPosition(relation.target, relation.claim);
 			// var s = relation.claim;
 
-			var t = this.offsetPosition(relation.claim, relation.target);
+			const t = this.offsetPosition(relation.claim, relation.target);
 
 			ctx.strokeStyle = relationColor(relation);
 
@@ -761,11 +781,11 @@ Graph.prototype = {
 
 			this.drawRelationLine(s, t, relation.type);
 		});
-	},
+	}
 
-	drawRelationLine: function(s, t, type)
+	drawRelationLine(s, t, type)
 	{
-		let ctx = this.context,
+		const ctx = this.context,
 			scale = this.style.scale,
 			arrowRadius = this.style.relation.size;
 
@@ -775,7 +795,7 @@ Graph.prototype = {
 		ctx.moveTo(scale * s.x, scale * s.y);
 
 		// To almost the target (but a bit less)
-		let angle = Math.atan2(
+		const angle = Math.atan2(
 			t.y - s.y,
 			t.x - s.x);
 
@@ -833,22 +853,21 @@ Graph.prototype = {
 				ctx.stroke();
 				break;
 		}
-	},
+	}
 
-	drawCursor: function()
+	drawCursor()
 	{
 		if (!this.cursor || this.selectedClaims.length === 0)
 			return;
 
-		let ctx = this.context,
-			relationColor = this.style.relation.color;
-
-		let claim = this.selectedClaims[0];
-
+		const ctx = this.context;
+		const relationColor = this.style.relation.color;
+		const claim = this.selectedClaims[0];
 		this.drawRelationLine(claim.center, this.cursor, this.cursor.type);
-	},
+	}
 
-	offsetPosition: function(sourceBox, targetBox) {
+	offsetPosition(sourceBox, targetBox)
+	{
 		function center(box) {
 			return {
 				x: box.center.x,
@@ -887,15 +906,15 @@ Graph.prototype = {
 			};
 
 		return t;
-	},
+	}
 
-	parse: function(input)
+	parse(input)
 	{
-		let variables = {};
+		const variables = {};
 
-		let lines = Array.isArray(input) ? input : input.split(/\r?\n/);
+		const lines = Array.isArray(input) ? input : input.split(/\r?\n/);
 
-		let rules = [
+		const rules = [
 			{
 				pattern: /^\s*([a-z0-9]+)\s*:\s*(assume\s+)?((?:[a-z0-9]+\s+)+)(?:(support|attack|warrant|undercut)s)\s+([a-z0-9]+)$/,
 				processor: match => {
@@ -930,14 +949,14 @@ Graph.prototype = {
 				}
 			}
 		});
-	},
+	}
 
-	toString: function() {
-		let variables = new LetterSequence();
+	toString() {
+		const variables = new LetterSequence();
 
-		let mapping = new Map();
+		const mapping = new Map();
 
-		let lines = [];
+		const lines = [];
 
 		this.claims.forEach(claim => {
 			// Skip the compound nodes
@@ -1004,8 +1023,11 @@ Graph.prototype = {
 	}
 }
 
-if (typeof exports !== 'undefined') {
-	exports.Claim = Claim;
-	exports.Relation = Relation;
-	exports.Graph = Graph;
-}
+// Set default claim class
+Graph.Claim = Claim; 
+
+exports.Claim = Claim;
+exports.Relation = Relation;
+exports.Graph = Graph;
+
+})(typeof exports !== 'undefined' ? exports : window);
