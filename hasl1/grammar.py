@@ -941,16 +941,34 @@ def hasl1_support_general_missing_specific(conclusion, because, general):
 
 @hasl1_grammar.rule('specific-argument', [RuleRef('specific-claim'), Literal('because'), RuleRef('specific-arguments')])
 def hasl1_support_general_missing_general(conclusion, because, specifics):
-    # Special case: if the specific is the conclusion, but only assumed, just pass it on including the conclusion
-    # which will override the assumed conclusion.
+    try:
+        # Special case: if the specific is the conclusion, but only assumed, just pass it on including the conclusion
+        # which will override the assumed conclusion.
+        if len(specifics.roots) == 1 and specifics.root == conclusion:
+            raise Continue('A because A')
+        subj = Entity()
+        conditions = [Claim(subj, specific.verb, negated=specific.negated, assumed=True) for specific in specifics.roots]
+        general = GeneralClaim(subj, conclusion.verb, negated=conclusion.negated, conditions=tuple(conditions), assumed=True)
+        support = Relation('support', specifics.roots, conclusion)
+        warrant = Relation('support', [general], support)
+        return Argument(claims=[general, conclusion, *specifics.claims], relations=[*specifics.relations, support, warrant])
+    except:
+        raise Continue("could not combine {!r} with {!r}".format(conclusion, specifics))
+
+
+@hasl1_grammar.rule('specific-argument', [RuleRef('specific-claim'), Literal('because'), RuleRef('specific-arguments'), Literal('but'), RuleRef('specific-argument')])
+def hasl1_support_general_missing_general_with_undercutter(conclusion, because, specifics, but, attack):
+    """(a <~ b) <~ C"""
     if len(specifics.roots) == 1 and specifics.root == conclusion:
-        return Argument(claims=[conclusion, *specifics.claims], relations=specifics.relations)
+        raise Continue('A because A')
+
     subj = Entity()
     conditions = [Claim(subj, specific.verb, negated=specific.negated, assumed=True) for specific in specifics.roots]
     general = GeneralClaim(subj, conclusion.verb, negated=conclusion.negated, conditions=tuple(conditions), assumed=True)
     support = Relation('support', specifics.roots, conclusion)
     warrant = Relation('support', [general], support)
-    return Argument(claims=[general, conclusion, *specifics.claims], relations=[*specifics.relations, support, warrant])
+    undercutter = Relation('attack', attack.roots, support)
+    return Argument(claims=[general, conclusion, *specifics.claims, *attack.claims], relations=[*specifics.relations, *attack.relations, support, warrant, undercutter])
 
 
 @hasl1_grammar.rule('specific-argument', [RuleRef('specific-claim-list'), Literal('and'), RuleRef('general-argument')])
