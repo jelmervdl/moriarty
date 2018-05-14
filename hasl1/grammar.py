@@ -14,7 +14,7 @@ import spacy
 
 import english
 import parser
-from parser import Rule, RuleRef, passthru
+from parser import Rule, RuleRef, passthru, Continue
 
 
 def coalesce(*args):
@@ -953,12 +953,15 @@ def hasl1_support_general_missing_general(conclusion, because, specifics):
 
 @hasl1_grammar.rule('specific-argument', [RuleRef('specific-claim-list'), Literal('and'), RuleRef('general-argument')])
 def hasl1_support_general_missing_conclusion(specifics, conj, general):
-    subj = specifics[0].subj
-    conclusion = Claim(subj, general.root.verb, negated=general.root.negated, assumed=True)
-    expected_specifics = [Claim(subj, condition.verb, negated=condition.negated, assumed=True) for condition in general.root.conditions]
-    support = Relation('support', [*specifics, *expected_specifics], conclusion)
-    warrant = Relation('support', [general.root], support)
-    return Argument(claims=[*specifics, *expected_specifics, *general.claims, conclusion], relations=[*general.relations, support, warrant])
+    try:
+        subj = specifics[0].subj
+        conclusion = Claim(subj, general.root.verb, negated=general.root.negated, assumed=True)
+        expected_specifics = [Claim(subj, condition.verb, negated=condition.negated, assumed=True) for condition in general.root.conditions]
+        support = Relation('support', [*specifics, *expected_specifics], conclusion)
+        warrant = Relation('support', [general.root], support)
+        return Argument(claims=[*specifics, *expected_specifics, *general.claims, conclusion], relations=[*general.relations, support, warrant])
+    except:
+        raise Continue("could not combine {!r} with {!r}".format(specifics, general))
 
 """
 > a because (b but c): a<~b; b*-c

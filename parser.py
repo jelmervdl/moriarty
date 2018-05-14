@@ -30,6 +30,10 @@ def passthru(state, data):
     return data[0]
 
 
+class Continue(Exception):
+    pass
+
+
 class ParseError(Exception):
     def __init__(self, position: int, token: str, sentence: List[str] = None, expected: List[str] = None):
         self.position = position
@@ -192,7 +196,12 @@ class Rule:
         try:
             return self.callback(state, data)
         except Exception as e:
-            raise Exception('Error while trying to finish the rule {!r}'.format(self)) from e
+            if isinstance(e, Continue):
+                print("1111111")
+                raise e
+            else:
+                print("222222")
+                raise Exception('Error while trying to finish the rule {!r}'.format(self)) from e
 
 
 class RuleInstance:
@@ -374,7 +383,10 @@ class Parser:
     def advanceTo(self, position: int, added_rules: List[Rule]) -> None:
         w = 0
         while w < len(self.table[position]):
-            self.table[position][w].process(position, self.table, self.rules, added_rules)
+            try:
+                self.table[position][w].process(position, self.table, self.rules, added_rules)
+            except Continue:
+                pass
             w += 1
 
     def feed(self, chunk) -> None:
