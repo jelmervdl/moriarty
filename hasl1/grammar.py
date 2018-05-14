@@ -42,6 +42,9 @@ def unique(seq):
 
 
 def singular_verb(verb):
+    if len(verb.tokens) != 1:
+        raise Exception('singular_verb can only process spans with one token')
+
     mapping = {
         'are': 'is',
         'can': 'can',
@@ -325,7 +328,7 @@ class Entity(object):
 
 
 class Claim(object):
-    def __init__(self, subj, verb, *, negated=False, assumed=False, file=None, line=None):
+    def __init__(self, subj, verb, negated=False, assumed=False, file=None, line=None):
         self.subj = subj
         self.verb = verb
         self.negated = negated
@@ -610,7 +613,7 @@ en_grammar = Grammar([
 
     Rule('indef-dt', [Literal('[Aa]n?')], passthru),
 
-    Rule('sentences',   [RuleRef('sentences'), RuleRef('sentence')], lambda state, data: data[0] + data[1]),
+    Rule('sentences',   [RuleRef('sentences'), RuleRef('sentence')], merge),
     Rule('sentences',   [RuleRef('sentence')], passthru),
     Rule('sentence',    [RuleRef('argument'), Literal('.')], passthru),
 
