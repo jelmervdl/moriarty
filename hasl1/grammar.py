@@ -644,8 +644,8 @@ en_grammar = Grammar([
     Rule('verb-phrase-sg', [RuleRef('verb-sg'), RuleRef('noun-phrase?'), RuleRef('prep-phrase?')], merge), # can fly (a plane) (in the sky)
     Rule('verb-phrase-pl', [RuleRef('verb-pl'), RuleRef('noun-phrase?'), RuleRef('prep-phrase?')], merge),
 
-    Rule('verb-phrase-sg', [RuleRef('verb-sg'), RuleRef('adjectives')], merge), # appears red
-    Rule('verb-phrase-pl', [RuleRef('verb-pl'), RuleRef('adjectives')], merge), # appear red
+    Rule('verb-phrase-sg', [RuleRef('verb-sg'), RuleRef('adjectives'), RuleRef('prep-phrase?')], merge), # appears red
+    Rule('verb-phrase-pl', [RuleRef('verb-pl'), RuleRef('adjectives'), RuleRef('prep-phrase?')], merge), # appear red
 
     Rule('neg-verb-phrase-sg', [RuleRef('neg-verb-sg'), RuleRef('noun-phrase?')], merge), # cannot fly a plane
 
