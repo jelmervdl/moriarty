@@ -40,7 +40,7 @@ function distToSegment(p, v, w) {
 class Claim {
 	constructor(graph, text, data) {
 		this.graph = graph;
-		this.text = text;
+		this._text = text;
 		this.data = data || {};
 		this.ax = 0;
 		this.ay = 0;
@@ -67,6 +67,16 @@ class Claim {
 			if (relation.claim === this || relation.target === this)
 				relation.delete();
 		});
+	}
+
+	set text(text) {
+		this._text = text;
+		this.width = null;
+		this.height = null;
+	}
+
+	get text() {
+		return this._text;
 	}
 	
 	get x() {
@@ -436,18 +446,19 @@ class Graph {
 			y: e.offsetY - this.style.padding,
 		};
 
-		const claim = this.findClaimAtPosition(cursor);
-
-		if (claim)
-			return;
-
-		const text = prompt('ID');
+		let claim = this.findClaimAtPosition(cursor);
+		
+		const text = prompt('ID', claim ? claim.text : '');
 
 		if (!text)
 			return;
 
-		claim = this.addClaim(text);
-		claim.setPosition(cursor.x, cursor.y);
+		if (!claim) {
+			claim = this.addClaim(text);
+			claim.setPosition(cursor.x, cursor.y);
+		} else {
+			claim.text = text;
+		}
 	}
 
 	onMouseMove(e) {
@@ -500,18 +511,23 @@ class Graph {
 			y: e.offsetY - this.style.padding,
 		};
 
-		console.log(this.wasDragging, e.altKey);
-
 		if (!this.wasDragging) {
 			const claim = this.findClaimAtPosition(cursor);
 			const relation = claim ? null : this.findRelationAtPosition(cursor, 5);
 
 			if (e.altKey) {
-				if (claim && this.selectedClaims.length > 0) {
-					this.addRelation(
-						this.selectedClaims[0],
-						claim,
-						e.shiftKey ? Relation.ATTACK : Relation.SUPPORT);
+				if (this.selectedClaims.length > 0) {
+					if (claim) {
+						this.addRelation(
+							this.selectedClaims[0],
+							claim,
+							e.shiftKey ? Relation.ATTACK : Relation.SUPPORT);
+					} else if (relation) {
+						this.addRelation(
+							this.selectedClaims[0],
+							relation,
+							e.shiftKey ? Relation.ATTACK : Relation.SUPPORT);
+					}
 				}
 			} else {
 				if (claim) {
@@ -933,7 +949,13 @@ class Graph {
 		const ctx = this.context;
 		const relationColor = this.style.relation.color;
 		const claim = this.selectedClaims[0];
-		this.drawRelationLine(claim.center, this.cursor, this.cursor.type);
+
+		const snapTarget = this.findClaimAtPosition(this.cursor, 5) || this.findRelationAtPosition(this.cursor, 5);
+
+		this.drawRelationLine(
+			this.offsetPosition(snapTarget ? snapTarget : {center: this.cursor}, claim),
+			snapTarget ? this.offsetPosition(claim, snapTarget) : this.cursor,
+			this.cursor.type);
 	}
 
 	offsetPosition(sourceBox, targetBox)
