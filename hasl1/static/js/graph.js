@@ -547,10 +547,8 @@ class Graph {
 					}
 				}
 			} else {
-				if (claim) {
-					console.log(claim);
-				} else if (relation) {
-					//
+				if (claim || relation) {
+					this.fire('click', {target: claim || relation})
 				} else {
 					if (this.selectedClaims.length != 0 || this.selectedRelations.length != 0) {
 						this.selectedClaims = [];

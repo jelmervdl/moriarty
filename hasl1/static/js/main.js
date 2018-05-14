@@ -349,36 +349,12 @@ jQuery(function($) {
         view('argument diagram', 'network', 'glyphicon-comment', function(button) {
             this.append($canvas);
 
-            let tooltipTimer = null;
-            let tooltip = $('<div class="graph-tooltip" aria-hidden="true" role="tooltip">');
-            let pos = null;
-
-            this.append(tooltip);
-
             graph.on('mouseover', function(e) {
-                if (tooltipTimer)
-                    clearInterval(tooltipTimer);
-
-                tooltipTimer = setTimeout(function() {
-                    tooltip.css({
-                        'top': (pos.y + 20) + 'px',
-                        'left': pos.x + 'px',
-                    });
-                    tooltip.text(e.target.data.tooltip);
-                    tooltip.attr('aria-hidden', 'false');
-                }, 1500);
-            });
-
-            $canvas.on('mousemove', function(e) {
-                pos = {
-                    x: e.offsetX,
-                    y: e.offsetY
-                };
+                $canvas.prop('title', e.target.data.tooltip);
             });
 
             graph.on('mouseout', function(e) {
-                clearInterval(tooltipTimer);
-                tooltip.attr('aria-hidden', 'true');
+                $canvas.prop('title', '');
             });
 
             // Show first 10 parses by default
