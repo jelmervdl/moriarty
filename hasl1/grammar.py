@@ -657,6 +657,8 @@ hasl0_grammar = en_grammar + [
         lambda state, data: Claim(data[0], data[1])),
     Rule('specific-claim', [RuleRef('instance'), RuleRef('neg-verb-phrase-sg')], # Tweety has a wing, Tweety is a bird
         lambda state, data: Claim(data[0], data[1], negated=True)),
+    Rule('specific-claim', [RuleRef('instance'), RuleRef('verb-phrase-pl')],
+        lambda state, data: Claim(data[0], data[1])),
     
     Rule('general-claim', [RuleRef('prototype-sg'), RuleRef('verb-phrase-sg')],
         lambda state, data: Claim(data[0], data[1])),
