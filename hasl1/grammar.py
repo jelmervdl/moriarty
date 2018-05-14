@@ -764,11 +764,11 @@ def hasl1_specific_claims_list_multiple(list, conj, specific):
     return (*list, specific)
 
 
-@hasl1_grammar.rule('specific-argument', [RuleRef('specific-claim'), Literal('because'), RuleRef('specific-arguments')])
-def hasl1_support_specific(conclusion, because, specifics):
-    """a <~ b+"""
-    support = Relation('support', specifics.roots, conclusion)
-    return Argument(claims=[conclusion, *specifics.claims], relations=[support, *specifics.relations])
+# @hasl1_grammar.rule('specific-argument', [RuleRef('specific-claim'), Literal('because'), RuleRef('specific-arguments')])
+# def hasl1_support_specific(conclusion, because, specifics):
+#     """a <~ b+"""
+#     support = Relation('support', specifics.roots, conclusion)
+#     return Argument(claims=[conclusion, *specifics.claims], relations=[support, *specifics.relations])
 
 @hasl1_grammar.rule('general-argument', [RuleRef('general-claim'), Literal('because'), RuleRef('specific-arguments')])
 def hasl1_support_general(conclusion, because, specifics):
