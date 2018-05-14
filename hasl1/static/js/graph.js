@@ -14,17 +14,27 @@ var _requestAnimationFrame = (function() {
 
 (function (exports) {
 
-class Line {
-	constructor(start, end) {
-		this.start = start;
-		this.end = end;
-	}
+function sqr(x) { return x * x }
 
-	distanceToPoint(point) {
-		const dx = this.end.x - this.start.x;
-		const dy = this.end.y - this.start.y;
-		return Math.abs(dy * point.x - dx * point.y + this.end.x * point.y - this.end.y * point.x) / Math.sqrt(dy * dy + dx * dx);
-	}
+function dist2(v, w) { return sqr(v.x - w.x) + sqr(v.y - w.y) }
+
+function distToSegmentSquared(p, v, w) {
+	const l2 = dist2(v, w);
+
+	if (l2 == 0)
+		return dist2(p, v);
+
+	let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+	t = Math.max(0, Math.min(1, t));
+
+	return dist2(p, {
+		x: v.x + t * (w.x - v.x),
+		y: v.y + t * (w.y - v.y)
+	});
+}
+
+function distToSegment(p, v, w) {
+	return Math.sqrt(distToSegmentSquared(p, v, w));
 }
 
 class Claim {
@@ -187,6 +197,8 @@ class Graph {
 		this.relations = [];
 
 		this.selectedClaims = [];
+		this.selectedRelations = [];
+
 		this.dragStartPosition = null;
 		this.wasDragging = false;
 		this.cursor = null;
@@ -356,24 +368,20 @@ class Graph {
 
 	findClaimAtPosition(pos) {
 		return this.claims.find(claim => {
-			return pos.x > claim.x + this.style.padding
-				&& pos.y > claim.y + this.style.padding
-				&& pos.x < claim.x + this.style.padding + claim.width
-				&& pos.y < claim.y + this.style.padding + claim.height;
+			return pos.x > claim.x
+				&& pos.y > claim.y
+				&& pos.x < claim.x + claim.width
+				&& pos.y < claim.y + claim.height;
 		});
 	}
 
-	findRelationAtPosition(pos){
+	findRelationAtPosition(pos, buffer){
 		return this.relations.find(relation => {
-			const line = new Line(relation.source.center, relation.target.center)
-			return line.distanceToPoint(pos) < 5;
-		})
+			return distToSegment(pos, relation.claim.center, relation.target.center) <= buffer;
+		});
 	}
 
 	onMouseDown(e) {
-		if (e.altKey)
-			return;
-
 		this.wasDragging = false;
 
 		this.dragStartPosition = {
@@ -381,40 +389,83 @@ class Graph {
 			y: e.offsetY
 		};
 
-		const claim = this.findClaimAtPosition({x: e.offsetX, y: e.offsetY});
+		const cursor = {
+			x: e.offsetX - this.style.padding,
+			y: e.offsetY - this.style.padding,
+		};
 
-		if (claim && !this.selectedClaims.includes(claim)) {
-			if (e.shiftKey)
-				this.selectedClaims.push(claim);
-			else
-				this.selectedClaims = [claim];
+		if (e.altKey)
+			return;
 
-			this.update();
+		const claim = this.findClaimAtPosition(cursor);
+
+		if (claim) {
+			if (!this.selectedClaims.includes(claim)) {
+				if (e.shiftKey) {
+					this.selectedClaims.push(claim);
+				} else {
+					this.selectedClaims = [claim];
+					this.selectedRelations = [];
+				}
+
+				this.update();
+			}
+
+			return;
+		}
+
+		const relation = this.findRelationAtPosition(cursor, 5);
+
+		if (relation) {
+			if (!this.selectedRelations.includes(relation)) {
+				if (e.shiftKey) {
+					this.selectedRelations.push(relation);
+				} else {
+					this.selectedRelations = [relation];
+					this.selectedClaims = [];
+				}
+
+				this.update();
+			}
 		}
 	}
 
 	onDoubleClick(e) {
-		const claim = this.findClaimAtPosition({x: e.offsetX, y: e.offsetY});
+		const cursor = {
+			x: e.offsetX - this.style.padding,
+			y: e.offsetY - this.style.padding,
+		};
+
+		const claim = this.findClaimAtPosition(cursor);
 
 		if (claim)
 			return;
 
 		const text = prompt('ID');
+
+		if (!text)
+			return;
+
 		claim = this.addClaim(text);
-		claim.setPosition(e.offsetX, e.offsetY);
+		claim.setPosition(cursor.x, cursor.y);
 	}
 
 	onMouseMove(e) {
 		if (this.dragStartPosition === null) {
-			if (this.findClaimAtPosition({x: e.offsetX, y: e.offsetY}))
+			const cursor = {
+				x: e.offsetX - this.style.padding,
+				y: e.offsetY - this.style.padding,
+			};
+
+			if (this.findClaimAtPosition(cursor) || this.findRelationAtPosition(cursor, 5))
 				this.canvas.style.cursor = 'pointer';
 			else
 				this.canvas.style.cursor = 'default';
 
 			if (e.altKey) {
 				this.cursor = {
-					x: e.offsetX - this.style.padding,
-					y: e.offsetY - this.style.padding,
+					x: cursor.x,
+					y: cursor.y,
 					type: e.shiftKey ? Relation.ATTACK : Relation.SUPPORT
 				};
 				
@@ -444,8 +495,16 @@ class Graph {
 
 		this.canvas.style.cursor = 'default';
 
+		const cursor = {
+			x: e.offsetX - this.style.padding,
+			y: e.offsetY - this.style.padding,
+		};
+
+		console.log(this.wasDragging, e.altKey);
+
 		if (!this.wasDragging) {
-			let claim = this.findClaimAtPosition({x: e.offsetX, y: e.offsetY});
+			const claim = this.findClaimAtPosition(cursor);
+			const relation = claim ? null : this.findRelationAtPosition(cursor, 5);
 
 			if (e.altKey) {
 				if (claim && this.selectedClaims.length > 0) {
@@ -455,12 +514,16 @@ class Graph {
 						e.shiftKey ? Relation.ATTACK : Relation.SUPPORT);
 				}
 			} else {
-				if (!claim && this.selectedClaims.length != 0) {
-					this.selectedClaims = [];
-					this.update();
-				}
-				else if (claim) {
+				if (claim) {
 					console.log(claim);
+				} else if (relation) {
+					//
+				} else {
+					if (this.selectedClaims.length != 0 || this.selectedRelations.length != 0) {
+						this.selectedClaims = [];
+						this.selectedRelations = [];
+						this.update();
+					}
 				}
 			}
 		}
@@ -492,6 +555,7 @@ class Graph {
 			case 8: // Backspace
 			case 46: // Delete
 				this.selectedClaims.forEach(claim => claim.delete());
+				this.selectedRelations.forEach(relation => relation.delete());
 				e.preventDefault();
 				this.update();
 				break;
@@ -755,6 +819,12 @@ class Graph {
 				scale * (claim.y - 2),
 				scale * (claim.width + 4),
 				scale * (claim.height + 4));
+		});
+
+		this.selectedRelations.forEach(relation => {
+			const s = this.offsetPosition(relation.target, relation.claim);
+			const t = this.offsetPosition(relation.claim, relation.target);
+			this.drawRelationLine(s, t, relation.type);
 		});
 	}
 
