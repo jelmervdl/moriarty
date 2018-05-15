@@ -12,26 +12,94 @@ var _requestAnimationFrame = (function() {
 	}
 })();
 
-function Claim(graph, text, data)
-{
-	this.graph = graph;
-	this.text = text;
-	this.data = data || {};
-	this.ax = 0;
-	this.ay = 0;
-	this.dx = 0;
-	this.dy = 0;
-	this.width = null;
-	this.height = null;
+(function (exports) {
+
+function sqr(x) { return x * x }
+
+function dist2(v, w) { return sqr(v.x - w.x) + sqr(v.y - w.y) }
+
+function distToSegmentSquared(p, v, w) {
+	const l2 = dist2(v, w);
+
+	if (l2 == 0)
+		return dist2(p, v);
+
+	let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+	t = Math.max(0, Math.min(1, t));
+
+	return dist2(p, {
+		x: v.x + t * (w.x - v.x),
+		y: v.y + t * (w.y - v.y)
+	});
 }
 
-Claim.prototype = {
-	setPosition: function(x, y) {
+function distToSegment(p, v, w) {
+	return Math.sqrt(distToSegmentSquared(p, v, w));
+}
+
+function min(a, b) {
+	if (a === undefined || isNaN(a))
+		return b;
+	if (b === undefined || isNaN(b))
+		return a;
+	return Math.min(a, b);
+}
+
+function max(a, b) {
+	if (a === undefined || isNaN(a))
+		return b;
+	if (b === undefined || isNaN(b))
+		return a;
+	return Math.max(a, b);
+}
+
+class Bounds {
+	constructor(x, y, width, height) {
+		this.x = x;
+		this.y = y;
+		this.width = width;
+		this.height = height;
+	}
+
+	get center() {
+		return {
+			x: this.x + 0.5 * this.width,
+			y: this.y + 0.5 * this.height
+		};
+	}
+
+	including(box) {
+		let minX = min(this.x, box.x);
+		let minY = min(this.y, box.y);
+		let maxX = max(this.x + this.width, box.x + box.width);
+		let maxY = max(this.y + this.height, box.y + box.height);
+		return new Bounds(minX, minY, maxX - minX, maxY - minY);
+	}
+
+	pad(x, y) {
+		return new Bounds(this.x - x, this.y - y, this.width + 2 * x, this.height + 2 * y);
+	}
+}
+
+class Claim {
+	constructor(graph, text, data) {
+		this.graph = graph;
+		this._text = text;
+		this.data = data || {};
+		this.ax = 0;
+		this.ay = 0;
+		this.dx = 0;
+		this.dy = 0;
+		this.width = null;
+		this.height = null;
+	}
+
+	setPosition(x, y) {
 		this.ax = x;
 		this.ay = y;
-	},
+	}
 	
-	delete: function() {
+	delete() {
 		// Remove the claims from the graph
 		this.graph.claims = this.graph.claims.filter(claim => claim !== this);
 
@@ -43,15 +111,25 @@ Claim.prototype = {
 			if (relation.claim === this || relation.target === this)
 				relation.delete();
 		});
-	},
+	}
+
+	set text(text) {
+		this._text = text;
+		this.width = null;
+		this.height = null;
+	}
+
+	get text() {
+		return this._text;
+	}
 	
 	get x() {
 		return this.ax + this.dx;
-	},
+	}
 	
 	get y() {
 		return this.ay + this.dy;
-	},
+	}
 
 	get center() {
 		return {
@@ -61,51 +139,60 @@ Claim.prototype = {
 	}
 }
 
-function Relation(graph, claim, target, type, data) {
-	this.graph = graph;
-	this.claim = claim;
-	this.target = target;
-	this.type = type;
-	this.data = data || {};
-}
+class Relation {
+	constructor(graph, claim, target, type, data) {
+		this.graph = graph;
+		this.claim = claim;
+		this.target = target;
+		this.type = type;
+		this.data = data || {};
+	}
 
-Relation.SUPPORT = 'support';
+	static get SUPPORT() {
+		return 'support';
+	}
 
-Relation.ATTACK = 'attack';
+	static get ATTACK() {
+		return 'attack';
+	}
 
-Relation.CONDITION = 'warrant';
+	static get CONDITION() {
+		return 'warrant';
+	}
 
-Relation.EXCEPTION = 'undercut';
+	static get EXCEPTION() {
+		return 'undercut';
+	}
 
-Relation.prototype = {
-	delete: function() {
-		// Delete the relation from the graph
-		this.graph.relations.forEach(function(relation) {
+	delete() {
+		// And also delete any relation that targets this relation
+		this.graph.relations.forEach(relation => {
 			if (relation.target === this)
 				relation.delete();
-		}, this);
+		});
 
-		// And also delete any relation that targets this relation
-		this.graph.relations = this.graph.relations.filter(function(relation) {
-			return relation !== this;
-		}, this);
-	},
+		// Delete the relation from the graph
+		this.graph.relations = this.graph.relations.filter(relation => relation !== this);
+
+		// Also filter it out of the selected relations
+		this.graph.selectedRelations = this.graph.selectedRelations.filter(relation => relation !== this);
+	}
 
 	get x() {
 		return this.claim.x + (this.target.x - this.claim.x) / 2;
-	},
+	}
 	
 	get y() {
 		return this.claim.y + (this.target.y - this.claim.y) / 2;
-	},
+	}
 	
 	get width() {
 		return 1;
-	},
+	}
 	
 	get height() {
 		return 1;
-	},
+	}
 	
 	get center() {
 		return {
@@ -157,125 +244,128 @@ class LetterSequence {
 }
 
 
-function Graph(canvas)
-{
-	this.canvas = canvas;
+class Graph {
+	constructor(canvas) {
+		this.canvas = canvas;
 
-	this.context = this.canvas.getContext('2d');
+		this.context = this.canvas.getContext('2d');
 
-	this.claims = [];
-	this.relations = [];
+		this.claims = [];
+		this.relations = [];
 
-	this.selectedClaims = [];
-	this.dragStartPosition = null;
-	this.wasDragging = false;
-	this.cursor = null;
+		this.selectedClaims = [];
+		this.selectedRelations = [];
 
-	this.listeners = {
-		'draw': [],
-		'drop': []
-	};
+		this.dragStartPosition = null;
+		this.wasDragging = false;
+		this.cursor = null;
+		this.elementUnderCursor = null;
 
-	if ('addEventListener' in this.canvas) {
-		this.canvas.tabIndex = -1;
-		this.canvas.addEventListener('mousedown', this.onMouseDown.bind(this));
-		this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
-		this.canvas.addEventListener('mouseup', this.onMouseUp.bind(this));
-		this.canvas.addEventListener('mouseout', this.onMouseOut.bind(this));
-		this.canvas.addEventListener('dblclick', this.onDoubleClick.bind(this));
-		this.canvas.addEventListener('keydown', this.onKeyDown.bind(this));
-		this.canvas.addEventListener('keyup', this.onKeyUp.bind(this));
-		this.canvas.addEventListener('focus', this.update.bind(this));
-		this.canvas.addEventListener('blur', this.update.bind(this));
+		this.listeners = {
+			'draw': [],
+			'drop': [],
+			'mouseover': [],
+			'mouseout': [],
+			'click': []
+		};
+
+		if ('addEventListener' in this.canvas) {
+			this.canvas.tabIndex = -1;
+			this.canvas.addEventListener('mousedown', this.onMouseDown.bind(this));
+			this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
+			this.canvas.addEventListener('mouseup', this.onMouseUp.bind(this));
+			this.canvas.addEventListener('mouseout', this.onMouseOut.bind(this));
+			this.canvas.addEventListener('dblclick', this.onDoubleClick.bind(this));
+			this.canvas.addEventListener('keydown', this.onKeyDown.bind(this));
+			this.canvas.addEventListener('keyup', this.onKeyUp.bind(this));
+			this.canvas.addEventListener('focus', this.update.bind(this));
+			this.canvas.addEventListener('blur', this.update.bind(this));
+		}
+
+		const scopeStyles = {};
+
+		const colours = [
+			"#ff0000", "#ffee00", "#5395a6", "#40002b", "#f20000", "#7f7920",
+			"#6c98d9", "#d9a3bf", "#e58273", "#807d60", "#3d3df2", "#ff408c",
+			"#ff8c40", "#5ccc33", "#110080", "#8c2331", "#e6c3ac", "#004d29",
+			"#282633", "#593c00", "#00bf99", "#b32daa"
+		];
+
+		this.style = {
+			scale: typeof window !== 'undefined' && 'devicePixelRatio' in window ? window.devicePixelRatio : 1.0,
+			padding: 20,
+			claim: {
+				padding: {
+					top: 3,
+					left: 10,
+					bottom: 10,
+					right: 10
+				},
+				fontSize: 13,
+				lineHeight: 16,
+				maxWidth: 300,
+				background: function(claim) {
+					return 'white';
+				},
+				fontColor: function(claim) {
+					return claim.data.assumption ? '#ccc' : 'black';
+				},
+				fontStyle: function(claim) {
+					return claim.data.assumption ? 'italic' : '';
+				},
+				border: function(claim) {
+					if (claim.data.scope) {
+						if (!(claim.data.scope in scopeStyles))
+							scopeStyles[claim.data.scope] = colours.pop();
+						
+						return scopeStyles[claim.data.scope];
+					}
+
+					return claim.data.assumption ? '#ccc' : 'black';
+				}
+			},
+			relation: {
+				size: 5,
+				color: function(relation) {
+					return relation.data.assumption ? '#ccc' : 'black';
+				},
+				dash: function(relation) {
+					return relation.type === Relation.CONDITION || relation.type === Relation.EXCEPTION ? [5, 5] : [];
+				}
+			}
+		};
+
+		// this.input = document.createElement('input');
+		// this.input.type = 'text';
+		// this.input.style.position = 'absolute';
+		// this.input.style.display = 'none';
+		// this.canvas.parentNode.appendChild(this.input);
+
+		if (typeof window !== 'undefined' && 'addEventListener' in window)
+			window.addEventListener('resize', this.resize.bind(this));
+
+		this.updateCanvasSize();
 	}
 
-	var scopeStyles = {};
-
-	var colours = [
-		"#ff0000", "#ffee00", "#5395a6", "#40002b", "#f20000", "#7f7920",
-		"#6c98d9", "#d9a3bf", "#e58273", "#807d60", "#3d3df2", "#ff408c",
-		"#ff8c40", "#5ccc33", "#110080", "#8c2331", "#e6c3ac", "#004d29",
-		"#282633", "#593c00", "#00bf99", "#b32daa"
-	];
-
-	this.style = {
-		scale: typeof window !== 'undefined' && 'devicePixelRatio' in window ? window.devicePixelRatio : 1.0,
-		padding: 20,
-		claim: {
-			padding: {
-				top: 3,
-				left: 10,
-				bottom: 10,
-				right: 10
-			},
-			fontSize: 13,
-			lineHeight: 16,
-			maxWidth: 300,
-			background: function(claim) {
-				return 'white';
-			},
-			fontColor: function(claim) {
-				return claim.data.assumption ? '#ccc' : 'black';
-			},
-			fontStyle: function(claim) {
-				return claim.data.assumption ? 'italic' : '';
-			},
-			border: function(claim) {
-				if (claim.data.scope) {
-					if (!(claim.data.scope in scopeStyles))
-						scopeStyles[claim.data.scope] = colours.pop();
-					
-					return scopeStyles[claim.data.scope];
-				}
-
-				return claim.data.assumption ? '#ccc' : 'black';
-			}
-		},
-		relation: {
-			size: 5,
-			color: function(relation) {
-				return relation.data.assumption ? '#ccc' : 'black';
-			},
-			dash: function(relation) {
-				return relation.type === Relation.CONDITION || relation.type === Relation.EXCEPTION ? [5, 5] : [];
-			}
-		}
-	};
-
-	// this.input = document.createElement('input');
-	// this.input.type = 'text';
-	// this.input.style.position = 'absolute';
-	// this.input.style.display = 'none';
-	// this.canvas.parentNode.appendChild(this.input);
-
-	if (typeof window !== 'undefined' && 'addEventListener' in window)
-		window.addEventListener('resize', this.resize.bind(this));
-
-	this.updateCanvasSize();
-}
-
-Graph.Claim = Claim;
-
-Graph.prototype = {
-	addClaim: function(text, data) {
-		let claim = new Claim(this, text, data);
+	addClaim(text, data) {
+		const claim = new Claim(this, text, data);
 		this.claims.push(claim);
 		this.update();
 		return claim;
-	},
+	}
 
-	addRelation: function(claim, target, type, data) {
+	addRelation(claim, target, type, data) {
 		if (Array.isArray(claim)) {
 			if (claim.length === 0) {
 				throw new Error('No source claims provided');
 			}
 			else if (claim.length > 1) {
 				// We need a compound statement to merge stuff
-				let compound = this.addClaim('&', {compound: true});
+				const compound = this.addClaim('&', {compound: true});
 
-				claim.forEach(function(claim) {
-					this.addRelation(claim, compound, null, data);
-				}, this);
+				claim.forEach(claim => {
+					this.addRelation(claim, compound, type, data);
+				});
 
 				return this.addRelation(compound, target, type, Object.assign({}, data, {merged: true}));
 			}
@@ -291,14 +381,14 @@ Graph.prototype = {
 		if (!(target instanceof Claim) && !(target instanceof Relation))
 			throw new TypeError('Target should be instance of Claim or Relation, is ' + typerepr(target));
 
-		var relation = new Relation(this, claim, target, type, data);
+		const relation = new Relation(this, claim, target, type, data);
 		this.relations.push(relation);
 		this.update();
 
 		return relation;
-	},
+	}
 
-	findRootClaims: function() {
+	findRootClaims() {
 		if (this.claims.length == 0)
 			return [];
 		
@@ -315,9 +405,9 @@ Graph.prototype = {
 
 		// Oh crap, only circular claims. Great! Let's just take the first one added.
 		return [this.claims[0]];
-	},
+	}
 
-	findRelations: function(criteria) {
+	findRelations(criteria) {
 		// You can pass in an array of conditions to get the joined set, for example
 		// when you pass in [{claim: x}, {target: x}], you get all relations that
 		// have either the claim or the target as x. When you pass in [{claim: x, target: x}]
@@ -335,21 +425,56 @@ Graph.prototype = {
 		};
 
 		return this.relations.filter(test);
-	},
+	}
 
-	findClaimAtPosition: function(pos) {
+	findContext(claim) {
+		// The context of a claim is all its conditions and exceptions
+		const types = [Relation.CONDITION, Relation.EXCEPTION];
+
+		const context = [claim];
+
+		for (let i = 0; i < context.length; ++i) {
+			const relations = this.findRelations({target: context[i]});
+
+			relations.forEach(relation => {
+				if (!types.includes(relation.type))
+					return;
+
+				if (!context.includes(relation))
+					context.push(relation);
+
+				if (!context.includes(relation.claim))
+					context.push(relation.claim);
+			});
+		}
+
+		return context.filter(obj => obj instanceof Claim);
+	}
+
+	findClaimAtPosition(pos) {
 		return this.claims.find(claim => {
-			return pos.x > claim.x + this.style.padding
-				&& pos.y > claim.y + this.style.padding
-				&& pos.x < claim.x + this.style.padding + claim.width
-				&& pos.y < claim.y + this.style.padding + claim.height;
+			return pos.x > claim.x
+				&& pos.y > claim.y
+				&& pos.x < claim.x + claim.width
+				&& pos.y < claim.y + claim.height;
 		});
-	},
+	}
 
-	onMouseDown: function(e) {
-		if (e.altKey)
-			return;
+	findRelationAtPosition(pos, buffer){
+		return this.relations.find(relation => {
+			let target = relation.target;
+			let claim = relation.claim;
 
+			if (relation.type === Relation.SUPPORT || relation.type === Relation.ATTACK) {
+				target = this.getContextBox(target);
+				claim = this.getContextBox(claim);
+			}
+
+			return distToSegment(pos, claim.center, target.center) <= buffer;
+		});
+	}
+
+	onMouseDown(e) {
 		this.wasDragging = false;
 
 		this.dragStartPosition = {
@@ -357,41 +482,95 @@ Graph.prototype = {
 			y: e.offsetY
 		};
 
-		let claim = this.findClaimAtPosition({x: e.offsetX, y: e.offsetY});
+		const cursor = {
+			x: e.offsetX - this.style.padding,
+			y: e.offsetY - this.style.padding,
+		};
 
-		if (claim && !this.selectedClaims.includes(claim)) {
-			if (e.shiftKey)
-				this.selectedClaims.push(claim);
-			else
-				this.selectedClaims = [claim];
-
-			this.update();
-		}
-	},
-
-	onDoubleClick: function(e) {
-		let claim = this.findClaimAtPosition({x: e.offsetX, y: e.offsetY});
-
-		if (claim)
+		if (e.altKey)
 			return;
 
-		let text = prompt('ID');
+		const claim = this.findClaimAtPosition(cursor);
 
-		claim = this.addClaim(text);
-		claim.setPosition(e.offsetX, e.offsetY);
-	},
+		if (claim) {
+			if (!this.selectedClaims.includes(claim)) {
+				if (e.shiftKey) {
+					this.selectedClaims.push(claim);
+				} else {
+					this.selectedClaims = [claim];
+					this.selectedRelations = [];
+				}
 
-	onMouseMove: function(e) {
+				this.update();
+			}
+
+			return;
+		}
+
+		const relation = this.findRelationAtPosition(cursor, 5);
+
+		if (relation) {
+			if (!this.selectedRelations.includes(relation)) {
+				if (e.shiftKey) {
+					this.selectedRelations.push(relation);
+				} else {
+					this.selectedRelations = [relation];
+					this.selectedClaims = [];
+				}
+
+				this.update();
+			}
+		}
+	}
+
+	onDoubleClick(e) {
+		const cursor = {
+			x: e.offsetX - this.style.padding,
+			y: e.offsetY - this.style.padding,
+		};
+
+		let claim = this.findClaimAtPosition(cursor);
+		
+		const text = prompt('ID', claim ? claim.text : '');
+
+		if (!text)
+			return;
+
+		if (!claim) {
+			claim = this.addClaim(text);
+			claim.setPosition(cursor.x, cursor.y);
+		} else {
+			claim.text = text;
+		}
+	}
+
+	onMouseMove(e) {
 		if (this.dragStartPosition === null) {
-			if (this.findClaimAtPosition({x: e.offsetX, y: e.offsetY}))
+			const cursor = {
+				x: e.offsetX - this.style.padding,
+				y: e.offsetY - this.style.padding,
+			};
+
+			const elementUnderCursor = this.findClaimAtPosition(cursor) || this.findRelationAtPosition(cursor, 5);
+
+			if (elementUnderCursor)
 				this.canvas.style.cursor = 'pointer';
 			else
 				this.canvas.style.cursor = 'default';
 
+			if (this.elementUnderCursor !== elementUnderCursor) {
+				if (this.elementUnderCursor)
+					this.fire('mouseout', {target: this.elementUnderCursor})
+				if (elementUnderCursor)
+					this.fire('mouseover', {target: elementUnderCursor});
+
+				this.elementUnderCursor = elementUnderCursor;
+			}
+
 			if (e.altKey) {
 				this.cursor = {
-					x: e.offsetX - this.style.padding,
-					y: e.offsetY - this.style.padding,
+					x: cursor.x,
+					y: cursor.y,
 					type: e.shiftKey ? Relation.ATTACK : Relation.SUPPORT
 				};
 				
@@ -414,27 +593,45 @@ Graph.prototype = {
 
 			this.update();
 		}
-	},
+	}
 
-	onMouseUp: function(e) {
+	onMouseUp(e) {
 		e.preventDefault();
 
 		this.canvas.style.cursor = 'default';
 
+		const cursor = {
+			x: e.offsetX - this.style.padding,
+			y: e.offsetY - this.style.padding,
+		};
+
 		if (!this.wasDragging) {
-			let claim = this.findClaimAtPosition({x: e.offsetX, y: e.offsetY});
+			const claim = this.findClaimAtPosition(cursor);
+			const relation = claim ? null : this.findRelationAtPosition(cursor, 5);
 
 			if (e.altKey) {
-				if (claim && this.selectedClaims.length > 0) {
-					this.addRelation(
-						this.selectedClaims[0],
-						claim,
-						e.shiftKey ? Relation.ATTACK : Relation.SUPPORT);
+				if (this.selectedClaims.length > 0) {
+					if (claim) {
+						this.addRelation(
+							this.selectedClaims[0],
+							claim,
+							e.shiftKey ? Relation.ATTACK : Relation.SUPPORT);
+					} else if (relation) {
+						this.addRelation(
+							this.selectedClaims[0],
+							relation,
+							e.shiftKey ? Relation.ATTACK : Relation.SUPPORT);
+					}
 				}
 			} else {
-				if (!claim && this.selectedClaims.length != 0) {
-					this.selectedClaims = [];
-					this.update();
+				if (claim || relation) {
+					this.fire('click', {target: claim || relation})
+				} else {
+					if (this.selectedClaims.length != 0 || this.selectedRelations.length != 0) {
+						this.selectedClaims = [];
+						this.selectedRelations = [];
+						this.update();
+					}
 				}
 			}
 		}
@@ -450,22 +647,23 @@ Graph.prototype = {
 		}
 		
 		this.dragStartPosition = null;
-	},
+	}
 
-	onMouseOut: function(e) {
+	onMouseOut(e) {
 		if (this.cursor) {
 			this.cursor = null;
 			this.update();
 		}
-	},
+	}
 
-	onKeyDown: function(e) {
+	onKeyDown(e) {
 		const stepSize = 2 * this.style.scale;
 
 		switch (e.keyCode) {
 			case 8: // Backspace
 			case 46: // Delete
 				this.selectedClaims.forEach(claim => claim.delete());
+				this.selectedRelations.forEach(relation => relation.delete());
 				e.preventDefault();
 				this.update();
 				break;
@@ -475,8 +673,8 @@ Graph.prototype = {
 				if (this.claims.length === 0)
 					return;
 
-				var direction = e.shiftKey ? -1 : 1;
-				var idx = -1;
+				const direction = e.shiftKey ? -1 : 1;
+				let idx = -1;
 				
 				// Find the first claim in selectedClaims
 				if (this.selectedClaims.length > 0)
@@ -528,9 +726,9 @@ Graph.prototype = {
 				this.update();
 				break;
 		}
-	},
+	}
 
-	onKeyUp: function(e) {
+	onKeyUp(e) {
 		switch (e.keyCode) {
 			case 16: // Shift
 			case 18: // Alt
@@ -538,27 +736,25 @@ Graph.prototype = {
 				this.update();
 				break;
 		}
-	},
+	}
 
-	on: function(eventName, callback) {
+	on(eventName, callback) {
 		this.listeners[eventName].push(callback);
-	},
+	}
 
-	off: function(eventName, callback) {
+	off(eventName, callback) {
 		this.listeners[eventName] = this.listeners[eventName].filter(registeredCallback => callback !== registeredCallback);
-	},
+	}
 
-	fire: function(eventName) {
-		this.listeners[eventName].forEach(callback => callback(this));
-	},
+	fire(eventName, event) {
+		this.listeners[eventName].forEach(callback => callback(event));
+	}
 
-	resize: function() {
-		_requestAnimationFrame(() => {
-			this.draw();
-		});
-	},
+	resize() {
+		_requestAnimationFrame(this.draw.bind(this));
+	}
 
-	fit: function() {
+	fit() {
 		// Find initial offsets
 		const startX = this.claims.map(claim => claim.x).min();
 		const startY = this.claims.map(claim => claim.y).min();
@@ -571,9 +767,9 @@ Graph.prototype = {
 		});
 
 		this.resize();
-	},
+	}
 
-	fitVertically: function() {
+	fitVertically() {
 		// Find initial offsets
 		const startY = this.claims.map(claim => claim.y).min();
 
@@ -588,13 +784,13 @@ Graph.prototype = {
 		const height = this.claims.map(claim => claim.y + claim.height).max();
 
 		this.resize();
-	},
+	}
 
-	destroy: function() {
+	destroy() {
 		this.canvas.parentNode.removeChild(this.canvas);
-	},
+	}
 
-	updateCanvasSize: function(e) {
+	updateCanvasSize(e) {
 		const width = 2 * this.style.padding + this.claims.map(claim => claim.x + claim.width).max();
 
 		const height = 2 * this.style.padding + this.claims.map(claim => claim.y + claim.height).max();
@@ -606,9 +802,9 @@ Graph.prototype = {
 			this.canvas.style.width = width + 'px';
 			this.canvas.style.height = height + 'px';
 		}
-	},
+	}
 
-	updateClaimSizes: function() {
+	updateClaimSizes() {
 		this.context.font = (this.style.scale * this.style.claim.fontSize) + 'px sans-serif';
 
 		this.claims.forEach(claim => {
@@ -626,13 +822,13 @@ Graph.prototype = {
 				}
 			}
 		});
-	},
+	}
 
-	update: function() {
+	update() {
 		_requestAnimationFrame(this.draw.bind(this));
-	},
+	}
 
-	draw: function() {
+	draw() {
 		// Update the size of all the claim boxes
 		this.updateClaimSizes();
 
@@ -651,6 +847,8 @@ Graph.prototype = {
 		this.context.fillStyle = 'black';
 		this.context.lineWidth = this.style.scale * 1;
 
+		this.drawContexts();
+
 		this.drawRelations();
 
 		this.drawClaims();
@@ -663,9 +861,57 @@ Graph.prototype = {
 		
 		// Undo the translation
 		this.context.setTransform(1, 0, 0, 1, 0, 0);
-	},
+	}
 
-	drawClaims: function()
+	getContextBox(object)
+	{
+		if (!(object instanceof Claim))
+			return object;
+
+		if (object.data.compound)
+			return object;
+
+		const padding = 5;
+
+		const context = this.findContext(object);
+
+		if (context.length === 1)
+			return object;
+
+		return context.reduce((bounds, claim) => bounds.including(claim), new Bounds()).pad(padding, padding);
+	}
+
+	drawContexts()
+	{
+		const ctx = this.context;
+
+		const padding = 5;
+
+		this.claims.forEach(claim => {
+			const bounds = this.getContextBox(claim);
+
+			if (bounds === claim)
+				return;
+			
+			ctx.fillStyle = 'white';
+			ctx.fillRect(
+				this.style.scale * bounds.x,
+				this.style.scale * bounds.y,
+				this.style.scale * bounds.width,
+				this.style.scale * bounds.height);
+
+			ctx.strokeStyle = 'black';
+			ctx.setLineDash([5, 5]);
+			ctx.lineWidth = this.style.scale * 1;
+			ctx.strokeRect(
+				this.style.scale * bounds.x,
+				this.style.scale * bounds.y,
+				this.style.scale * bounds.width,
+				this.style.scale * bounds.height);
+		});
+	}
+
+	drawClaims()
 	{
 		var ctx = this.context,
 			padding = this.style.claim.padding,
@@ -713,14 +959,13 @@ Graph.prototype = {
 					scale * (claim.y + padding.top + (i + 1) * lineHeight));
 			});
 		});
-	},
+	}
 
-	drawSelection: function()
+	drawSelection()
 	{
-		var ctx = this.context,
-			scale = this.style.scale;
-
-		var color = typeof document !== 'undefined' && document.activeElement == this.canvas ? 'blue' : 'gray';
+		const ctx = this.context;
+		const scale = this.style.scale;
+		const color = typeof document !== 'undefined' && document.activeElement == this.canvas ? 'blue' : 'gray';
 
 		ctx.lineWidth = scale * 3;
 		ctx.strokeStyle = color;
@@ -733,13 +978,27 @@ Graph.prototype = {
 				scale * (claim.width + 4),
 				scale * (claim.height + 4));
 		});
-	},
 
-	drawRelations: function()
+		this.selectedRelations.forEach(relation => {
+			let target = relation.target;
+			let claim = relation.claim;
+
+			if (relation.type === Relation.SUPPORT || relation.type === Relation.ATTACK) {
+				target = this.getContextBox(target);
+				claim = this.getContextBox(claim);
+			}
+
+			const s = this.offsetPosition(target, claim);
+			const t = this.offsetPosition(claim, target);
+			ctx.lineWidth = scale * 3;
+			ctx.strokeStyle = color;
+			this.drawRelationLine(s, t, relation.type);
+		});
+	}
+
+	drawRelations()
 	{
-		let ctx = this.context,
-			relationColor = this.style.relation.color,
-			relationDash = this.style.relation.dash;
+		const ctx = this.context;
 
 		// Draw all the relation arrows
 		this.relations.forEach(relation => {
@@ -747,32 +1006,43 @@ Graph.prototype = {
 			// when drawing an arrow, we draw it towards the border, and not the center
 			// where it will be behind the actual box.
 
-			var s = this.offsetPosition(relation.target, relation.claim);
-			// var s = relation.claim;
+			let target = relation.target;
+			let source = relation.claim;
 
-			var t = this.offsetPosition(relation.claim, relation.target);
+			if ([Relation.SUPPORT, Relation.ATTACK].includes(relation.type)) {
+				target = this.getContextBox(target);
+				source = this.getContextBox(source);
+			}
 
-			ctx.strokeStyle = relationColor(relation);
+			const s = this.offsetPosition(target, source);
 
-			ctx.setLineDash(relationDash(relation));
+			const t = this.offsetPosition(source, target);
 
-			this.drawRelationLine(s, t, relation.type);
+			const color = this.style.relation.color(relation);
+			ctx.strokeStyle = color;
+			ctx.fillStyle = color;
+
+			ctx.setLineDash(this.style.relation.dash(relation));
+
+			ctx.lineWidth = this.style.scale * 1;
+
+			this.drawRelationLine(s, t, relation.target.data.compound ? null : relation.type);
 		});
-	},
+	}
 
-	drawRelationLine: function(s, t, type)
+	drawRelationLine(s, t, type)
 	{
-		let ctx = this.context,
+		const ctx = this.context,
 			scale = this.style.scale,
 			arrowRadius = this.style.relation.size;
 
-		ctx.lineWidth = scale * 1;
+		ctx.save();
 
 		ctx.beginPath();
 		ctx.moveTo(scale * s.x, scale * s.y);
 
 		// To almost the target (but a bit less)
-		let angle = Math.atan2(
+		const angle = Math.atan2(
 			t.y - s.y,
 			t.x - s.x);
 
@@ -830,22 +1100,30 @@ Graph.prototype = {
 				ctx.stroke();
 				break;
 		}
-	},
 
-	drawCursor: function()
+		ctx.restore();
+	}
+
+	drawCursor()
 	{
 		if (!this.cursor || this.selectedClaims.length === 0)
 			return;
 
-		let ctx = this.context,
-			relationColor = this.style.relation.color;
+		const ctx = this.context;
+		const relationColor = this.style.relation.color;
+		const claim = this.selectedClaims[0];
 
-		let claim = this.selectedClaims[0];
+		const snapTarget = this.findClaimAtPosition(this.cursor, 5) || this.findRelationAtPosition(this.cursor, 5);
 
-		this.drawRelationLine(claim.center, this.cursor, this.cursor.type);
-	},
+		ctx.lineWidth = this.style.scale * 1;
+		this.drawRelationLine(
+			this.offsetPosition(snapTarget ? snapTarget : {center: this.cursor}, claim),
+			snapTarget ? this.offsetPosition(claim, snapTarget) : this.cursor,
+			this.cursor.type);
+	}
 
-	offsetPosition: function(sourceBox, targetBox) {
+	offsetPosition(sourceBox, targetBox)
+	{
 		function center(box) {
 			return {
 				x: box.center.x,
@@ -884,15 +1162,15 @@ Graph.prototype = {
 			};
 
 		return t;
-	},
+	}
 
-	parse: function(input)
+	parse(input)
 	{
-		let variables = {};
+		const variables = {};
 
-		let lines = Array.isArray(input) ? input : input.split(/\r?\n/);
+		const lines = Array.isArray(input) ? input : input.split(/\r?\n/);
 
-		let rules = [
+		const rules = [
 			{
 				pattern: /^\s*([a-z0-9]+)\s*:\s*(assume\s+)?((?:[a-z0-9]+\s+)+)(?:(support|attack|warrant|undercut)s)\s+([a-z0-9]+)$/,
 				processor: match => {
@@ -927,14 +1205,14 @@ Graph.prototype = {
 				}
 			}
 		});
-	},
+	}
 
-	toString: function() {
-		let variables = new LetterSequence();
+	toString() {
+		const variables = new LetterSequence();
 
-		let mapping = new Map();
+		const mapping = new Map();
 
-		let lines = [];
+		const lines = [];
 
 		this.claims.forEach(claim => {
 			// Skip the compound nodes
@@ -1001,8 +1279,11 @@ Graph.prototype = {
 	}
 }
 
-if (typeof exports !== 'undefined') {
-	exports.Claim = Claim;
-	exports.Relation = Relation;
-	exports.Graph = Graph;
-}
+// Set default claim class
+Graph.Claim = Claim; 
+
+exports.Claim = Claim;
+exports.Relation = Relation;
+exports.Graph = Graph;
+
+})(typeof exports !== 'undefined' ? exports : window);

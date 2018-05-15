@@ -191,7 +191,7 @@ jQuery(function($) {
 
     function treeElement(tree) {
         const label = typeof tree.label === 'string'
-            ? $('<span>').text(tree.label)
+            ? $('<span>').text(tree.label).prop('title', tree.tooltip)
             : $('<span>').text(tree.label.text).prop('title', tree.label.tag);
         const leaf = $('<li>').append(label).data('state', tree.data);
 
@@ -232,7 +232,7 @@ jQuery(function($) {
         var claims = {}, relations = {};
 
         state.claims.forEach(function(claim) {
-            claims[claim.id] = graph.addClaim(claim.text, {assumption: claim.assumption, scope: claim.scope});
+            claims[claim.id] = graph.addClaim(claim.text, {assumption: claim.assumption, scope: claim.scope, tooltip: claim.tooltip});
         });
 
         // Make sure we first do all relations targeting claims, and only then
@@ -349,6 +349,14 @@ jQuery(function($) {
         view('argument diagram', 'network', 'glyphicon-comment', function(button) {
             this.append($canvas);
 
+            graph.on('mouseover', function(e) {
+                $canvas.prop('title', e.target.data.tooltip);
+            });
+
+            graph.on('mouseout', function(e) {
+                $canvas.prop('title', '');
+            });
+
             // Show first 10 parses by default
             if (i < 10) this.collapse('show');
         });
@@ -381,38 +389,38 @@ jQuery(function($) {
         }));
     }
 
-    function parsePanel(sentence, response)
-    {
-        return $('<div>')
+    function parseSentence(sentence, grammar, location) {
+        var panel = $('<div>')
             .addClass('parse panel panel-default dismissible')
             .append($('<div class="panel-heading">')
                 .append(closeButton())
-                .append(editButton(sentence, response.grammar || null))
-                .append(repeatButton(sentence, response.grammar || null))
-                .append(starButton(sentence, response.grammar || null))
-                .append(stringifyTokens(response.tokens || []))
+                .append(editButton(sentence, grammar || null))
+                .append(repeatButton(sentence, grammar || null))
+                .append(starButton(sentence, grammar || null))
                 .on('dblclick', function(e) {
                     e.preventDefault();
                     $(this).parent().find('.panel-collapse').collapse('toggle');
                 }));
-    }
 
-    function parseSentence(sentence, grammar, location) {
+        if (location) {
+            location.replaceWith(panel);
+        } else {
+            $('#parses').prepend(panel);
+        }
+
+        const body = $('<div class="panel-collapse collapse in">').appendTo(panel);
+
+        body.append('<span class="loading">Loading…</span>');
+
         $.get($('#parse-sentence-form').attr('action'), {sentence: sentence, grammar: grammar}, 'json')
             .always(function(response, status) {
                 // No consistency :(
                 if (status == 'error')
                     response = response.responseJSON || {};
 
-                var panel = parsePanel(sentence, response);
+                panel.find('.panel-heading').append(stringifyTokens(response.tokens || []));
 
-                if (location) {
-                    location.replaceWith(panel);
-                } else {
-                    $('#parses').prepend(panel);
-                }
-
-                const body = $('<div class="panel-collapse collapse in">').appendTo(panel);
+                body.empty();
 
                 if (response.warning)
                     alert(response.warning);
