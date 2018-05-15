@@ -14,6 +14,13 @@ var _requestAnimationFrame = (function() {
 
 (function (exports) {
 
+function set(obj, path, value) {
+	const steps = path.split('.');
+	while (steps.length > 1)
+		obj = obj[steps.shift()]
+	return obj[steps[0]] = value;
+}
+
 function sqr(x) { return x * x }
 
 function dist2(v, w) { return sqr(v.x - w.x) + sqr(v.y - w.y) }
@@ -926,6 +933,8 @@ class Graph {
 		// Sort claims with last selected drawn last (on top)
 		this.claims.slice().sort((a, b) => this.selectedClaims.indexOf(a) - this.selectedClaims.indexOf(b));
 
+		ctx.setLineDash([]);
+
 		// Draw all claims
 		this.claims.forEach(claim => {
 			if (claim.data.compound)
@@ -1188,6 +1197,16 @@ class Graph {
 				pattern: /^\s*([a-z0-9]+)\s*:\s*(assume\s+)?(.+?)\s*$/,
 				processor: match => {
 					variables[match[1]] = this.addClaim(match[3], {variable: match[1], assumption: match[2] == 'assume'});
+				}
+			},
+			{
+				pattern: /^\s*style\s+([a-z0-9]+(?:\.[a-z0-9]+)*)\s+(\d*(?:\.\d+))\s*$/,
+				processor: match => {
+					try {
+						set(this.style, match[1], parseFloat(match[2]));
+					} catch(e) {
+						console.warn('Cannot set style property ' + match[1], e);
+					}
 				}
 			}
 		];
