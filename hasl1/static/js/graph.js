@@ -37,6 +37,39 @@ function distToSegment(p, v, w) {
 	return Math.sqrt(distToSegmentSquared(p, v, w));
 }
 
+function min(a, b) {
+	if (a === undefined || isNaN(a))
+		return b;
+	if (b === undefined || isNaN(b))
+		return a;
+	return Math.min(a, b);
+}
+
+function max(a, b) {
+	if (a === undefined || isNaN(a))
+		return b;
+	if (b === undefined || isNaN(b))
+		return a;
+	return Math.max(a, b);
+}
+
+class Bounds {
+	constructor(x, y, width, height) {
+		this.x = x;
+		this.y = y;
+		this.width = width;
+		this.height = height;
+	}
+
+	including(box) {
+		let minX = min(this.x, box.x);
+		let minY = min(this.y, box.y);
+		let maxX = max(this.x + this.width, box.x + box.width);
+		let maxY = max(this.y + this.height, box.y + box.height);
+		return new Bounds(minX, minY, maxX - minX, maxY - minY);
+	}
+}
+
 class Claim {
 	constructor(graph, text, data) {
 		this.graph = graph;
@@ -319,7 +352,7 @@ class Graph {
 				const compound = this.addClaim('&', {compound: true});
 
 				claim.forEach(claim => {
-					this.addRelation(claim, compound, null, data);
+					this.addRelation(claim, compound, type, data);
 				});
 
 				return this.addRelation(compound, target, type, Object.assign({}, data, {merged: true}));
@@ -380,6 +413,30 @@ class Graph {
 		};
 
 		return this.relations.filter(test);
+	}
+
+	findContext(claim) {
+		// The context of a claim is all its conditions and exceptions
+		const types = [Relation.CONDITION, Relation.EXCEPTION];
+
+		const context = [claim];
+
+		for (let i = 0; i < context.length; ++i) {
+			const relations = this.findRelations({target: context[i]});
+
+			relations.forEach(relation => {
+				if (!types.includes(relation.type))
+					return;
+
+				if (!context.includes(relation))
+					context.push(relation);
+
+				if (!context.includes(relation.claim))
+					context.push(relation.claim);
+			});
+		}
+
+		return context.filter(obj => obj instanceof Claim);
 	}
 
 	findClaimAtPosition(pos) {
@@ -770,6 +827,8 @@ class Graph {
 		this.context.fillStyle = 'black';
 		this.context.lineWidth = this.style.scale * 1;
 
+		this.drawContexts();
+
 		this.drawRelations();
 
 		this.drawClaims();
@@ -782,6 +841,34 @@ class Graph {
 		
 		// Undo the translation
 		this.context.setTransform(1, 0, 0, 1, 0, 0);
+	}
+
+	drawContexts()
+	{
+		const ctx = this.context;
+
+		const padding = 5;
+
+		this.claims.forEach(claim => {
+			if (claim.data.compound)
+				return;
+
+			const context = this.findContext(claim);
+
+			if (context.length === 1)
+				return;
+
+			const bounds = context.reduce((bounds, claim) => bounds.including(claim), new Bounds());
+			
+			ctx.strokeStyle = 'black';
+			ctx.setLineDash([5, 5]);
+			ctx.lineWidth = this.style.scale * 1;
+			ctx.strokeRect(
+				this.style.scale * (bounds.x - padding),
+				this.style.scale * (bounds.y - padding),
+				this.style.scale * (bounds.width + 2 * padding),
+				this.style.scale * (bounds.height + 2 * padding));
+		});
 	}
 
 	drawClaims()
@@ -882,7 +969,7 @@ class Graph {
 
 			ctx.lineWidth = this.style.scale * 1;
 
-			this.drawRelationLine(s, t, relation.type);
+			this.drawRelationLine(s, t, relation.data.compound ? null : relation.type);
 		});
 	}
 
@@ -891,6 +978,8 @@ class Graph {
 		const ctx = this.context,
 			scale = this.style.scale,
 			arrowRadius = this.style.relation.size;
+
+		ctx.save();
 
 		ctx.beginPath();
 		ctx.moveTo(scale * s.x, scale * s.y);
@@ -954,6 +1043,8 @@ class Graph {
 				ctx.stroke();
 				break;
 		}
+
+		ctx.restore();
 	}
 
 	drawCursor()

@@ -16,6 +16,8 @@ def one(iterable):
 class Type(Enum):
 	SUPPORT = 'support'
 	ATTACK = 'attack'
+	CONDITION = 'warrant'
+	EXCEPTION = 'undercut'
 
 
 class Diagram(object):
@@ -173,14 +175,14 @@ class Diagram(object):
 			edge = self.add_relation(
 				sources=claim_nodes,
 				target=node,
-				type=Type.SUPPORT)
+				type=Type.CONDITION)
 
 			for exception in condition.exceptions:
 				exception_nodes = list(self.add_claim(claim) for claim in exception.claims)
 				exception_edge = self.add_relation(
 					sources=exception_nodes,
 					target=edge,
-					type=Type.ATTACK)
+					type=Type.EXCEPTION)
 
 		return node
 
@@ -238,12 +240,12 @@ class Diagram(object):
 	def to_warrant(self, warrant):
 		return Warrant(
 			claim=one(self.to_claim(claim) for claim in warrant['sources']),
-			conditions=tuple(self.to_condition(condition) for condition in self.find_relations(target=warrant['sources'][0], type=Type.SUPPORT)))
+			conditions=tuple(self.to_condition(condition) for condition in self.find_relations(target=warrant['sources'][0], type=Type.CONDITION)))
 	
 	def to_condition(self, condition):
 		return WarrantCondition(
 			claims=tuple(self.to_claim(claim) for claim in condition['sources']),
-			exceptions=tuple(self.to_exception(exception) for exception in self.find_relations(target=condition, type=Type.ATTACK)))
+			exceptions=tuple(self.to_exception(exception) for exception in self.find_relations(target=condition, type=Type.EXCEPTION)))
 
 	def to_exception(self, exception):
 		return WarrantException(claims=tuple(self.to_claim(claim) for claim in exception['sources']))
