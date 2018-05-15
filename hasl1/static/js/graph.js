@@ -892,12 +892,13 @@ class Graph {
 	{
 		const ctx = this.context;
 
-		const padding = 5;
-
 		this.claims.forEach(claim => {
 			const bounds = this.getContextBox(claim);
 
 			if (bounds === claim)
+				return;
+
+			if (this.findRelations({claim: claim}).length === 0)
 				return;
 			
 			ctx.fillStyle = 'white';
