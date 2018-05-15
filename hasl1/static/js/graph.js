@@ -61,12 +61,23 @@ class Bounds {
 		this.height = height;
 	}
 
+	get center() {
+		return {
+			x: this.x + 0.5 * this.width,
+			y: this.y + 0.5 * this.height
+		};
+	}
+
 	including(box) {
 		let minX = min(this.x, box.x);
 		let minY = min(this.y, box.y);
 		let maxX = max(this.x + this.width, box.x + box.width);
 		let maxY = max(this.y + this.height, box.y + box.height);
 		return new Bounds(minX, minY, maxX - minX, maxY - minY);
+	}
+
+	pad(x, y) {
+		return new Bounds(this.x - x, this.y - y, this.width + 2 * x, this.height + 2 * y);
 	}
 }
 
@@ -254,7 +265,8 @@ class Graph {
 			'draw': [],
 			'drop': [],
 			'mouseover': [],
-			'mouseout': []
+			'mouseout': [],
+			'click': []
 		};
 
 		if ('addEventListener' in this.canvas) {
@@ -450,7 +462,15 @@ class Graph {
 
 	findRelationAtPosition(pos, buffer){
 		return this.relations.find(relation => {
-			return distToSegment(pos, relation.claim.center, relation.target.center) <= buffer;
+			let target = relation.target;
+			let claim = relation.claim;
+
+			if (relation.type === Relation.SUPPORT || relation.type === Relation.ATTACK) {
+				target = this.getContextBox(target);
+				claim = this.getContextBox(claim);
+			}
+
+			return distToSegment(pos, claim.center, target.center) <= buffer;
 		});
 	}
 
@@ -843,6 +863,24 @@ class Graph {
 		this.context.setTransform(1, 0, 0, 1, 0, 0);
 	}
 
+	getContextBox(object)
+	{
+		if (!(object instanceof Claim))
+			return object;
+
+		if (object.data.compound)
+			return object;
+
+		const padding = 5;
+
+		const context = this.findContext(object);
+
+		if (context.length === 1)
+			return object;
+
+		return context.reduce((bounds, claim) => bounds.including(claim), new Bounds()).pad(padding, padding);
+	}
+
 	drawContexts()
 	{
 		const ctx = this.context;
@@ -850,24 +888,26 @@ class Graph {
 		const padding = 5;
 
 		this.claims.forEach(claim => {
-			if (claim.data.compound)
+			const bounds = this.getContextBox(claim);
+
+			if (bounds === claim)
 				return;
-
-			const context = this.findContext(claim);
-
-			if (context.length === 1)
-				return;
-
-			const bounds = context.reduce((bounds, claim) => bounds.including(claim), new Bounds());
 			
+			ctx.fillStyle = 'white';
+			ctx.fillRect(
+				this.style.scale * bounds.x,
+				this.style.scale * bounds.y,
+				this.style.scale * bounds.width,
+				this.style.scale * bounds.height);
+
 			ctx.strokeStyle = 'black';
 			ctx.setLineDash([5, 5]);
 			ctx.lineWidth = this.style.scale * 1;
 			ctx.strokeRect(
-				this.style.scale * (bounds.x - padding),
-				this.style.scale * (bounds.y - padding),
-				this.style.scale * (bounds.width + 2 * padding),
-				this.style.scale * (bounds.height + 2 * padding));
+				this.style.scale * bounds.x,
+				this.style.scale * bounds.y,
+				this.style.scale * bounds.width,
+				this.style.scale * bounds.height);
 		});
 	}
 
@@ -940,8 +980,16 @@ class Graph {
 		});
 
 		this.selectedRelations.forEach(relation => {
-			const s = this.offsetPosition(relation.target, relation.claim);
-			const t = this.offsetPosition(relation.claim, relation.target);
+			let target = relation.target;
+			let claim = relation.claim;
+
+			if (relation.type === Relation.SUPPORT || relation.type === Relation.ATTACK) {
+				target = this.getContextBox(target);
+				claim = this.getContextBox(claim);
+			}
+
+			const s = this.offsetPosition(target, claim);
+			const t = this.offsetPosition(claim, target);
 			ctx.lineWidth = scale * 3;
 			ctx.strokeStyle = color;
 			this.drawRelationLine(s, t, relation.type);
@@ -958,18 +1006,27 @@ class Graph {
 			// when drawing an arrow, we draw it towards the border, and not the center
 			// where it will be behind the actual box.
 
-			const s = this.offsetPosition(relation.target, relation.claim);
-			// var s = relation.claim;
+			let target = relation.target;
+			let source = relation.claim;
 
-			const t = this.offsetPosition(relation.claim, relation.target);
+			if ([Relation.SUPPORT, Relation.ATTACK].includes(relation.type)) {
+				target = this.getContextBox(target);
+				source = this.getContextBox(source);
+			}
 
-			ctx.strokeStyle = this.style.relation.color(relation);
+			const s = this.offsetPosition(target, source);
+
+			const t = this.offsetPosition(source, target);
+
+			const color = this.style.relation.color(relation);
+			ctx.strokeStyle = color;
+			ctx.fillStyle = color;
 
 			ctx.setLineDash(this.style.relation.dash(relation));
 
 			ctx.lineWidth = this.style.scale * 1;
 
-			this.drawRelationLine(s, t, relation.data.compound ? null : relation.type);
+			this.drawRelationLine(s, t, relation.target.data.compound ? null : relation.type);
 		});
 	}
 
