@@ -653,8 +653,10 @@ en_grammar = Grammar([
     Rule('verb-phrase-pl', [RuleRef('verb-pl'), RuleRef('adjectives'), RuleRef('prep-phrase?')], merge), # appear red
 
     Rule('neg-verb-phrase-sg', [RuleRef('neg-verb-sg'), RuleRef('noun-phrase?')], merge), # cannot fly a plane
-
     Rule('neg-verb-phrase-pl', [RuleRef('neg-verb-pl'), RuleRef('noun-phrase?')], merge), # cannot fly a plane
+
+    Rule('neg-verb-phrase-sg', [RuleRef('neg-verb-sg'), RuleRef('adjectives'), RuleRef('prep-phrase?')], merge), # appears not red, is not mortal
+    Rule('neg-verb-phrase-pl', [RuleRef('neg-verb-pl'), RuleRef('adjectives'), RuleRef('prep-phrase?')], merge), # appear not red, are not mortal
 ])
 
 hasl0_grammar = en_grammar + [
