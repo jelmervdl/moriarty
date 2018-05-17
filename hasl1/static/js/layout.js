@@ -31,16 +31,16 @@ Graph.prototype.layout = function()
 		let incoming = graph.findRelations({target: relation});
 
 		if (incoming.length > 0) {
-			let vl = new Layout(Layout.VERTICAL);
+			let vl = new Layout(Layout.VERTICAL, Layout.START);
 			vl.addAll(incoming.map(layoutRelation));
 
 			let hl = new Layout(Layout.HORIZONTAL);
-			hl.add(new Spacer(200, 20));
+			hl.add(new Spacer(vl.width + 40, 20)); /* push it to the left */
 			hl.add(vl);
 
 			layout.add(hl);
 		} else {
-			layout.add(new Spacer(20, 50));
+			layout.add(new Spacer(20, 20));
 		}
 
 		if (!visited.includes(relation.claim)) {
@@ -87,9 +87,10 @@ class Spacer {
 };
 
 class Layout {
-	constructor(direction)
+	constructor(direction, alignment)
 	{
 		this.direction = direction;
+		this.alignment = alignment || Layout.CENTER;
 		this.elements = [];
 		this.parent = null;
 	}
@@ -100,6 +101,18 @@ class Layout {
 
 	static get VERTICAL() {
 		return 2;
+	}
+
+	static get START() {
+		return 1;
+	}
+
+	static get END() {
+		return 2;
+	}
+
+	static get CENTER() {
+		return 3;
 	}
 
 	add(box) {
@@ -128,8 +141,18 @@ class Layout {
 				let dx = 0;
 				let height = this.height;
 				this.elements.forEach(el => {
-					// Align horizontally, so centre vertically
-					el.setPosition(x + dx, y + (height - el.height) / 2);
+					switch (this.alignment) {
+						case Layout.START:
+							el.setPosition(x + dx, y);
+							break;
+						case Layout.END:
+							el.setPosition(x + dx, y + height - el.height);
+							break;
+						case Layout.CENTER:
+							el.setPosition(x + dx, y + (height - el.height) / 2);
+							break;
+					}
+
 					dx += el.width + this.spacing.horizontal;
 				});
 				break;
@@ -138,8 +161,18 @@ class Layout {
 				let dy = 0;
 				let width = this.width;
 				this.elements.forEach(el => {
-					// Same, but now centre horizontally
-					el.setPosition(x + (width - el.width) / 2, y + dy);
+					switch (this.alignment) {
+						case Layout.START:
+							el.setPosition(x, y + dy);
+							break;
+						case Layout.END:
+							el.setPosition(x + width - el.width, y + dy);
+							break;
+						case Layout.CENTER:
+							el.setPosition(x + (width - el.width) / 2, y + dy);
+							break;
+					}
+
 					dy += el.height + this.spacing.vertical;
 				});
 				break;

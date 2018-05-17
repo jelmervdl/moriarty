@@ -16,8 +16,13 @@ var _requestAnimationFrame = (function() {
 
 function set(obj, path, value) {
 	const steps = path.split('.');
-	while (steps.length > 1)
-		obj = obj[steps.shift()]
+	while (steps.length > 1) {
+		const step = steps.shift();
+		if (step in obj)
+			obj = obj[step]
+		else
+			throw new Error('object has no property ' + step);
+	}
 	return obj[steps[0]] = value;
 }
 
@@ -122,6 +127,7 @@ class Claim {
 
 	set text(text) {
 		this._text = text;
+		this.lines = null;
 		this.width = null;
 		this.height = null;
 	}
@@ -207,7 +213,14 @@ class Relation {
 			y: this.claim.center.y + (this.target.center.y - this.claim.center.y) / 2
 		};
 	}
-}
+
+	joint(i, n) {
+		return new Bounds(
+			this.claim.center.x + (i + 1) * (this.target.center.x - this.claim.center.x) / (n + 1),
+			this.claim.center.y + (i + 1) * (this.target.center.y - this.claim.center.y) / (n + 1),
+			0, 0);
+	}
+};
 
 
 function typerepr(obj)
@@ -815,17 +828,17 @@ class Graph {
 		this.context.font = (this.style.scale * this.style.claim.fontSize) + 'px sans-serif';
 
 		this.claims.forEach(claim => {
-			if (!Array.isArray(claim.text))
-				claim.text = this.context.wrapText(claim.text, this.style.claim.maxWidth);
+			if (!Array.isArray(claim.lines))
+				claim.lines = this.context.wrapText(claim.text, this.style.claim.maxWidth);
 
 			if (claim.width === null || claim.height === null) {
 				if (claim.data.compound) {
 					claim.width = 0;
 					claim.height = 0;
 				} else {
-					let textWidth = claim.text.map(line => this.context.measureText(line).width).max();
+					let textWidth = claim.lines.map(line => this.context.measureText(line).width).max();
 					claim.width = textWidth / this.style.scale + this.style.claim.padding.left + this.style.claim.padding.right;
-					claim.height = claim.text.length * this.style.claim.lineHeight + this.style.claim.padding.top + this.style.claim.padding.bottom;
+					claim.height = claim.lines.length * this.style.claim.lineHeight + this.style.claim.padding.top + this.style.claim.padding.bottom;
 				}
 			}
 		});
@@ -963,7 +976,7 @@ class Graph {
 
 			// Draw the inner text
 			ctx.fillStyle = fontColor(claim);
-			claim.text.forEach(function(line, i) {
+			claim.lines.forEach(function(line, i) {
 				ctx.fillText(line,
 					scale * (claim.x + padding.left),
 					scale * (claim.y + padding.top + (i + 1) * lineHeight));
@@ -1019,13 +1032,17 @@ class Graph {
 			let target = relation.target;
 			let source = relation.claim;
 
-			if ([Relation.SUPPORT, Relation.ATTACK].includes(relation.type)) {
+			// Support and attack relations are drawn from context to context
+			if (relation.target instanceof Relation) {
+				const incoming = this.findRelations({target: relation.target}).reverse();
+				const index = incoming.indexOf(relation);
+				target = relation.target.joint(index, incoming.length);
+			} else if ([Relation.SUPPORT, Relation.ATTACK].includes(relation.type)) {
 				target = this.getContextBox(target);
 				source = this.getContextBox(source);
 			}
 
 			const s = this.offsetPosition(target, source);
-
 			const t = this.offsetPosition(source, target);
 
 			const color = this.style.relation.color(relation);
@@ -1182,7 +1199,7 @@ class Graph {
 
 		const rules = [
 			{
-				pattern: /^\s*([a-z0-9]+)\s*:\s*(assume\s+)?((?:[a-z0-9]+\s+)+)(?:(support|attack|warrant|undercut)s)\s+([a-z0-9]+)$/,
+				pattern: /^\s*([a-z0-9]+)\s*:\s*(?:(assume)\s+)?((?:[a-z0-9]+\s+)+)(?:(support|attack|warrant|undercut)s)\s+([a-z0-9]+)$/,
 				processor: match => {
 					let sources = match[3].split(/\s+/).filter(name => name != '').map(name => {
 						if (!(name in variables))
@@ -1195,13 +1212,13 @@ class Graph {
 				}
 			},
 			{
-				pattern: /^\s*([a-z0-9]+)\s*:\s*(assume\s+)?(.+?)\s*$/,
+				pattern: /^\s*([a-z0-9]+)\s*:\s*(?:(assume)\s+)?(.+?)\s*$/,
 				processor: match => {
 					variables[match[1]] = this.addClaim(match[3], {variable: match[1], assumption: match[2] == 'assume'});
 				}
 			},
 			{
-				pattern: /^\s*style\s+([a-z0-9]+(?:\.[a-z0-9]+)*)\s+(\d*(?:\.\d+))\s*$/,
+				pattern: /^\s*style\s+([a-zA-Z0-9]+(?:\.[a-zA-Z0-9]+)*)\s+(\d*(?:\.\d+)?)\s*$/,
 				processor: match => {
 					try {
 						set(this.style, match[1], parseFloat(match[2]));
@@ -1212,18 +1229,18 @@ class Graph {
 			}
 		];
 
-		lines.forEach((line, index) => {
+		lines.filter(line => line.trim() !== '').forEach((line, index) => {
 			for (const rule of rules) {
 				try {
 					let match = line.match(rule.pattern);
-					if (match) {
-						rule.processor(match, line);
-						break;
-					}
+					if (match)
+						return rule.processor(match, line);
 				} catch (e) {
 					throw new Error('Parse error on line ' + (index + 1) + ': ' + e.message);
 				}
 			}
+
+			throw new Error('Parse error on line ' + (index + 1) + ': unknown instruction "' + line + '"');
 		});
 	}
 
@@ -1248,7 +1265,7 @@ class Graph {
 			if (claim.data.assumption)
 				line.push('assume');
 
-			line.push(claim.text.join(" "));
+			line.push(claim.text);
 
 			lines.push(line.join(' '));
 		});
