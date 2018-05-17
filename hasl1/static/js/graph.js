@@ -1033,15 +1033,17 @@ class Graph {
 			let source = relation.claim;
 
 			// Support and attack relations are drawn from context to context
-			if (relation.target instanceof Relation) {
-				const incoming = this.findRelations({target: relation.target}).reverse();
-				const index = incoming.indexOf(relation);
-				target = relation.target.joint(index, incoming.length);
-			} else if ([Relation.SUPPORT, Relation.ATTACK].includes(relation.type)) {
+			if ([Relation.SUPPORT, Relation.ATTACK].includes(relation.type)) {
 				target = this.getContextBox(target);
 				source = this.getContextBox(source);
 			}
 
+			if (relation.target instanceof Relation) {
+				const incoming = this.findRelations({target: relation.target}).reverse();
+				const index = incoming.indexOf(relation);
+				target = relation.target.joint(index, incoming.length);
+			}
+			
 			const s = this.offsetPosition(target, source);
 			const t = this.offsetPosition(source, target);
 
