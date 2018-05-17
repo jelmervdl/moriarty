@@ -644,7 +644,7 @@ en_grammar = Grammar([
     Rule('neg-verb-pl', [Tag('MD'), Literal('not'), Tag('VB')], merge), # can not fly
 
     Rule('neg-verb-sg', [Tag('VBZ'), Literal('not?')], merge), # has no, is not
-    Rule('neg-verb-pl', [Tag('VBP'), Literal('no')], lambda state, data: singular_verb(data[0]) + data[1]), # have no
+    Rule('neg-verb-pl', [Tag('VBP'), Literal('not?')], lambda state, data: singular_verb(data[0]) + data[1]), # have no, are not
 
     Rule('verb-phrase-sg', [RuleRef('verb-sg'), RuleRef('noun-phrase?'), RuleRef('prep-phrase?')], merge), # can fly (a plane) (in the sky)
     Rule('verb-phrase-pl', [RuleRef('verb-pl'), RuleRef('noun-phrase?'), RuleRef('prep-phrase?')], merge),
