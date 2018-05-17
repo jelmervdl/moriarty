@@ -26,7 +26,7 @@ Graph.prototype.layout = function()
 	}
 
 	function layoutRelation(relation) {
-		var layout = new Layout(Layout.VERTICAL);
+		var layout = new Layout(Layout.VERTICAL, Layout.CENTER);
 
 		let incoming = graph.findRelations({target: relation});
 
@@ -40,7 +40,7 @@ Graph.prototype.layout = function()
 
 			layout.add(hl);
 		} else {
-			layout.add(new Spacer(20, 20));
+			// layout.add(new Spacer(20, 20));
 		}
 
 		if (!visited.includes(relation.claim)) {
@@ -240,7 +240,7 @@ class Layout {
 
 Layout.prototype.spacing = {
 	horizontal: 20,
-	vertical: 20
+	vertical: 40
 };
 
 function OutlinePainter(color) {
