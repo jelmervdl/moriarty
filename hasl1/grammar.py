@@ -24,6 +24,11 @@ def coalesce(*args):
     return None
 
 
+def unique(iter):
+    seen = set()
+    return tuple(item for item in iter if not (item in seen or seen.add(item)))
+
+
 def merge(state, data):
     return reduce(operator.__add__, data)
 
@@ -411,7 +416,7 @@ class Relation(object):
 
     def update(self, mapping):
         return Relation(self.type,
-            sources = tuple(mapping[source] for source in self.sources),
+            sources = unique(mapping[source] for source in self.sources),
             target = mapping[self.target],
             file = self.file, line = self.line)
 
