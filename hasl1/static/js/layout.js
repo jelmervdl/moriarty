@@ -25,7 +25,7 @@ Graph.prototype.layout = function()
 		return layout;
 	}
 
-	function layoutRelation(relation) {
+	function layoutRelation(relation, i, relations) {
 		var layout = new Layout(Layout.VERTICAL, Layout.CENTER);
 
 		let incoming = graph.findRelations({target: relation});
@@ -35,8 +35,13 @@ Graph.prototype.layout = function()
 			vl.addAll(incoming.map(layoutRelation));
 
 			let hl = new Layout(Layout.HORIZONTAL);
-			hl.add(new Spacer(vl.width + 40, 20)); /* push it to the left */
-			hl.add(vl);
+			if (relations.length > 1 && i % 2 == 0) {
+				hl.add(vl);
+				hl.add(new Spacer(vl.width + 40, 20)); /* push vl to the left */
+			} else {
+				hl.add(new Spacer(vl.width + 40, 20)); /* push vl to the right */
+				hl.add(vl);
+			}
 
 			layout.add(hl);
 		} else {
