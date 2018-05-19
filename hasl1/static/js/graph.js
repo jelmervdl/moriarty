@@ -1228,6 +1228,12 @@ class Graph {
 						console.warn('Cannot set style property ' + match[1], e);
 					}
 				}
+			},
+			{
+				pattern: /^\s*position\s+([a-z0-9]+)\s+at\s+(-?\d+)\s+(-?\d+)\s*$/,
+				processor: match => {
+					variables[match[1]].setPosition(parseInt(match[2]), parseInt(match[3]));
+				}
 			}
 		];
 
@@ -1253,6 +1259,8 @@ class Graph {
 
 		const lines = [];
 
+		const positions = [];
+
 		this.claims.forEach(claim => {
 			// Skip the compound nodes
 			if (claim.data.compound)
@@ -1270,6 +1278,8 @@ class Graph {
 			line.push(claim.text);
 
 			lines.push(line.join(' '));
+
+			positions.push(['position', variable, 'at', Math.round(claim.x), Math.round(claim.y)].join(' '));
 		});
 
 		this.relations.forEach(relation => {
@@ -1313,6 +1323,8 @@ class Graph {
 			// Done!
 			lines.push(line.join(' '));
 		});
+
+		Array.prototype.push.apply(lines, positions);
 
 		return lines.join("\n");
 	}
