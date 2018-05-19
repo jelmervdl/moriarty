@@ -73,33 +73,39 @@
 				max-width: 600px;
 				height: calc(100% - 40px);
 				margin: 20px auto;
-				padding: 0 15px;
-				background: white;
-				border: 1px solid #ccc;
-
+				box-shadow: 0 5px 15px rgba(0,0,0,.5);
+				
 				display: flex;
 				flex-direction: column;
 				align-content: stretch;
 			}
 
-			.prompt-overlay .popup .prompt {
+			.prompt-overlay .popup .panel-header {
 				flex: 0;
 				margin: 15px 0;
 			}
 
-			.prompt-overlay .popup .controls {
+			.prompt-overlay .popup .panel-footer {
 				flex: 0;
-				margin: 15px 0;
 				text-align: right;
 			}
 
-			.prompt-overlay .popup .controls button {
+			.prompt-overlay .popup .panel-footer button {
 				display: inline-block;
-				padding: 4px 15px;
+				margin: 0 4px;
 			}
 
-			.prompt-overlay .popup textarea {
+			.prompt-overlay .popup .panel-body {
 				flex: 1 1;
+				display: flex;
+			}
+
+			.prompt-overlay .popup .panel-body textarea {
+				flex: 1 1;
+				resize: none;
+				border: 0;
+				margin: -15px;
+				padding: 15px;
 			}
 		</style>
 	</head>
@@ -201,7 +207,10 @@
 					);
 				});
 
-				graph.layout().apply();
+				if (graph.claims.every(claim => claim.x === 0 && claim.y === 0))
+					graph.layout().apply();
+
+				graph.fit();
 			}
 
 			function showPrompt(prompt, value) {
@@ -210,29 +219,37 @@
 					overlay.className = 'prompt-overlay';
 
 					const popup = document.createElement('div');
-					popup.className = 'popup';
+					popup.className = 'popup panel panel-default';
 
-					const title = document.createElement('p');
-					title.className = 'prompt';
+					const title = document.createElement('div');
+					title.className = 'panel-heading';
 					title.textContent = prompt;
 
+					const body = document.createElement('div');
+					body.className = 'panel-body';
+
 					const textfield = document.createElement('textarea');
+					textfield.placeholder = 'Type here…';
 					textfield.value = value;
 
 					const cancel = document.createElement('button');
+					cancel.className = 'btn btn-default';
 					cancel.textContent = 'Cancel';
 
 					const accept = document.createElement('button');
+					accept.className = 'btn btn-primary';
 					accept.innerHTML = '<strong>OK</strong>';
 
 					const controls = document.createElement('div');
-					controls.className = 'controls';
+					controls.className = 'panel-footer';
+
+					body.append(textfield);
 
 					controls.appendChild(cancel);
 					controls.appendChild(accept);
 					
 					popup.appendChild(title);
-					popup.appendChild(textfield);
+					popup.appendChild(body);
 					popup.appendChild(controls);
 
 					overlay.appendChild(popup);
@@ -424,7 +441,7 @@
 			});
 
 			document.getElementById('load-diagram-btn').addEventListener('click', e => {
-				showPrompt('Paste HASL diagram syntax here:', '').then(text => {
+				showPrompt('Paste HASL diagram syntax here', '').then(text => {
 					let canvas = document.createElement('canvas');
 					canvas.width = 600;
 					canvas.height = 600;
@@ -439,7 +456,10 @@
 						tab.appendChild(canvas);
 						tab.addEventListener('show', graph.draw.bind(graph));
 						
-						graph.layout().apply();
+						if (graph.claims.every(claim => claim.x === 0 && claim.y === 0))
+							graph.layout().apply();
+
+						graph.fit();
 					} catch (e) {
 						alert(e);
 					}
