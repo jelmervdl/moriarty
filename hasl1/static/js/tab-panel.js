@@ -1,45 +1,52 @@
-customElements.define('x-tab-panel', class extends HTMLElement {
-	static get observedAttributes() {
-		return ['selected-index'];
-	}
+class TabPanel {
+	constructor(root) {
+		this.shadow = root;
 
-	constructor() {
-		super();
+		this.labelContainer = root.querySelector('.tab-list') || document.createElement('ol');
+		this.labelContainer.classList.add('tab-list');
+		this.shadow.appendChild(this.labelContainer);
 
-		if (this.attachShadow)
-			this.shadow = this.attachShadow({mode: 'open'});
-		else
-			this.shadow = this;
-
-		let stylesheet = document.createElement('link');
-		stylesheet.rel = 'stylesheet';
-		stylesheet.href = '/static/css/tab-panel.css';
-		this.shadow.appendChild(stylesheet);
-
-		this.labelList = document.createElement('ol');
-		this.labelList.classList.add('tab-list');
-		this.shadow.appendChild(this.labelList);
-
-		this.panelContainer = document.createElement('div');
+		this.panelContainer = root.querySelector('.panel-container') || document.createElement('div');
 		this.panelContainer.classList.add('panel-container');
 		this.shadow.appendChild(this.panelContainer);
 
-		this.labelList.addEventListener('focusin', e => {
-			let index = Array.from(this.labelList.childNodes).findIndex((node => node == e.target));
-			this.selectedTab = this.tabs[index];
-		});
-
 		this.tabs = [];
+
+		this.counter = 0;
 	}
 
 	createTab(name) {
 		let tab = {};
 
+		tab.id = ++this.counter;
+
 		tab.panel = document.createElement('div');
 
 		tab.label = document.createElement('li');
-		tab.label.tabIndex = 0;
-		tab.label.textContent = name;
+		tab.label.dataset.tabId = tab.id;
+		
+		tab.labelText = document.createElement('span');
+		tab.labelText.tabIndex = 0;
+		tab.labelText.textContent = name;
+
+		tab.closeButton = document.createElement('button');
+		tab.closeButton.className = 'close-button';
+		tab.closeButton.innerHTML = '&times;';
+
+		tab.labelText.addEventListener('focus', e => {
+			this.selectedTab = tab;
+		});
+
+		tab.closeButton.addEventListener('click', e => {
+			this.removeTab(tab);
+		});
+
+		tab.panel.addEventListener('focusin', e => {
+			this.selectedTab = tab;
+		});
+
+		tab.label.appendChild(tab.labelText);
+		tab.label.appendChild(tab.closeButton);
 
 		this.appendTab(tab);
 
@@ -48,7 +55,7 @@ customElements.define('x-tab-panel', class extends HTMLElement {
 
 	appendTab(tab) {
 		this.tabs.push(tab);
-		this.labelList.appendChild(tab.label);
+		this.labelContainer.appendChild(tab.label);
 		this.panelContainer.appendChild(tab.panel);
 
 		if (this.tabs.length === 1)
@@ -56,9 +63,14 @@ customElements.define('x-tab-panel', class extends HTMLElement {
 	}
 
 	removeTab(tab) {
-		this.labelList.removeChild(tab.label);
+		this.labelContainer.removeChild(tab.label);
 		this.panelContainer.removeChild(tab.panel);
-		this.tabs = this.tabs.filter(tab_ => tab_ !== tab);
+
+		let index = this.tabs.indexOf(tab);
+		this.tabs.splice(index, 1);
+
+		if (this.tabs.length > 0)
+			this.selectedIndex = Math.max(0, index - 1);
 	}
 
 	set selectedTab(selected) {
@@ -79,13 +91,14 @@ customElements.define('x-tab-panel', class extends HTMLElement {
 	}
 
 	clear() {
-		this.tabs.forEach(tab => this.removeTab(tab));
+		Array.from(this.tabs).forEach(tab => this.removeTab(tab));
 	}
 
-	attributeChangedCallback(attr, oldValue, newValue) {
-		switch (attr) {
-			case 'selected-index':
-				this.setActiveTab(this.tabs[i]);
-		}
+	set selectedIndex(index) {
+		this.selectedTab = this.tabs[index];
 	}
-});
+
+	get selectedIndex() {
+		return this.tabs.indexOf(tab => tab.panel.getAttribute('selected'));
+	}
+};

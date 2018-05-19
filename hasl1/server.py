@@ -94,7 +94,7 @@ app.json_encoder = JSONEncoder
 app.debug = True
 
 # Load sentence files
-sentence_files = [os.path.join(os.path.dirname(__file__), '../sentences.txt')]
+sentence_files = [os.path.join(os.path.dirname(__file__), '../evaluation.txt')]
 sentences = OrderedDict()
 
 for sentence_file in sentence_files:

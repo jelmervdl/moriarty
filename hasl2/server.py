@@ -1,10 +1,12 @@
+import os
 import traceback
 from functools import wraps
+from collections import OrderedDict
 from flask import Flask, render_template_string, request, jsonify, send_from_directory
 
 from hasl2.grammar import parse, reverse
 from hasl2.diagram import Diagram
-
+from parser import read_sentences
 
 def text_to_diagrams(text):
 	for arguments in parse(text):
@@ -37,6 +39,15 @@ def handle_exceptions(fn):
 def app_index():
 	with open('hasl2/hasl2.html') as template:
 		return render_template_string(template.read())
+
+@app.route('/sentences')
+def app_sentences():
+	sentence_files = [os.path.join(os.path.dirname(__file__), '../evaluation.txt')]
+	sentences = OrderedDict()
+	for sentence_file in sentence_files:
+	    with open(sentence_file, 'r') as fh:
+	        sentences.update(read_sentences(fh))
+	return jsonify(sentences);
 
 @app.route('/api/diagram', methods=['POST'])
 @handle_exceptions
