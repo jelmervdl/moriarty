@@ -47,7 +47,7 @@
 
 .tab-list > li > span {
 	display: inline-block;
-	padding: 0 4px;
+	padding: 0 0 0 8px;
 	cursor: pointer;
 	outline: none;
 }
@@ -95,12 +95,4 @@
 .panel-container > div > textarea:focus,
 .panel-container > div > canvas:focus {
 	outline: 0;
-}
-
-textarea + .sentence-list {
-	display: none;
-}
-
-textarea:placeholder-shown + .sentence-list {
-	display: block;
 }
