@@ -4,6 +4,7 @@
 import operator
 from typing import List, Optional, Any, Callable, Union, cast
 from collections import OrderedDict
+import codecs
 import functools
 import re
 import inspect
@@ -484,7 +485,17 @@ def parse_syntax(syntax: str) -> List[Rule]:
     return rules
 
 
-def read_sentences(fh):
+def read_sentences(path):
+    if path.endswith('.tex'):
+        reader = read_sentences_tex
+    else:
+        reader = read_sentences_txt
+
+    with codecs.open(path, encoding='utf-8') as fh:
+        return reader(fh)
+
+
+def read_sentences_txt(fh):
     sections = OrderedDict()
     section = None
     
@@ -495,6 +506,25 @@ def read_sentences(fh):
                 sections[section] = list()
         elif len(line.strip()) > 0:
             sections[section].append(line.strip())
+
+    return sections
+
+
+def read_sentences_tex(fh):
+    sections = OrderedDict()
+    section = None
+
+    for line in fh:
+        match = re.match(r'^\\subsubsection\{(.+?)\}\s*$', line)
+        if match:
+            section = match.group(1)
+            sections[section] = OrderedDict()
+            continue
+
+        match = re.match(r'\s*\\ex\s*\\label\{(.+?)\}\s*(.+?)\s*$', line)
+        if match:
+            sections[section][match.group(1)] = match.group(2)
+            continue
 
     return sections
 
