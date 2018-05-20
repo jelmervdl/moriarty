@@ -1,3 +1,6 @@
+\subsection{Evaluation examples}
+These are the examples used to evaluate HASL/1 and HASL/2. They are chosen to cover the requirements mentioned in the introduction. These examples are also available in the online versions of HASL.
+
 \subsubsection{Solo claims}
 \begin{exe}
 \ex\label{e1} Tweety can fly.
@@ -100,10 +103,12 @@ Attacking attacked claims using multiple sentences which state the explicit targ
 \ex\label{e43} Tweety can fly because birds can fly, he is a bird, he has wings and he has feathers.
 \end{exe}
 
+\noindent An argument with a clearly incorrect warrant.
 \begin{exe}
 \ex\label{e44} Tweety can fly because he is a bird and thieves are punishable.
 \end{exe}
 
+\noindent An argument with two separate claims supporting the conclusion that `Tweety can fly' independently that are both warranted.
 \begin{exe}
 \ex\label{e45} Tweety can fly because birds can fly and he is a bird and because superheroes can fly and he is a superhero.
 \end{exe}
@@ -122,6 +127,7 @@ Attacking attacked claims using multiple sentences which state the explicit targ
 \end{exe}
 
 \subsubsection{Rule-like sentences}
+Sentences that can be interpreted as rules, i.e. in the form of `something can fly if it is a bird'.
 \begin{exe}
 \ex\label{e51} A bird can fly.
 \ex\label{e52} Birds can fly.
@@ -130,11 +136,43 @@ Attacking attacked claims using multiple sentences which state the explicit targ
 \ex\label{e55} Liars are thieves.
 \end{exe}
 
-\subsubsection{Rules with exceptions}
+\subsubsection{Rule-like sentences with exceptions}
 \begin{exe}
 \ex\label{e56} Birds can fly except if they are penguins.
 \ex\label{e57} Birds can fly except penguins.
 \ex\label{e58} Birds except penguins can fly.
+\end{exe}
+
+\subsubsection{Rules}
+\begin{exe}
+\ex\label{e72} If something is a bird it can fly.
+\ex\label{e73} Something can fly if it is a bird.
+\ex\label{e74} Something can fly if it is a bird and it has wings.
+\ex\label{e75} Something can fly if it is a bird or if it has wings.
+\ex\label{e76} Something can fly when it has wings and it has an engine or when it is a bird.
+\end{exe}
+
+\noindent The same sentences can also be instantiated, i.e. `something' is replaced with `Tweety'. These are still rules, not arguments, as they do not argue that Tweety can fly.
+\begin{exe}
+\ex\label{e77} Tweety can fly if Tweety is a bird.
+\end{exe}
+
+\subsubsection{Rules with exceptions}
+\begin{exe}
+\ex\label{e80} Something can fly if it has wings except when its wings are too short, when they are clipped or when they are broken.
+\ex\label{e81} Something can fly if it has wings except when its wings are too short or when they are clipped or when they are broken.
+\ex\label{e82} Something can fly when it has wings or when it is a bird unless it is a penguin or its wings have been clipped. 
+\end{exe}
+
+\subsubsection{Arguments with rules}
+Applied rules are rules that are used as warrants to support a claim.
+\begin{exe}
+\ex\label{e90} Tweety can fly because if something is a bird it can fly.
+\ex\label{e91} Socrates is mortal because he is a man and something is mortal if something is a man.
+\ex\label{e92} Socrates is mortal because he is a man and something is mortal if something is a man or something is a mammal.
+\ex\label{e93} Socrates is mortal because he is a man and something is mortal if something is a man or if something is a mammal.
+\ex\label{e94} Socrates is mortal because he is a man and something is mortal if something is a man or if something is a mammal except when this person is Lazarus.
+\ex\label{e95} Socrates is mortal because he is a man and something is mortal if something is a man except when this person is Lazarus or if something is a mammal.
 \end{exe}
 
 \subsubsection{Anaphora}
@@ -144,27 +182,32 @@ Attacking attacked claims using multiple sentences which state the explicit targ
 \ex\label{e61} The bird can fly because he has wings and they help him.
 \end{exe}
 
+\noindent Changing the order of the pronoun and noun, and the difference between cooperative and independent relations.
 \begin{exe}
 \ex\label{e62} The queen can rule because she is born in a royal family and because the king abdicated.
 \ex\label{e63} The queen can rule because the king abdicated and because she is born in a royal family.
+\ex\label{e71} The queen can rule because the king abdicated and she is born in a royal family.
 \end{exe}
 
 \subsubsection{Enthymemes}
+The following three sentences all have one of the three parts of a syllogism missing.
 \begin{exe}
 \ex\label{e64} Socrates is mortal because men are mortal.
 \ex\label{e65} Socrates is mortal because he is a man.
 \ex\label{e66} Socrates is a man and men are mortal.
 \end{exe}
 
+\noindent Example of an enthymeme from \citet{Walton:2005dc}.
 \begin{exe}
 \ex\label{e67} The corporate income tax should be abolished because it is encouraging waste.
 \end{exe}
 
+\noindent In sentence \ref{e68} the attacking claim is a rebuttal on `Tweety can fly', but it is not explicitly stated.
 \begin{exe}
 \ex\label{e68} Tweety can fly but Tweety is a penguin and penguins can not fly.
 \end{exe}
 
 \subsubsection{Referential}
 \begin{exe}
-\ex\label{e69} John has a duty because Jack has suffered damages, those damages are caused by an act of John, the act was unlawful and the act can be imputed to John. The act can be imputed to John because this article of law describes it as such and because common opinion describes it as such.
+\ex\label{e69} John has a duty to repair the damages because Jack has suffered damages, those damages are caused by an act of John, the act was unlawful and the act can be imputed to John. The act can be imputed to John because this article of law describes it as such and because common opinion describes it as such.
 \end{exe}
