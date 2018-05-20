@@ -1,5 +1,8 @@
-\subsection{Evaluation examples}
+\subsection{Evaluation}
+\label{sec:appevaluation}
 These are the examples used to evaluate HASL/1 and HASL/2. They are chosen to cover the requirements mentioned in the introduction. These examples are also available in the online versions of HASL.
+
+\autoref{table:haslevaluation} lists evaluation of HASL/1 and HASL/2 per example. For each example we noted the number of interpretations provided by HASL/1, and the number we judged to be correct. Any remarks on what went right or wrong are noted as well.
 
 \subsubsection{Solo claims}
 \begin{exe}
@@ -64,6 +67,7 @@ Attacking attacked claims using multiple sentences which state the explicit targ
 \begin{exe}
 \ex\label{e26} Tweety can fly but Tweety is a cat. Tweety is a cat but Tweety has wings. Tweety has wings but the wings are small.
 \ex\label{e27} Tweety can fly but Tweety is a cat but Tweety has wings but the wings are small.
+\ex\label{e110} Birds can fly but Tweety can not fly because Tweety is a penguin.
 \end{exe}
 
 \subsubsection{Pros and cons combinations}
@@ -192,22 +196,29 @@ Applied rules are rules that are used as warrants to support a claim.
 \subsubsection{Enthymemes}
 The following three sentences all have one of the three parts of a syllogism missing.
 \begin{exe}
-\ex\label{e64} Socrates is mortal because men are mortal.
-\ex\label{e65} Socrates is mortal because he is a man.
-\ex\label{e66} Socrates is a man and men are mortal.
+\ex\label{e120} Socrates is mortal because men are mortal.
+\ex\label{e121} Socrates is mortal because he is a man.
+\ex\label{e122} Socrates is a man and men are mortal.
+\end{exe}
+
+\noindent Enthymemes occur in combinations of claims.
+\begin{exe}
+\ex\label{e123} Tweety can fly because birds can fly but Tweety is a penguin.
 \end{exe}
 
 \noindent Example of an enthymeme from \citet{Walton:2005dc}.
 \begin{exe}
-\ex\label{e67} The corporate income tax should be abolished because it is encouraging waste.
+\ex\label{e124} The corporate income tax should be abolished because it is encouraging waste.
 \end{exe}
 
-\noindent In sentence \ref{e68} the attacking claim is a rebuttal on `Tweety can fly', but it is not explicitly stated.
+\noindent In sentence \ref{e125} the attacking claim is a rebuttal on `Tweety can fly', but it is not explicitly stated.
 \begin{exe}
-\ex\label{e68} Tweety can fly but Tweety is a penguin and penguins can not fly.
+\ex\label{e125} Tweety can fly but Tweety is a penguin and penguins can not fly.
 \end{exe}
 
 \subsubsection{Referential}
 \begin{exe}
-\ex\label{e69} John has a duty to repair the damages because Jack has suffered damages, those damages are caused by an act of John, the act was unlawful and the act can be imputed to John. The act can be imputed to John because this article of law describes it as such and because common opinion describes it as such.
+\ex\label{e126} John has a duty to repair the damages because Jack has suffered damages, those damages are caused by an act of John, the act was unlawful and the act can be imputed to John. The act can be imputed to John because this article of law describes it as such and because common opinion describes it as such.
 \end{exe}
+
+\clearpage\input{appendix/evaluationresults}
