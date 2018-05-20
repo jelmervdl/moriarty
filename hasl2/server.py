@@ -47,7 +47,7 @@ def app_sentences():
 	for sentence_file in sentence_files:
 	    with open(sentence_file, 'r') as fh:
 	        sentences.update(read_sentences(fh))
-	return jsonify(sentences);
+	return jsonify(sections=list({'section': key, 'sentences': value} for key, value in sentences.items()));
 
 @app.route('/api/diagram', methods=['POST'])
 @handle_exceptions

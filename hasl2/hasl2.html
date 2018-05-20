@@ -288,11 +288,11 @@
 						const sentenceList = document.createElement('ol');
 						sentenceList.className = 'sentence-list';
 
-						Object.entries(data).forEach(entry => {
+						data.sections.forEach(entry => {
 							const header = document.createElement('li');
-							header.textContent = entry[0];
+							header.textContent = entry.section;
 
-							const list = entry[1]
+							const list = entry.sentences
 								.map(sentence => {
 									const item = document.createElement('li');
 									item.textContent = sentence;
