@@ -62,8 +62,8 @@
                 {% for section, sentences in sections.items() %}
                     <li>{{ section }} <button class="btn btn-default btn-xs test-all-sentences">Test section</button></li>
                     <ul>
-                        {% for sentence in sentences %}
-                            <li><span class="example-sentence">{{ sentence }}</span></li>
+                        {% for id, sentence in sentences.items() %}
+                            <li><span class="example-sentence-id">{{ id }}</span> <span class="example-sentence">{{ sentence }}</span></li>
                         {% endfor %}
                     </ul>
                 {% endfor %}

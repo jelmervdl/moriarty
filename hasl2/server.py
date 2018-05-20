@@ -42,11 +42,10 @@ def app_index():
 
 @app.route('/sentences')
 def app_sentences():
-	sentence_files = [os.path.join(os.path.dirname(__file__), '../evaluation.txt')]
+	sentence_files = [os.path.join(os.path.dirname(__file__), '../evaluation.tex')]
 	sentences = OrderedDict()
 	for sentence_file in sentence_files:
-	    with open(sentence_file, 'r') as fh:
-	        sentences.update(read_sentences(fh))
+	    sentences.update(read_sentences(sentence_file))
 	return jsonify(sections=list({'section': key, 'sentences': value} for key, value in sentences.items()));
 
 @app.route('/api/diagram', methods=['POST'])

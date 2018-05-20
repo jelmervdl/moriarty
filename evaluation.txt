@@ -13,12 +13,12 @@ No bird can fly.
 Socrates is mortal because Socrates is a man.
 Tweety can fly because Tweety is a bird.
 Birds can fly because birds have wings.
+Birds can fly because Tweety can fly.
 
 # Cons
 Socrates is mortal but Socrates is a god.
 Tweety is a bird but Tweety is a cat.
 Tweety can fly but Tweety is a penguin.
-Tweety can fly but Tweety cannot fly.
 
 # Mutual attack
 Tweety can fly but Tweety cannot fly. Tweety cannot fly but Tweety can fly.

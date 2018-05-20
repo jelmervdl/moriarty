@@ -67,7 +67,16 @@
 				display: block;
 			}
 
-			.sentence-list ol li:hover {
+			.sentence-list ol {
+				list-style: none;
+				padding-left: 0;
+			}
+
+			.sentence-list .example-sentence-id::after {
+				content: ': ';
+			}
+
+			.sentence-list .example-sentence:hover {
 				cursor: pointer;
 				text-decoration: underline;
 			}
@@ -292,10 +301,19 @@
 							const header = document.createElement('li');
 							header.textContent = entry.section;
 
-							const list = entry.sentences
-								.map(sentence => {
+							const list = Object.entries(entry.sentences)
+								.map(entry => {
+									const id = document.createElement('span');
+									id.className = 'example-sentence-id';
+									id.textContent = entry[0];
+
+									const sentence = document.createElement('span');
+									sentence.className = 'example-sentence';
+									sentence.textContent = entry[1];
+									
 									const item = document.createElement('li');
-									item.textContent = sentence;
+									item.appendChild(id);
+									item.appendChild(sentence);
 									return item;
 								})
 								.reduce((list, item) => {
@@ -559,7 +577,7 @@
 			});
 
 			document.getElementById('realisation-panel').addEventListener('click', e => {
-				if (!e.target.matches('.sentence-list ol li'))
+				if (!e.target.matches('.example-sentence'))
 					return;
 				
 				const tab = e.target.closest('.sentence-list').parentElement;

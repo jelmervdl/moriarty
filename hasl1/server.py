@@ -94,12 +94,11 @@ app.json_encoder = JSONEncoder
 app.debug = True
 
 # Load sentence files
-sentence_files = [os.path.join(os.path.dirname(__file__), '../evaluation.txt')]
+sentence_files = [os.path.join(os.path.dirname(__file__), '../evaluation.tex')]
 sentences = OrderedDict()
 
 for sentence_file in sentence_files:
-    with open(sentence_file, 'r') as fh:
-        sentences.update(parser.read_sentences(fh))
+    sentences.update(parser.read_sentences(sentence_file))
 
 grammars = {
     'HASL/0': hasl0_grammar,
