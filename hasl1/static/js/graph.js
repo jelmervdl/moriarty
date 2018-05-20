@@ -313,7 +313,12 @@ class Graph {
 
 		this.style = {
 			scale: typeof window !== 'undefined' && 'devicePixelRatio' in window ? window.devicePixelRatio : 1.0,
-			padding: 20,
+			padding: {
+				top: 20,
+				right: 20,
+				bottom: 20,
+				left: 20
+			},
 			claim: {
 				padding: {
 					top: 3,
@@ -503,8 +508,8 @@ class Graph {
 		};
 
 		const cursor = {
-			x: e.offsetX - this.style.padding,
-			y: e.offsetY - this.style.padding,
+			x: e.offsetX - this.style.padding.left,
+			y: e.offsetY - this.style.padding.top,
 		};
 
 		if (e.altKey)
@@ -545,13 +550,13 @@ class Graph {
 
 	onDoubleClick(e) {
 		const cursor = {
-			x: e.offsetX - this.style.padding,
-			y: e.offsetY - this.style.padding,
+			x: e.offsetX - this.style.padding.left,
+			y: e.offsetY - this.style.padding.top,
 		};
 
 		let claim = this.findClaimAtPosition(cursor);
 		
-		const text = prompt('ID', claim ? claim.text : '');
+		const text = prompt('Text of claim:', claim ? claim.text : '');
 
 		if (!text)
 			return;
@@ -567,8 +572,8 @@ class Graph {
 	onMouseMove(e) {
 		if (this.dragStartPosition === null) {
 			const cursor = {
-				x: e.offsetX - this.style.padding,
-				y: e.offsetY - this.style.padding,
+				x: e.offsetX - this.style.padding.left,
+				y: e.offsetY - this.style.padding.top,
 			};
 
 			const elementUnderCursor = this.findClaimAtPosition(cursor) || this.findRelationAtPosition(cursor, 5);
@@ -621,8 +626,8 @@ class Graph {
 		this.canvas.style.cursor = 'default';
 
 		const cursor = {
-			x: e.offsetX - this.style.padding,
-			y: e.offsetY - this.style.padding,
+			x: e.offsetX - this.style.padding.left,
+			y: e.offsetY - this.style.padding.top,
 		};
 
 		if (!this.wasDragging) {
@@ -811,9 +816,8 @@ class Graph {
 	}
 
 	updateCanvasSize(e) {
-		const width = 2 * this.style.padding + this.claims.map(claim => claim.x + claim.width).max();
-
-		const height = 2 * this.style.padding + this.claims.map(claim => claim.y + claim.height).max();
+		const width = this.style.padding.left + this.style.padding.right + this.claims.map(claim => claim.x + claim.width).max();
+		const height = this.style.padding.top + this.style.padding.bottom + this.claims.map(claim => claim.y + claim.height).max();
 
 		this.canvas.width = this.style.scale * width;
 		this.canvas.height = this.style.scale * height;
@@ -860,8 +864,8 @@ class Graph {
 
 		// Translate for the padding (simplifies drawing commands immensely)
 		this.context.translate(
-			this.style.padding * this.style.scale,
-			this.style.padding * this.style.scale);
+			this.style.padding.left * this.style.scale,
+			this.style.padding.top * this.style.scale);
 
 		this.context.strokeStyle = '#000';
 		this.context.fillStyle = 'black';

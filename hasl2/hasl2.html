@@ -67,6 +67,35 @@
 				display: block;
 			}
 
+			.sentence-list ol li:hover {
+				cursor: pointer;
+				text-decoration: underline;
+			}
+
+			.diagram-panel canvas {
+				position: relative;
+				z-index: 2;
+				background: transparent;
+			}
+
+			.diagram-panel canvas + .hint {
+				position: absolute;
+				bottom: 0;
+				right: 0;
+				margin: 4px;
+				color: #ccc;
+				text-align: right;
+			}
+
+			.hint key {
+				display: inline-block;
+				background: #ddd;
+				color: white;
+				padding: 0 4px;
+				border-radius: 2px;
+				line-height: 1.2em;
+			}
+
 			.prompt-overlay {
 				position: fixed;
 				top: 0;
@@ -165,21 +194,23 @@
 		<script>
 			(function(Graph) {
 				Graph.prototype.updateCanvasSize = function(e) {
-					const width = this.canvas.parentNode.offsetWidth;
-					const height = this.canvas.parentNode.offsetHeight;
+					let width = this.style.padding.left + this.style.padding.right + this.claims.map(claim => claim.x + claim.width).max();
+					let height = this.style.padding.top + this.style.padding.bottom + this.claims.map(claim => claim.y + claim.height).max();
 
-					if (this._pw == width && this._ph == height)
-						return;
-
-					[this._pw, this._ph] = [width, height];
+					if (this.canvas.parentElement) {
+						width = Math.max(this.canvas.parentElement.offsetWidth / this.style.scale, width);
+						height = Math.max(this.canvas.parentElement.offsetHeight / this.style.scale, height);
+					}
 
 					this.canvas.width = this.style.scale * width;
 					this.canvas.height = this.style.scale * height;
 
-					this.canvas.style.width = '100%';
-					this.canvas.style.height = '100%';
+					if ('style' in this.canvas) {
+						this.canvas.style.width = width + 'px';
+						this.canvas.style.height = height + 'px';
+					}
 				};
-			})//(Graph);
+			})(Graph);
 
 			const sentenceList = createExampleSentencesList();
 			
@@ -204,6 +235,15 @@
 
 				let canvas = document.createElement('canvas');
 				tab.appendChild(canvas);
+
+				let hint = document.createElement('p');
+				hint.className = 'hint';
+				hint.innerHTML = [
+					'Double click to create a new claim',
+					'<key>alt</key> + click to create a support relation',
+					'<key>alt</key> + <key>shift</key> + click to create an attack relation',
+				].join('<br>');
+				tab.appendChild(hint);
 
 				canvas.width = 600;
 				canvas.height = 600;
@@ -530,6 +570,8 @@
 			});
 			
 			createRealisation();
+
+			createDiagram();
 
 		</script>
 	</body>
