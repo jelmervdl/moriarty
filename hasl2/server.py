@@ -37,8 +37,8 @@ def handle_exceptions(fn):
 
 @app.route('/')
 def app_index():
-	with open('hasl2/hasl2.html') as template:
-		return render_template_string(template.read())
+	with open('hasl2/hasl2.html', 'rb') as template:
+		return render_template_string(template.read().decode('utf-8'))
 
 @app.route('/sentences')
 def app_sentences():
