@@ -559,8 +559,14 @@
 
 					try {
 						graph.parse(text);
+						
+						let title = 'Loaded ' + new Date().toLocaleTimeString();
 
-						let tab = diagramPanel.createTab('Loaded'.toString());
+						const roots = graph.findRootClaims();
+						if (roots.length === 1)
+							title = roots[0].text;
+
+						let tab = diagramPanel.createTab(title);
 						tab.diagram = graph;
 						tab.appendChild(canvas);
 						tab.addEventListener('show', graph.draw.bind(graph));
@@ -571,6 +577,7 @@
 							graph.positionClaims();
 
 						graph.fit();
+						canvas.focus();
 					} catch (e) {
 						alert(e);
 					}
