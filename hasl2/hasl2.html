@@ -220,6 +220,16 @@
 						this.canvas.style.height = height + 'px';
 					}
 				};
+
+				Graph.prototype.positionClaims = function() {
+					this.updateClaimSizes();
+		            this.claims.filter(claim => claim.data.compound).forEach(claim => {
+		                const bounds = this.findRelations({target: claim})
+		                    .map(relation => relation.claim)
+		                    .reduce((bounds, claim) => bounds.including(claim), new Bounds());
+		                claim.setPosition(bounds.center.x, bounds.y - 40);
+		            });
+				};
 			})(Graph);
 
 			const sentenceList = createExampleSentencesList();
@@ -284,6 +294,8 @@
 
 					if (graph.claims.every(claim => claim.x === 0 && claim.y === 0))
 						graph.layout().apply();
+					else
+						graph.positionClaims();
 
 					graph.fit();
 				}
@@ -561,6 +573,8 @@
 						
 						if (graph.claims.every(claim => claim.x === 0 && claim.y === 0))
 							graph.layout().apply();
+						else
+							graph.positionClaims();
 
 						graph.fit();
 					} catch (e) {

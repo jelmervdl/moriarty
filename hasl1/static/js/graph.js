@@ -1340,5 +1340,6 @@ Graph.Claim = Claim;
 exports.Claim = Claim;
 exports.Relation = Relation;
 exports.Graph = Graph;
+exports.Bounds = Bounds;
 
 })(typeof exports !== 'undefined' ? exports : window);
