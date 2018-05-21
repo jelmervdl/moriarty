@@ -523,7 +523,7 @@ def read_sentences_tex(fh):
 
         match = re.match(r'\s*\\ex\s*\\label\{(.+?)\}\s*(.+?)\s*$', line)
         if match:
-            sections[section][match.group(1)] = match.group(2)
+            sections[section][match.group(1)] = match.group(2).replace('\\\\', '')
             continue
 
     return sections
