@@ -445,9 +445,6 @@
 				
 				let data = request.then(resp => resp.json());
 
-				// Log to console
-				data.then(json => console.log(json));
-
 				// Draw diagrams
 				data.then(json => {
 					json.diagrams.forEach(createDiagram);
@@ -527,9 +524,6 @@
 				});
 
 				let data = request.then(resp => resp.json());
-
-				// Log to console
-				data.then(json => console.log(json));
 
 				// If there is an error, print it
 				data.then(json => {
