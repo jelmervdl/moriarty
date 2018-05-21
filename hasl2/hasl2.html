@@ -535,6 +535,9 @@
 				data.then(json => {
 					if (json.texts)
 						json.texts.map(createRealisation)[0].querySelector('textarea').focus();
+
+					if (json.more)
+						alert('There are more formulations, but only the first 50 are shown.');
 				});
 
 				// Clear the current one

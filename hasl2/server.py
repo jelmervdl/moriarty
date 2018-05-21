@@ -57,8 +57,14 @@ def app_text_to_diagram():
 @app.route('/api/text', methods=['POST'])
 @handle_exceptions
 def app_diagram_to_text():
-	texts = list(diagram_to_texts(request.json['diagram']))
-	return jsonify(texts=texts)
+	texts = list()
+	limit_reached = False
+	for text in diagram_to_texts(request.json['diagram']):
+		if len(texts) == 50: # Limit the amount of formulations, as these are a bit explosive
+			limit_reached = True
+			break
+		texts.append(text)
+	return jsonify(texts=texts, more=limit_reached)
 
 
 def run():
