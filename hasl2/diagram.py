@@ -203,8 +203,6 @@ class Diagram(object):
 		yield tuple(self.to_argument(claim) for claim in self.find_roots())
 
 		top_warrants = [self.to_warrant({'sources': [claim]}) for claim in self.find_roots() if not self.has_relations(target=claim, type=Type.ATTACK)]
-
-
 		
 		# Find all warrant conditions that themselves have conditions
 		# Use an index as we will add the newly found warrants to the list as
@@ -213,8 +211,8 @@ class Diagram(object):
 		while i < len(top_warrants):
 			for condition in top_warrants[i].conditions:
 				for claim in condition.claims:
-					if self.has_relations(target=claim._ref, type=Type.SUPPORT) \
-						and not self.has_relations(target=claim._ref, type=Type.ATTACK):
+					if self.has_relations(target=claim._ref, type=Type.CONDITION) \
+						and not self.has_relations(target=claim._ref, type=Type.EXCEPTION):
 						top_warrants.append(self.to_warrant({'sources': [claim._ref]}))
 			i += 1
 		
