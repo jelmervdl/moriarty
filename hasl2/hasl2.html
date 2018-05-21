@@ -602,6 +602,22 @@
 				textfield.focus();
 				document.getElementById('text-to-diagram-btn').click();
 			});
+
+			document.body.addEventListener('dblclick', e => {
+				if (e.target.matches('.tab-list')) {
+					e.target.querySelector('button').click();
+					e.preventDefault();
+				}
+			});
+
+			document.body.addEventListener('dblclick', e => {
+				if (e.target.matches('.tab-list > li > span')) {
+					const title = prompt('Tab title:', e.target.textContent);
+					if (title)
+						e.target.textContent = title;
+					e.preventDefault();
+				}
+			});
 			
 			createRealisation();
 

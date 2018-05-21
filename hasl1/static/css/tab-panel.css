@@ -50,6 +50,10 @@
 	padding: 0 0 0 8px;
 	cursor: pointer;
 	outline: none;
+	max-width: 150px;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
 }
 
 .tab-list > li:hover {
