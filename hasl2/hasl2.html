@@ -455,6 +455,8 @@
 			});
 
 			document.getElementById('diagram-to-text-btn').addEventListener('click', e => {
+				let diagram = diagramPanel.selectedTab.diagram;
+
 				let sequence = 0;
 
 				function id(obj) {
@@ -479,9 +481,11 @@
 					return {isa: type, id: id(obj)};
 				}
 
-				let diagram = diagramPanel.selectedTab.diagram;
+				// Reset sequence to the maximum ID we already encountered
+				sequence = diagram.claims.concat(diagram.relations).reduce((max, obj) => {
+					return 'id' in obj ? Math.max(obj.id) : max
+				}, 0) + 1;
 
-	
 				let json = {
 					isa: 'diagram',
 					claims: diagram.claims
