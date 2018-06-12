@@ -344,22 +344,22 @@ class prepend(object):
 			raise Exception("I can't prepend to {!r}".format(object))
 
 
-rules += ruleset([
-	rule('warrant',
-		['subject', l('who'), 'conditions', l('must'), 'claim', 'exceptions?'],
-		template(Warrant,
-			claim=template(Action, subject=slot(0), verb=Text(['must']), object=slot(4)),
-			conditions=prepend(slot(0), slot(2)),
-			exceptions=slot(5))),
+# rules += ruleset([
+# 	rule('warrant',
+# 		['subject', l('who'), 'conditions', l('must'), 'claim', 'exceptions?'],
+# 		template(Warrant,
+# 			claim=template(Action, subject=slot(0), verb=Text(['must']), object=slot(4)),
+# 			conditions=prepend(slot(0), slot(2)),
+# 			exceptions=slot(5))),
 
-	rule('claim',
-		['subject', l('must'), 'claim'],
-		template(Action, subject=slot(0), verb=Text(['must']), object=slot(2))),
+# 	rule('claim',
+# 		['subject', l('must'), 'claim'],
+# 		template(Action, subject=slot(0), verb=Text(['must']), object=slot(2))),
 
-	rule('subject',
-		['word'],
-		slot(0)),
-])
+# 	rule('subject',
+# 		['word'],
+# 		slot(0)),
+# ])
 
 
 def tokenize(markers, sentence):
